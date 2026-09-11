@@ -1,0 +1,165 @@
+{"kind":"deck","id":"pr/hg1mxi","name":"Deck"}
+{"kind":"layout","layoutId":"082869b3-03bf-42fb-a4ed-d084a94731cf","name":"Master","type":"master"}
+{"kind":"layout","layoutId":"65b087e6-2db7-4c65-81bc-a41f1c1a10fe","name":"Title Slide","type":"title"}
+{"kind":"slide","id":"sl/arp7gp","slide":1,"title":"데이터베이스 전체 구조","textShapes":106}
+{"kind":"textbox","id":"sh/h432tkfq","slide":1,"name":"데이터베이스 전체 구조","text":"데이터베이스 전체 구조","textPreview":"데이터베이스 전체 구조","textChars":12,"textLines":1,"bbox":[60,35,536.88,68.2]}
+{"kind":"textbox","id":"sh/u1c3y5gz","slide":1,"name":"테이블 명세서 v4 기준  ·  소속 관계도 — 외래키 연결은 생략","text":"테이블 명세서 v4 기준  ·  소속 관계도 — 외래키 연결은 생략","textPreview":"테이블 명세서 v4 기준  ·  소속 관계도 — 외래키 연결은 생략","textChars":37,"textLines":1,"bbox":[60,96,806.16,37.2]}
+{"kind":"shape","id":"sh/v2lkraxk","slide":1,"name":"영역 상자","bbox":[1280,155,800,128]}
+{"kind":"textbox","id":"sh/4rel4fy1","slide":1,"name":"데이터베이스 1개","text":"데이터베이스 1개","textPreview":"데이터베이스 1개","textChars":9,"textLines":1,"bbox":[1285,177,790,46.5]}
+{"kind":"textbox","id":"sh/5sn2xkfm","slide":1,"name":"PostgreSQL + pgvector  ·  12개 스키마 / 58개 테이블","text":"PostgreSQL + pgvector  ·  12개 스키마 / 58개 테이블","textPreview":"PostgreSQL + pgvector  ·  12개 스키마 / 58개 테이블","textChars":43,"textLines":1,"bbox":[1285,225,790,37.2]}
+{"kind":"shape","id":"sh/ipc325gb","slide":1,"name":"영역 상자","bbox":[2470,165,820,110]}
+{"kind":"textbox","id":"sh/3qlkvaxg","slide":1,"name":"별도 객체 저장소 · DB 외부","text":"별도 객체 저장소 · DB 외부","textPreview":"별도 객체 저장소 · DB 외부","textChars":17,"textLines":1,"bbox":[2475,180,810,41.85]}
+{"kind":"textbox","id":"sh/svel8zyd","slide":1,"name":"파일 원본·파생 이미지·비공개 데이터셋 산출물","text":"파일 원본·파생 이미지·비공개 데이터셋 산출물","textPreview":"파일 원본·파생 이미지·비공개 데이터셋 산출물","textChars":25,"textLines":1,"bbox":[2475,224,810,35.65]}
+{"kind":"shape","id":"sh/dwn214fy","slide":1,"name":"소속 관계 연결선","bbox":[2080,218,390,0]}
+{"kind":"textbox","id":"sh/9krm9gvi","slide":1,"name":"위치·메타데이터 참조","text":"위치·메타데이터 참조","textPreview":"위치·메타데이터 참조","textChars":11,"textLines":1,"bbox":[2082.5,177,385,32.55]}
+{"kind":"shape","id":"sh/8jil0bux","slide":1,"name":"소속 관계 연결선","bbox":[1680,283,0,57]}
+{"kind":"shape","id":"sh/7i9476dc","slide":1,"name":"소속 관계 연결선","bbox":[185,340,2970,0]}
+{"kind":"textbox","id":"sh/mx03y1cr","slide":1,"name":"01  DATABASE → 02  SCHEMA","text":"01  DATABASE → 02  SCHEMA","textPreview":"01  DATABASE → 02  SCHEMA","textChars":25,"textLines":1,"bbox":[60,294,384.06,32.55]}
+{"kind":"shape","id":"sh/hobmdgve","slide":1,"name":"소속 관계 연결선","bbox":[185,340,0,42]}
+{"kind":"shape","id":"sh/wnil4vut","slide":1,"name":"영역 상자","bbox":[60,382,250,118]}
+{"kind":"textbox","id":"sh/vm94bqd8","slide":1,"name":"config","text":"config","textPreview":"config","textChars":6,"textLines":1,"bbox":[62,397,246,40.3]}
+{"kind":"textbox","id":"sh/ul032lc3","slide":1,"name":"도메인 정의 · 2개","text":"도메인 정의 · 2개","textPreview":"도메인 정의 · 2개","textChars":11,"textLines":1,"bbox":[62,439,246,32.55]}
+{"kind":"shape","id":"sh/xs721wva","slide":1,"name":"소속 관계 연결선","bbox":[185,500,0,55]}
+{"kind":"shape","id":"sh/crylsrup","slide":1,"name":"영역 상자","bbox":[60,555,250,416]}
+{"kind":"textbox","id":"sh/ob2l8r2l","slide":1,"name":"TABLES","text":"TABLES","textPreview":"TABLES","textChars":6,"textLines":1,"bbox":[80,571,220,26.35]}
+{"kind":"textbox","id":"sh/pcbmhw36","slide":1,"name":"도메인","text":"도메인","textPreview":"도메인","textChars":3,"textLines":1,"bbox":[80,613,220,35.65]}
+{"kind":"textbox","id":"sh/29036hkf","slide":1,"name":"도메인 정의 버전","text":"도메인 정의 버전","textPreview":"도메인 정의 버전","textChars":9,"textLines":1,"bbox":[80,655,220,35.65]}
+{"kind":"shape","id":"sh/3at4fml0","slide":1,"name":"소속 관계 연결선","bbox":[455,340,0,42]}
+{"kind":"shape","id":"sh/cz2lcb2h","slide":1,"name":"영역 상자","bbox":[330,382,250,118]}
+{"kind":"textbox","id":"sh/d0bmlg32","slide":1,"name":"identity","text":"identity","textPreview":"identity","textChars":8,"textLines":1,"bbox":[332,397,246,40.3]}
+{"kind":"textbox","id":"sh/qdk3a1kr","slide":1,"name":"사용자와 대화 · 4개","text":"사용자와 대화 · 4개","textPreview":"사용자와 대화 · 4개","textChars":12,"textLines":1,"bbox":[332,439,246,32.55]}
+{"kind":"shape","id":"sh/byt4j6lw","slide":1,"name":"소속 관계 연결선","bbox":[455,500,0,55]}
+{"kind":"shape","id":"sh/03m5gb2t","slide":1,"name":"영역 상자","bbox":[330,555,250,416]}
+{"kind":"textbox","id":"sh/l4vmpg3e","slide":1,"name":"TABLES","text":"TABLES","textPreview":"TABLES","textChars":6,"textLines":1,"bbox":[350,571,220,26.35]}
+{"kind":"textbox","id":"sh/vyxofa5g","slide":1,"name":"사용자","text":"사용자","textPreview":"사용자","textChars":3,"textLines":1,"bbox":[350,613,220,35.65]}
+{"kind":"textbox","id":"sh/axo7m54v","slide":1,"name":"사용자 설정","text":"사용자 설정","textPreview":"사용자 설정","textChars":6,"textLines":1,"bbox":[350,655,220,35.65]}
+{"kind":"textbox","id":"sh/x0f6hknm","slide":1,"name":"대화","text":"대화","textPreview":"대화","textChars":2,"textLines":1,"bbox":[350,697,220,35.65]}
+{"kind":"textbox","id":"sh/wz6pofm1","slide":1,"name":"메시지","text":"메시지","textPreview":"메시지","textChars":3,"textLines":1,"bbox":[350,739,220,35.65]}
+{"kind":"shape","id":"sh/nuxoba54","slide":1,"name":"소속 관계 연결선","bbox":[725,340,0,42]}
+{"kind":"shape","id":"sh/mt47i54z","slide":1,"name":"영역 상자","bbox":[600,382,250,118]}
+{"kind":"textbox","id":"sh/9wf6dkna","slide":1,"name":"shared","text":"shared","textPreview":"shared","textChars":6,"textLines":1,"bbox":[602,397,246,40.3]}
+{"kind":"textbox","id":"sh/8v6pkfmp","slide":1,"name":"공통 기준 · 1개","text":"공통 기준 · 1개","textPreview":"공통 기준 · 1개","textChars":10,"textLines":1,"bbox":[602,439,246,32.55]}
+{"kind":"shape","id":"sh/rqhonu5o","slide":1,"name":"소속 관계 연결선","bbox":[725,500,0,55]}
+{"kind":"shape","id":"sh/6p87up43","slide":1,"name":"영역 상자","bbox":[600,555,250,416]}
+{"kind":"textbox","id":"sh/edobitk7","slide":1,"name":"TABLES","text":"TABLES","textPreview":"TABLES","textChars":6,"textLines":1,"bbox":[620,571,220,26.35]}
+{"kind":"textbox","id":"sh/fexsby1s","slide":1,"name":"단위","text":"단위","textPreview":"단위","textChars":2,"textLines":1,"bbox":[620,613,220,35.65]}
+{"kind":"shape","id":"sh/0f6tk32d","slide":1,"name":"소속 관계 연결선","bbox":[995,340,0,42]}
+{"kind":"shape","id":"sh/10zad8jy","slide":1,"name":"영역 상자","bbox":[870,382,250,118]}
+{"kind":"textbox","id":"sh/q9ore9kb","slide":1,"name":"planning","text":"planning","textPreview":"planning","textChars":8,"textLines":1,"bbox":[872,397,246,40.3]}
+{"kind":"textbox","id":"sh/raxs7e1w","slide":1,"name":"구매 계획 · 8개","text":"구매 계획 · 8개","textPreview":"구매 계획 · 8개","textChars":10,"textLines":1,"bbox":[872,439,246,32.55]}
+{"kind":"shape","id":"sh/sb69gj2h","slide":1,"name":"소속 관계 연결선","bbox":[995,500,0,55]}
+{"kind":"shape","id":"sh/dcfa9ojm","slide":1,"name":"영역 상자","bbox":[870,555,250,416]}
+{"kind":"textbox","id":"sh/a58bqd0f","slide":1,"name":"TABLES","text":"TABLES","textPreview":"TABLES","textChars":6,"textLines":1,"bbox":[890,571,220,26.35]}
+{"kind":"textbox","id":"sh/b6hsji10","slide":1,"name":"계획","text":"계획","textPreview":"계획","textChars":2,"textLines":1,"bbox":[890,613,220,35.65]}
+{"kind":"textbox","id":"sh/lcnm5g7e","slide":1,"name":"계획 버전","text":"계획 버전","textPreview":"계획 버전","textChars":5,"textLines":1,"bbox":[890,655,220,35.65]}
+{"kind":"textbox","id":"sh/kbulwbqt","slide":1,"name":"조건","text":"조건","textPreview":"조건","textChars":2,"textLines":1,"bbox":[890,697,220,35.65]}
+{"kind":"textbox","id":"sh/jal436p8","slide":1,"name":"그룹 / 슬롯","text":"그룹 / 슬롯","textPreview":"그룹 / 슬롯","textChars":7,"textLines":1,"bbox":[890,739,220,35.65]}
+{"kind":"textbox","id":"sh/y9c3u18n","slide":1,"name":"필요 항목","text":"필요 항목","textPreview":"필요 항목","textChars":5,"textLines":1,"bbox":[890,781,220,35.65]}
+{"kind":"textbox","id":"sh/x83m1w7i","slide":1,"name":"보유 물품","text":"보유 물품","textPreview":"보유 물품","textChars":5,"textLines":1,"bbox":[890,823,220,35.65]}
+{"kind":"textbox","id":"sh/w7ulsrqx","slide":1,"name":"구매 항목","text":"구매 항목","textPreview":"구매 항목","textChars":5,"textLines":1,"bbox":[890,865,220,35.65]}
+{"kind":"textbox","id":"sh/b6l4zmpc","slide":1,"name":"충족 연결","text":"충족 연결","textPreview":"충족 연결","textChars":5,"textLines":1,"bbox":[890,907,220,35.65]}
+{"kind":"shape","id":"sh/a5c3qh8r","slide":1,"name":"소속 관계 연결선","bbox":[1265,340,0,42]}
+{"kind":"shape","id":"sh/h47md07m","slide":1,"name":"영역 상자","bbox":[1140,382,250,118]}
+{"kind":"textbox","id":"sh/g3e54v61","slide":1,"name":"catalog","text":"catalog","textPreview":"catalog","textChars":7,"textLines":1,"bbox":[1142,397,246,40.3]}
+{"kind":"textbox","id":"sh/0nmp0zed","slide":1,"name":"상품과 가격 · 8개","text":"상품과 가격 · 8개","textPreview":"상품과 가격 · 8개","textChars":11,"textLines":1,"bbox":[1142,439,246,32.55]}
+{"kind":"shape","id":"sh/18f694fy","slide":1,"name":"소속 관계 연결선","bbox":[1265,500,0,55]}
+{"kind":"shape","id":"sh/el47ypw7","slide":1,"name":"영역 상자","bbox":[1140,555,250,416]}
+{"kind":"textbox","id":"sh/fmdo7uxs","slide":1,"name":"TABLES","text":"TABLES","textPreview":"TABLES","textChars":6,"textLines":1,"bbox":[1160,571,220,26.35]}
+{"kind":"textbox","id":"sh/sjmpwfe1","slide":1,"name":"상품","text":"상품","textPreview":"상품","textChars":2,"textLines":1,"bbox":[1160,613,220,35.65]}
+{"kind":"textbox","id":"sh/dkv65kfm","slide":1,"name":"옵션","text":"옵션","textPreview":"옵션","textChars":2,"textLines":1,"bbox":[1160,655,220,35.65]}
+{"kind":"textbox","id":"sh/6h4nupwb","slide":1,"name":"분류","text":"분류","textPreview":"분류","textChars":2,"textLines":1,"bbox":[1160,697,220,35.65]}
+{"kind":"textbox","id":"sh/rido3uxg","slide":1,"name":"분류 연결","text":"분류 연결","textPreview":"분류 연결","textChars":5,"textLines":1,"bbox":[1160,739,220,35.65]}
+{"kind":"textbox","id":"sh/4f25sfe5","slide":1,"name":"근거 속성","text":"근거 속성","textPreview":"근거 속성","textChars":5,"textLines":1,"bbox":[1160,781,220,35.65]}
+{"kind":"textbox","id":"sh/5gv61kfq","slide":1,"name":"판매처","text":"판매처","textPreview":"판매처","textChars":3,"textLines":1,"bbox":[1160,823,220,35.65]}
+{"kind":"textbox","id":"sh/7qt8bahc","slide":1,"name":"판매 제안","text":"판매 제안","textPreview":"판매 제안","textChars":5,"textLines":1,"bbox":[1160,865,220,35.65]}
+{"kind":"textbox","id":"sh/mpk7i50r","slide":1,"name":"가격 / 재고 관측","text":"가격 / 재고 관측","textPreview":"가격 / 재고 관측","textChars":10,"textLines":1,"bbox":[1160,907,220,35.65]}
+{"kind":"shape","id":"sh/9cbqdkzi","slide":1,"name":"소속 관계 연결선","bbox":[1535,340,0,42]}
+{"kind":"shape","id":"sh/8b2pkfix","slide":1,"name":"영역 상자","bbox":[1410,382,250,118]}
+{"kind":"textbox","id":"sh/vet8faho","slide":1,"name":"assets","text":"assets","textPreview":"assets","textChars":6,"textLines":1,"bbox":[1412,397,246,40.3]}
+{"kind":"textbox","id":"sh/udk7mp03","slide":1,"name":"상품 자료 관리 · 4개","text":"상품 자료 관리 · 4개","textPreview":"상품 자료 관리 · 4개","textChars":13,"textLines":1,"bbox":[1412,439,246,32.55]}
+{"kind":"shape","id":"sh/hgvqhkze","slide":1,"name":"소속 관계 연결선","bbox":[1535,500,0,55]}
+{"kind":"shape","id":"sh/wf2pofi9","slide":1,"name":"영역 상자","bbox":[1410,555,250,416]}
+{"kind":"textbox","id":"sh/jid8juhk","slide":1,"name":"TABLES","text":"TABLES","textPreview":"TABLES","textChars":6,"textLines":1,"bbox":[1430,571,220,26.35]}
+{"kind":"textbox","id":"sh/ih47qp0z","slide":1,"name":"파일 객체","text":"파일 객체","textPreview":"파일 객체","textChars":5,"textLines":1,"bbox":[1430,613,220,35.65]}
+{"kind":"textbox","id":"sh/qpkbetwj","slide":1,"name":"상품 자료","text":"상품 자료","textPreview":"상품 자료","textChars":5,"textLines":1,"bbox":[1430,655,220,35.65]}
+{"kind":"textbox","id":"sh/rqts7ydo","slide":1,"name":"자료 버전","text":"자료 버전","textPreview":"자료 버전","textChars":5,"textLines":1,"bbox":[1430,697,220,35.65]}
+{"kind":"textbox","id":"sh/cr2tgje9","slide":1,"name":"적용 상품 연결","text":"적용 상품 연결","textPreview":"적용 상품 연결","textChars":8,"textLines":1,"bbox":[1430,739,220,35.65]}
+{"kind":"shape","id":"sh/dsba9ovu","slide":1,"name":"소속 관계 연결선","bbox":[1805,340,0,42]}
+{"kind":"shape","id":"sh/etkbitwf","slide":1,"name":"영역 상자","bbox":[1680,382,250,118]}
+{"kind":"textbox","id":"sh/zutcbyd0","slide":1,"name":"rag","text":"rag","textPreview":"rag","textChars":3,"textLines":1,"bbox":[1682,397,246,40.3]}
+{"kind":"textbox","id":"sh/0vmtk3el","slide":1,"name":"자료 검색 · 6개","text":"자료 검색 · 6개","textPreview":"자료 검색 · 6개","textChars":10,"textLines":1,"bbox":[1682,439,246,32.55]}
+{"kind":"shape","id":"sh/1wvud8v6","slide":1,"name":"소속 관계 연결선","bbox":[1805,500,0,55]}
+{"kind":"shape","id":"sh/mx4bmdwb","slide":1,"name":"영역 상자","bbox":[1680,555,250,416]}
+{"kind":"textbox","id":"sh/nydcfidw","slide":1,"name":"TABLES","text":"TABLES","textPreview":"TABLES","textChars":6,"textLines":1,"bbox":[1700,571,220,26.35]}
+{"kind":"textbox","id":"sh/xsfe5cfe","slide":1,"name":"추출 작업","text":"추출 작업","textPreview":"추출 작업","textChars":5,"textLines":1,"bbox":[1700,613,220,35.65]}
+{"kind":"textbox","id":"sh/wr6dc7yt","slide":1,"name":"청크","text":"청크","textPreview":"청크","textChars":2,"textLines":1,"bbox":[1700,655,220,35.65]}
+{"kind":"textbox","id":"sh/bqxw32x8","slide":1,"name":"임베딩 설정","text":"임베딩 설정","textPreview":"임베딩 설정","textChars":6,"textLines":1,"bbox":[1700,697,220,35.65]}
+{"kind":"textbox","id":"sh/apovaxgn","slide":1,"name":"청크 벡터","text":"청크 벡터","textPreview":"청크 벡터","textChars":5,"textLines":1,"bbox":[1700,739,220,35.65]}
+{"kind":"textbox","id":"sh/lgze9cfa","slide":1,"name":"검색 실행","text":"검색 실행","textPreview":"검색 실행","textChars":5,"textLines":1,"bbox":[1700,781,220,35.65]}
+{"kind":"textbox","id":"sh/kfqdg7yp","slide":1,"name":"검색 결과","text":"검색 결과","textPreview":"검색 결과","textChars":5,"textLines":1,"bbox":[1700,823,220,35.65]}
+{"kind":"shape","id":"sh/jehw72x4","slide":1,"name":"소속 관계 연결선","bbox":[2075,340,0,42]}
+{"kind":"shape","id":"sh/ydovehgj","slide":1,"name":"영역 상자","bbox":[1950,382,250,118]}
+{"kind":"textbox","id":"sh/tkzedwfm","slide":1,"name":"community","text":"community","textPreview":"community","textChars":9,"textLines":1,"bbox":[1952,397,246,40.3]}
+{"kind":"textbox","id":"sh/8jqxkry1","slide":1,"name":"PC 구성과 리뷰 · 5개","text":"PC 구성과 리뷰 · 5개","textPreview":"PC 구성과 리뷰 · 5개","textChars":14,"textLines":1,"bbox":[1952,439,246,32.55]}
+{"kind":"shape","id":"sh/9on25ony","slide":1,"name":"소속 관계 연결선","bbox":[2075,500,0,55]}
+{"kind":"shape","id":"sh/onelcj6d","slide":1,"name":"영역 상자","bbox":[1950,555,250,416]}
+{"kind":"textbox","id":"sh/nm5k3e5s","slide":1,"name":"TABLES","text":"TABLES","textPreview":"TABLES","textChars":6,"textLines":1,"bbox":[1970,571,220,26.35]}
+{"kind":"textbox","id":"sh/2lw3a9o7","slide":1,"name":"사용자 PC","text":"사용자 PC","textPreview":"사용자 PC","textChars":6,"textLines":1,"bbox":[1970,613,220,35.65]}
+{"kind":"textbox","id":"sh/xc729onu","slide":1,"name":"구성 버전","text":"구성 버전","textPreview":"구성 버전","textChars":5,"textLines":1,"bbox":[1970,655,220,35.65]}
+{"kind":"textbox","id":"sh/wbelgj69","slide":1,"name":"구성 부품","text":"구성 부품","textPreview":"구성 부품","textChars":5,"textLines":1,"bbox":[1970,697,220,35.65]}
+{"kind":"textbox","id":"sh/ba5k7y5o","slide":1,"name":"작성 리뷰","text":"작성 리뷰","textPreview":"작성 리뷰","textChars":5,"textLines":1,"bbox":[1970,739,220,35.65]}
+{"kind":"textbox","id":"sh/apw3eto3","slide":1,"name":"리뷰 본문 버전","text":"리뷰 본문 버전","textPreview":"리뷰 본문 버전","textChars":8,"textLines":1,"bbox":[1970,781,220,35.65]}
+{"kind":"shape","id":"sh/lg72d8nq","slide":1,"name":"소속 관계 연결선","bbox":[2345,340,0,42]}
+{"kind":"shape","id":"sh/kfylk36l","slide":1,"name":"영역 상자","bbox":[2220,382,250,118]}
+{"kind":"textbox","id":"sh/il8ze543","slide":1,"name":"evidence","text":"evidence","textPreview":"evidence","textChars":8,"textLines":1,"bbox":[2222,397,246,40.3]}
+{"kind":"textbox","id":"sh/3m107al8","slide":1,"name":"근거와 리뷰 통계 · 6개","text":"근거와 리뷰 통계 · 6개","textPreview":"근거와 리뷰 통계 · 6개","textChars":14,"textLines":1,"bbox":[2222,439,246,32.55]}
+{"kind":"shape","id":"sh/4nahgvmt","slide":1,"name":"소속 관계 연결선","bbox":[2345,500,0,55]}
+{"kind":"shape","id":"sh/5oji903e","slide":1,"name":"영역 상자","bbox":[2220,555,250,416]}
+{"kind":"textbox","id":"sh/qpszi54z","slide":1,"name":"TABLES","text":"TABLES","textPreview":"TABLES","textChars":6,"textLines":1,"bbox":[2240,571,220,26.35]}
+{"kind":"textbox","id":"sh/rq10balk","slide":1,"name":"출처","text":"출처","textPreview":"출처","textChars":2,"textLines":1,"bbox":[2240,613,220,35.65]}
+{"kind":"textbox","id":"sh/srahkfm5","slide":1,"name":"인용 근거","text":"인용 근거","textPreview":"인용 근거","textChars":5,"textLines":1,"bbox":[2240,655,220,35.65]}
+{"kind":"textbox","id":"sh/dsjidk3q","slide":1,"name":"리뷰 대상","text":"리뷰 대상","textPreview":"리뷰 대상","textChars":5,"textLines":1,"bbox":[2240,697,220,35.65]}
+{"kind":"textbox","id":"sh/etczmp4v","slide":1,"name":"리뷰 요약","text":"리뷰 요약","textPreview":"리뷰 요약","textChars":5,"textLines":1,"bbox":[2240,739,220,35.65]}
+{"kind":"textbox","id":"sh/ful0fulg","slide":1,"name":"리뷰 집계","text":"리뷰 집계","textPreview":"리뷰 집계","textChars":5,"textLines":1,"bbox":[2240,781,220,35.65]}
+{"kind":"textbox","id":"sh/bilg3u1o","slide":1,"name":"집계 구성원","text":"집계 구성원","textPreview":"집계 구성원","textChars":6,"textLines":1,"bbox":[2240,823,220,35.65]}
+{"kind":"shape","id":"sh/axczap03","slide":1,"name":"소속 관계 연결선","bbox":[2615,340,0,42]}
+{"kind":"shape","id":"sh/xkny54ju","slide":1,"name":"영역 상자","bbox":[2490,382,250,118]}
+{"kind":"textbox","id":"sh/wjuhczi9","slide":1,"name":"engine","text":"engine","textPreview":"engine","textChars":6,"textLines":1,"bbox":[2492,397,246,40.3]}
+{"kind":"textbox","id":"sh/nulgza1s","slide":1,"name":"추천과 검증 · 7개","text":"추천과 검증 · 7개","textPreview":"추천과 검증 · 7개","textChars":11,"textLines":1,"bbox":[2492,439,246,32.55]}
+{"kind":"shape","id":"sh/2tcz6507","slide":1,"name":"소속 관계 연결선","bbox":[2615,500,0,55]}
+{"kind":"shape","id":"sh/pw3y1kji","slide":1,"name":"영역 상자","bbox":[2490,555,250,416]}
+{"kind":"textbox","id":"sh/ovuh8fid","slide":1,"name":"TABLES","text":"TABLES","textPreview":"TABLES","textChars":6,"textLines":1,"bbox":[2510,571,220,26.35]}
+{"kind":"textbox","id":"sh/fq1gva1g","slide":1,"name":"추천 실행","text":"추천 실행","textPreview":"추천 실행","textChars":5,"textLines":1,"bbox":[2510,613,220,35.65]}
+{"kind":"textbox","id":"sh/epsf250v","slide":1,"name":"추천 후보","text":"추천 후보","textPreview":"추천 후보","textChars":5,"textLines":1,"bbox":[2510,655,220,35.65]}
+{"kind":"textbox","id":"sh/4vqdwbyt","slide":1,"name":"후보 근거","text":"후보 근거","textPreview":"후보 근거","textChars":5,"textLines":1,"bbox":[2510,697,220,35.65]}
+{"kind":"textbox","id":"sh/5wze5gze","slide":1,"name":"검사 결과","text":"검사 결과","textPreview":"검사 결과","textChars":5,"textLines":1,"bbox":[2510,739,220,35.65]}
+{"kind":"textbox","id":"sh/itovu1gn","slide":1,"name":"검사 대상","text":"검사 대상","textPreview":"검사 대상","textChars":5,"textLines":1,"bbox":[2510,781,220,35.65]}
+{"kind":"textbox","id":"sh/3uhw36h8","slide":1,"name":"검사 근거","text":"검사 근거","textPreview":"검사 근거","textChars":5,"textLines":1,"bbox":[2510,823,220,35.65]}
+{"kind":"textbox","id":"sh/szqd0by5","slide":1,"name":"사용자 행동 기록","text":"사용자 행동 기록","textPreview":"사용자 행동 기록","textChars":9,"textLines":1,"bbox":[2510,865,220,35.65]}
+{"kind":"shape","id":"sh/d0ze9gza","slide":1,"name":"소속 관계 연결선","bbox":[2885,340,0,42]}
+{"kind":"shape","id":"sh/qx8vy1gz","slide":1,"name":"영역 상자","bbox":[2760,382,250,118]}
+{"kind":"textbox","id":"sh/ryhw76hk","slide":1,"name":"notification","text":"notification","textPreview":"notification","textChars":12,"textLines":1,"bbox":[2762,397,246,40.3]}
+{"kind":"textbox","id":"sh/836doril","slide":1,"name":"가격 추적과 알림 · 3개","text":"가격 추적과 알림 · 3개","textPreview":"가격 추적과 알림 · 3개","textChars":14,"textLines":1,"bbox":[2762,439,246,32.55]}
+{"kind":"shape","id":"sh/t4fexwz6","slide":1,"name":"소속 관계 연결선","bbox":[2885,500,0,55]}
+{"kind":"shape","id":"sh/1kr6xwza","slide":1,"name":"영역 상자","bbox":[2760,555,250,416]}
+{"kind":"textbox","id":"sh/0zi54ry5","slide":1,"name":"TABLES","text":"TABLES","textPreview":"TABLES","textChars":6,"textLines":1,"bbox":[2780,571,220,26.35]}
+{"kind":"textbox","id":"sh/zy9ovmhk","slide":1,"name":"가격 추적","text":"가격 추적","textPreview":"가격 추적","textChars":5,"textLines":1,"bbox":[2780,613,220,35.65]}
+{"kind":"textbox","id":"sh/exgn2hgz","slide":1,"name":"가격 판정","text":"가격 판정","textPreview":"가격 판정","textChars":5,"textLines":1,"bbox":[2780,655,220,35.65]}
+{"kind":"textbox","id":"sh/dw7mtcze","slide":1,"name":"알림 이벤트","text":"알림 이벤트","textPreview":"알림 이벤트","textChars":6,"textLines":1,"bbox":[2780,697,220,35.65]}
+{"kind":"shape","id":"sh/cvy507yt","slide":1,"name":"소속 관계 연결선","bbox":[3155,340,0,42]}
+{"kind":"shape","id":"sh/rup4r2h8","slide":1,"name":"영역 상자","bbox":[3030,382,250,118]}
+{"kind":"textbox","id":"sh/qtgnyx0n","slide":1,"name":"dataset","text":"dataset","textPreview":"dataset","textChars":7,"textLines":1,"bbox":[3032,397,246,40.3]}
+{"kind":"textbox","id":"sh/ps7mpszi","slide":1,"name":"리뷰 학습 데이터 · 4개","text":"리뷰 학습 데이터 · 4개","textPreview":"리뷰 학습 데이터 · 4개","textChars":14,"textLines":1,"bbox":[3032,439,246,32.55]}
+{"kind":"shape","id":"sh/4ry5w7ix","slide":1,"name":"소속 관계 연결선","bbox":[3155,500,0,55]}
+{"kind":"shape","id":"sh/uxc36twf","slide":1,"name":"영역 상자","bbox":[3030,555,250,416]}
+{"kind":"textbox","id":"sh/fylkzyx0","slide":1,"name":"TABLES","text":"TABLES","textPreview":"TABLES","textChars":6,"textLines":1,"bbox":[3050,571,220,26.35]}
+{"kind":"textbox","id":"sh/gzel83el","slide":1,"name":"생성 실행","text":"생성 실행","textPreview":"생성 실행","textChars":5,"textLines":1,"bbox":[3050,613,220,35.65]}
+{"kind":"textbox","id":"sh/h0n218f6","slide":1,"name":"실제 / 합성 표본","text":"실제 / 합성 표본","textPreview":"실제 / 합성 표본","textChars":10,"textLines":1,"bbox":[3050,655,220,35.65]}
+{"kind":"textbox","id":"sh/69cj2tgj","slide":1,"name":"라벨 정의","text":"라벨 정의","textPreview":"라벨 정의","textChars":5,"textLines":1,"bbox":[3050,697,220,35.65]}
+{"kind":"textbox","id":"sh/7alkvyx4","slide":1,"name":"정답 / 검수 이력","text":"정답 / 검수 이력","textPreview":"정답 / 검수 이력","textChars":10,"textLines":1,"bbox":[3050,739,220,35.65]}
+{"kind":"textbox","id":"sh/svul43yp","slide":1,"name":"03  TABLE","text":"03  TABLE","textPreview":"03  TABLE","textChars":9,"textLines":1,"bbox":[60,518,250,32.55]}
+{"kind":"shape","id":"sh/tw32x8fa","slide":1,"name":"소속 관계 연결선","bbox":[60,1010,3240,0]}
+{"kind":"textbox","id":"sh/i5sjy9gn","slide":1,"name":"읽는 법","text":"읽는 법","textPreview":"읽는 법","textChars":4,"textLines":1,"bbox":[60,1039,250,37.2]}
+{"kind":"textbox","id":"sh/j61krexs","slide":1,"name":"위: 데이터베이스  →  가운데: 업무별 스키마  →  아래: 소속 테이블","text":"위: 데이터베이스  →  가운데: 업무별 스키마  →  아래: 소속 테이블","textPreview":"위: 데이터베이스  →  가운데: 업무별 스키마  →  아래: 소속 테이블","textChars":41,"textLines":1,"bbox":[200,1039,895.44,37.2]}
+{"kind":"textbox","id":"sh/nah0zadk","slide":1,"name":"파일은 객체 저장소에, 관계·버전·검색 벡터는 PostgreSQL에 저장합니다.","text":"파일은 객체 저장소에, 관계·버전·검색 벡터는 PostgreSQL에 저장합니다.","textPreview":"파일은 객체 저장소에, 관계·버전·검색 벡터는 PostgreSQL에 저장합니다.","textChars":44,"textLines":1,"bbox":[60,1092,896.64,35.65]}
+{"kind":"notes","id":"nt/arp7gp","slide":1,"text":"출처: docs/db/table_spec.md, 테이블 명세서 v4 (2026-09-10). 12개 스키마와 58개 테이블. 연결선은 소속 관계이며 FK를 표시하지 않는다."}

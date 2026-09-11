@@ -1,0 +1,26 @@
+[project]
+name = "truefit"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "1jelly7", email = "koisi1998@gmail.com" }
+]
+requires-python = "==3.11.*"
+dependencies = [
+    "boto3>=1.34,<2",
+    "fastapi>=0.110.0",
+    "psycopg[binary]>=3.1",
+    "pydantic>=2.6",
+    "pytest>=8.0.0",
+    "python-dotenv>=1.0.0",
+    "pyyaml>=6.0",
+    "uvicorn[standard]>=0.29.0",
+]
+
+[project.scripts]
+truefit = "truefit:main"
+
+[build-system]
+requires = ["uv_build>=0.12.5,<0.13.0"]
+build-backend = "uv_build"

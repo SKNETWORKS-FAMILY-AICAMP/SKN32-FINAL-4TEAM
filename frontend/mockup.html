@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>목적성 쇼핑 파이프라인 — GUI 목업</title>
+<style>
+  :root {
+    --bg:#0f1117; --panel:#1a1d27; --panel2:#232734; --line:#2f3444;
+    --text:#e6e8ee; --dim:#99a0b3; --accent:#6ea8fe;
+    --ok:#3fb950; --bad:#f85149; --warn:#d29922;
+  }
+  * { box-sizing:border-box; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  html,body { background:var(--bg); }
+  body { margin:0; color:var(--text);
+    font:13px/1.6 system-ui,"Segoe UI","Malgun Gothic",sans-serif; }
+  header { padding:16px 22px; border-bottom:1px solid var(--line); }
+  header h1 { margin:0; font-size:16px; }
+  header p { margin:4px 0 0; color:var(--dim); font-size:11px; }
+  main { max-width:900px; margin:0 auto; padding:18px 22px; }
+  .mockline { color:var(--dim); font-size:11px; margin:0 0 14px; }
+  .fakeinput { display:flex; gap:8px; margin-bottom:6px; }
+  .fakeinput .box { flex:1; background:var(--panel2); border:1px solid var(--line);
+    border-radius:8px; padding:9px 12px; color:var(--text); }
+  .fakeinput .btn { background:var(--accent); color:#0b1020; border-radius:8px;
+    padding:9px 20px; font-weight:700; }
+  .panel { background:var(--panel); border:1px solid var(--line);
+    border-radius:12px; padding:14px 16px; margin-top:16px; break-inside:avoid; }
+  .panel h2 { margin:0 0 10px; font-size:12px; letter-spacing:.04em;
+    text-transform:uppercase; color:var(--dim); }
+  pre.log { margin:0; background:#0b0d13; border:1px solid var(--line);
+    border-radius:8px; padding:12px;
+    font:11px/1.5 "Cascadia Mono",Consolas,monospace; color:#c6cbd9; white-space:pre-wrap; }
+  .kv { display:grid; grid-template-columns:88px 1fr; gap:4px 12px; }
+  .kv dt { color:var(--dim); }
+  .kv dd { margin:0; }
+  .tag { display:inline-block; background:var(--panel2); border:1px solid var(--line);
+    border-radius:999px; padding:1px 9px; margin:2px 4px 2px 0; font-size:11px; }
+  .item { border:1px solid var(--line); border-radius:10px; padding:13px;
+    margin-top:12px; background:var(--panel2); break-inside:avoid; }
+  .item > h3 { margin:0 0 8px; font-size:14px; }
+  .cands { list-style:none; margin:0 0 10px; padding:0; }
+  .cands li { display:flex; justify-content:space-between; padding:3px 0;
+    border-bottom:1px dashed var(--line); font-size:12px; }
+  .cands li:last-child { border-bottom:0; }
+  .attempts { display:flex; flex-direction:column; gap:6px; margin:8px 0 10px; }
+  .attempt { display:flex; align-items:center; gap:8px; font-size:12px;
+    padding:6px 10px; border-radius:8px; background:#0b0d13; border:1px solid var(--line); }
+  .badge { font-size:10px; font-weight:700; padding:1px 8px; border-radius:999px; }
+  .badge.ok { background:rgba(63,185,80,.15); color:var(--ok); border:1px solid var(--ok); }
+  .badge.bad { background:rgba(248,81,73,.15); color:var(--bad); border:1px solid var(--bad); }
+  .retry-note { color:var(--warn); font-size:11px; margin:2px 0 10px; }
+  .chosen { border-left:3px solid var(--ok); padding-left:12px; margin:10px 0; }
+  .chosen a { color:var(--accent); }
+  .contrib { max-width:440px; margin-top:10px; }
+  .contrib .ctitle { color:var(--dim); font-size:11px; margin-bottom:6px; }
+  .crow { display:flex; align-items:center; gap:8px; margin:4px 0; font-size:12px; }
+  .crow .clabel { width:36px; color:var(--dim); }
+  .crow .cbar { flex:1; height:12px; background:#0b0d13; border:1px solid var(--line);
+    border-radius:6px; overflow:hidden; }
+  .crow .cbar i { display:block; height:100%; background:var(--accent); }
+  .crow .cval { width:44px; text-align:right; }
+  table { width:100%; border-collapse:collapse; font-size:12px; }
+  th,td { text-align:right; padding:6px 10px; border-bottom:1px solid var(--line); }
+  th:first-child, td:first-child { text-align:left; }
+  tfoot td { font-weight:700; }
+  .neg { color:var(--ok); }
+  .muted { color:var(--dim); font-size:11px; }
+  @page { size:A4; margin:11mm; }
+</style>
+</head>
+<body>
+<header>
+  <h1>목적성 쇼핑 파이프라인 — 임시 GUI 목업</h1>
+  <p>의도분해 → 비교매칭 → 검증(+재탐색) → 설명생성 → 리포트 · 전부 MOCK 데이터</p>
+</header>
+<main>
+  <p class="mockline">아래는 백엔드 <code>/run</code> 응답으로 렌더된 화면 스냅샷입니다 (실제 API 미호출, 고정 mock).</p>
+  <div class="fakeinput">
+    <div class="box">가을에 4인 가족이랑 캠핑 가려고 하는데 장비 좀 챙겨줘. 예산은 40만원 정도.</div>
+    <div class="btn">실행</div>
+  </div>
+
+  <section class="panel"><h2>단계 로그</h2><pre class="log" id="log"></pre></section>
+  <section class="panel"><h2>[1/5] 의도 분해 · 슬롯</h2><div id="slot"></div></section>
+  <section class="panel"><h2>[2~4/5] 품목별 매칭 · 검증 · 설명</h2><div id="items"></div></section>
+  <section class="panel"><h2>[5/5] 리포트</h2><div id="report"></div></section>
+</main>
+
+<script>
+const DATA = {"입력": "가을에 4인 가족이랑 캠핑 가려고 하는데 장비 좀 챙겨줘. 예산은 40만원 정도.", "슬롯": {"목적": "가을 캠핑 준비", "인원수": 4, "예산": 400000, "이미_보유한_품목": ["코펠", "버너"], "체크리스트": ["4인용 텐트", "침낭", "캠핑 랜턴"], "빠진_정보": []}, "후속질문": "인원수 정보를 알려주세요.", "시뮬레이션_답변": "4명이요", "품목결과": [{"품목": "4인용 텐트", "후보들": [{"순위": 1, "상품명": "초경량 4인용 원터치 텐트 캠핑 돔텐트", "가격": 79000, "업체": "A아웃도어"}, {"순위": 2, "상품명": "프로캠퍼 4인용 프리스탠딩 돔텐트 방수 3000mm", "가격": 95000, "업체": "B캠핑몰"}, {"순위": 3, "상품명": "알파인 4인용 이중창 거실형 텐트 대형", "가격": 138000, "업체": "C기어샵"}], "검증_시도": [{"순번": 1, "상품명": "초경량 4인용 원터치 텐트 캠핑 돔텐트", "신뢰도": 62, "통과": false}, {"순번": 2, "상품명": "프로캠퍼 4인용 프리스탠딩 돔텐트 방수 3000mm", "신뢰도": 91, "통과": true}], "재탐색_횟수": 1, "채택": {"상품명": "프로캠퍼 4인용 프리스탠딩 돔텐트 방수 3000mm", "가격": 95000, "업체": "B캠핑몰", "링크": "https://shop.example/tent-002", "신뢰도": 91}, "기여도": {"가격": 34.0, "평점": 28.0, "스펙": 22.0, "재질": 16.0}, "종합_요약": "가격 경쟁력이 크고 스펙 요건을 충족하며 신뢰도 검증도 통과해 최우선 후보로 추천합니다."}, {"품목": "침낭", "후보들": [{"순위": 1, "상품명": "3계절 사계절 침낭 발수 캠핑 슬리핑백 -5도", "가격": 42000, "업체": "B캠핑몰"}, {"순위": 2, "상품명": "경량 구스다운 침낭 700FP 백패킹용", "가격": 128000, "업체": "C기어샵"}], "검증_시도": [{"순번": 1, "상품명": "3계절 사계절 침낭 발수 캠핑 슬리핑백 -5도", "신뢰도": 88, "통과": true}], "재탐색_횟수": 0, "채택": {"상품명": "3계절 사계절 침낭 발수 캠핑 슬리핑백 -5도", "가격": 42000, "업체": "B캠핑몰", "링크": "https://shop.example/bag-001", "신뢰도": 88}, "기여도": {"가격": 34.0, "평점": 28.0, "스펙": 22.0, "재질": 16.0}, "종합_요약": "가격 경쟁력이 크고 스펙 요건을 충족하며 신뢰도 검증도 통과해 최우선 후보로 추천합니다."}, {"품목": "캠핑 랜턴", "후보들": [{"순위": 1, "상품명": "충전식 LED 캠핑 랜턴 5200mAh 3단 밝기", "가격": 23900, "업체": "A아웃도어"}, {"순위": 2, "상품명": "가스 랜턴 감성 캠핑 브라스 클래식", "가격": 61000, "업체": "C기어샵"}], "검증_시도": [{"순번": 1, "상품명": "충전식 LED 캠핑 랜턴 5200mAh 3단 밝기", "신뢰도": 72, "통과": false}, {"순번": 2, "상품명": "가스 랜턴 감성 캠핑 브라스 클래식", "신뢰도": 90, "통과": true}], "재탐색_횟수": 1, "채택": {"상품명": "가스 랜턴 감성 캠핑 브라스 클래식", "가격": 61000, "업체": "C기어샵", "링크": "https://shop.example/lnt-002", "신뢰도": 90}, "기여도": {"가격": 34.0, "평점": 28.0, "스펙": 22.0, "재질": 16.0}, "종합_요약": "가격 경쟁력이 크고 스펙 요건을 충족하며 신뢰도 검증도 통과해 최우선 후보로 추천합니다."}], "리포트": {"목적": "가을 캠핑 준비", "items": [{"품목": "4인용 텐트", "업체": "B캠핑몰", "상품명": "프로캠퍼 4인용 프리스탠딩 돔텐트 방수 3000mm", "가격": 95000, "신뢰도": 91, "절감액": -25000, "링크": "https://shop.example/tent-002"}, {"품목": "침낭", "업체": "B캠핑몰", "상품명": "3계절 사계절 침낭 발수 캠핑 슬리핑백 -5도", "가격": 42000, "신뢰도": 88, "절감액": -13000, "링크": "https://shop.example/bag-001"}, {"품목": "캠핑 랜턴", "업체": "C기어샵", "상품명": "가스 랜턴 감성 캠핑 브라스 클래식", "가격": 61000, "신뢰도": 90, "절감액": -11000, "링크": "https://shop.example/lnt-002"}], "총액": 198000, "평균_신뢰도": 89.7}, "logs": ["[1/5] 의도 분해 중...", "      빠진 정보 ['인원수'] → 후속 질문: '인원수 정보를 알려주세요.'", "      (데모) 프론트에서 받은 사용자 답변 시뮬레이션: '4명이요'", "      목적=가을 캠핑 준비 / 인원수=4 / 예산=400000", "      체크리스트: ['4인용 텐트', '침낭', '캠핑 랜턴']", "\n── 품목 1/3: '4인용 텐트' ──", "[2/5] 비교 매칭 중...", "      후보 3개 수집 → 상위 3개 선정", "        1. 초경량 4인용 원터치 텐트 캠핑 돔텐트                      79,000원  (A아웃도어)", "        2. 프로캠퍼 4인용 프리스탠딩 돔텐트 방수 3000mm               95,000원  (B캠핑몰)", "        3. 알파인 4인용 이중창 거실형 텐트 대형                     138,000원  (C기어샵)", "[3/5] 검증 모듈 실행 (검사AI ↔ 변호인AI, 통과 기준 80점)...", "      재탐색 2회 시도 후 채택: '프로캠퍼 4인용 프리스탠딩 돔텐트 방수 3000mm' (신뢰도 91점, 통과)", "[4/5] 설명 생성 중...", "      속성 기여도(%): {'가격': 34.0, '평점': 28.0, '스펙': 22.0, '재질': 16.0}", "      종합 요약: 가격 경쟁력이 크고 스펙 요건을 충족하며 신뢰도 검증도 통과해 최우선 후보로 추천합니다.", "\n── 품목 2/3: '침낭' ──", "[2/5] 비교 매칭 중...", "      후보 2개 수집 → 상위 2개 선정", "        1. 3계절 사계절 침낭 발수 캠핑 슬리핑백 -5도                  42,000원  (B캠핑몰)", "        2. 경량 구스다운 침낭 700FP 백패킹용                     128,000원  (C기어샵)", "[3/5] 검증 모듈 실행 (검사AI ↔ 변호인AI, 통과 기준 80점)...", "      재탐색 1회 시도 후 채택: '3계절 사계절 침낭 발수 캠핑 슬리핑백 -5도' (신뢰도 88점, 통과)", "[4/5] 설명 생성 중...", "      속성 기여도(%): {'가격': 34.0, '평점': 28.0, '스펙': 22.0, '재질': 16.0}", "      종합 요약: 가격 경쟁력이 크고 스펙 요건을 충족하며 신뢰도 검증도 통과해 최우선 후보로 추천합니다.", "\n── 품목 3/3: '캠핑 랜턴' ──", "[2/5] 비교 매칭 중...", "      후보 2개 수집 → 상위 2개 선정", "        1. 충전식 LED 캠핑 랜턴 5200mAh 3단 밝기                23,900원  (A아웃도어)", "        2. 가스 랜턴 감성 캠핑 브라스 클래식                        61,000원  (C기어샵)", "[3/5] 검증 모듈 실행 (검사AI ↔ 변호인AI, 통과 기준 80점)...", "      재탐색 2회 시도 후 채택: '가스 랜턴 감성 캠핑 브라스 클래식' (신뢰도 90점, 통과)", "[4/5] 설명 생성 중...", "      속성 기여도(%): {'가격': 34.0, '평점': 28.0, '스펙': 22.0, '재질': 16.0}", "      종합 요약: 가격 경쟁력이 크고 스펙 요건을 충족하며 신뢰도 검증도 통과해 최우선 후보로 추천합니다.", "\n[5/5] 리포트 생성 중...", "파이프라인 종료."]};
+const $ = (id) => document.getElementById(id);
+const won = (n) => (n ?? 0).toLocaleString("ko-KR") + "원";
+const esc = (s) => String(s ?? "").replace(/[&<>]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;" }[c]));
+
+function render(d) {
+  $("log").textContent = (d.logs || []).join("\n");
+
+  const s = d["\uc2ac\ub86f"] || {};
+  let slotHtml = `<dl class="kv">
+    <dt>\ubaa9\uc801</dt><dd>${esc(s["\ubaa9\uc801"])}</dd>
+    <dt>\uc778\uc6d0\uc218</dt><dd>${esc(s["\uc778\uc6d0\uc218"] ?? "-")}</dd>
+    <dt>\uc608\uc0b0</dt><dd>${s["\uc608\uc0b0"] ? won(s["\uc608\uc0b0"]) : "-"}</dd>
+    <dt>\uc774\ubbf8 \ubcf4\uc720</dt><dd>${(s["\uc774\ubbf8_\ubcf4\uc720\ud55c_\ud488\ubaa9"]||[]).map(x=>`<span class="tag">${esc(x)}</span>`).join("")||"-"}</dd>
+    <dt>\uccb4\ud06c\ub9ac\uc2a4\ud2b8</dt><dd>${(s["\uccb4\ud06c\ub9ac\uc2a4\ud2b8"]||[]).map(x=>`<span class="tag">${esc(x)}</span>`).join("")}</dd>
+  </dl>`;
+  if (d["\ud6c4\uc18d\uc9c8\ubb38"]) slotHtml = `<p class="retry-note">\uc2ac\ub86f \ubd80\uc871 \u2192 \ud6c4\uc18d \uc9c8\ubb38: "${esc(d["\ud6c4\uc18d\uc9c8\ubb38"])}" (\ub370\ubaa8 \ub2f5\ubcc0: "${esc(d["\uc2dc\ubbac\ub808\uc774\uc158_\ub2f5\ubcc0"])}")</p>` + slotHtml;
+  $("slot").innerHTML = slotHtml;
+
+  const box = $("items");
+  (d["\ud488\ubaa9\uacb0\uacfc"]||[]).forEach((it, idx) => {
+    const el = document.createElement("div");
+    el.className = "item";
+    const cands = (it["\ud6c4\ubcf4\ub4e4"]||[]).map(c=>`<li><span>${c["\uc21c\uc704"]}. ${esc(c["\uc0c1\ud488\uba85"])}</span><span>${won(c["\uac00\uaca9"])} \u00b7 ${esc(c["\uc5c5\uccb4"])}</span></li>`).join("");
+    const attempts = (it["\uac80\uc99d_\uc2dc\ub3c4"]||[]).map(a=>{
+      const ok=a["\ud1b5\uacfc"];
+      return `<div class="attempt"><span class="badge ${ok?"ok":"bad"}">${ok?"\ud1b5\uacfc":"\uc2e4\ud328"}</span><span>\ud6c4\ubcf4 ${a["\uc21c\ubc88"]} \u00b7 \uc2e0\ub8b0\ub3c4 <b>${a["\uc2e0\ub8b0\ub3c4"]}</b>\uc810</span><span class="muted">${esc(a["\uc0c1\ud488\uba85"])}</span></div>`;
+    }).join("");
+    const retry = it["\uc7ac\ud0d0\uc0c9_\ud69f\uc218"]>0 ? `<p class="retry-note">\u21bb \uc7ac\ud0d0\uc0c9 ${it["\uc7ac\ud0d0\uc0c9_\ud69f\uc218"]}\ud68c \ubc1c\uc0dd \u2014 \uccab \ud6c4\ubcf4\uac00 \uc2e0\ub8b0\ub3c4 \uae30\uc900 \ubbf8\ub2ec\ub85c \ud0c8\ub77d, \ub2e4\uc74c \ud6c4\ubcf4\ub85c \uc7ac\uc2dc\ub3c4</p>` : "";
+    let chosenHtml, contribHtml="";
+    if (it["\ucc44\ud0dd"]) {
+      const c=it["\ucc44\ud0dd"];
+      chosenHtml=`<div class="chosen"><div><b>\ucc44\ud0dd:</b> ${esc(c["\uc0c1\ud488\uba85"])}</div><div class="muted">${won(c["\uac00\uaca9"])} \u00b7 ${esc(c["\uc5c5\uccb4"])} \u00b7 \uc2e0\ub8b0\ub3c4 ${c["\uc2e0\ub8b0\ub3c4"]}\uc810 \u00b7 <a href="${esc(c["\ub9c1\ud06c"])}">\uc0c1\ud488 \ub9c1\ud06c</a></div><div style="margin-top:6px">${esc(it["\uc885\ud569_\uc694\uc57d"])}</div></div>`;
+      const k=it["\uae30\uc5ec\ub3c4"]||{};
+      const bars=Object.keys(k).map(l=>`<div class="crow"><span class="clabel">${esc(l)}</span><span class="cbar"><i style="width:${k[l]}%"></i></span><span class="cval">${k[l]}%</span></div>`).join("");
+      contribHtml=`<div class="contrib"><div class="ctitle">\uc18d\uc131 \uae30\uc5ec\ub3c4 (\ubbfc\uac10\ub3c4 \ubd84\uc11d, %)</div>${bars}</div>`;
+    } else {
+      chosenHtml=`<div class="retry-note">\ubaa8\ub4e0 \ud6c4\ubcf4 \uc2e0\ub8b0\ub3c4 \ubbf8\ub2ec \u2192 \ub9ac\ud3ec\ud2b8\uc5d0\uc11c \uc81c\uc678</div>`;
+    }
+    el.innerHTML = `<h3>\ud488\ubaa9 ${idx+1}. ${esc(it["\ud488\ubaa9"])}</h3>
+      <div class="muted" style="margin-bottom:4px">\ube44\uad50\ub9e4\uce6d \ud6c4\ubcf4 (\uc0c1\uc704 ${(it["\ud6c4\ubcf4\ub4e4"]||[]).length}\uac1c)</div>
+      <ul class="cands">${cands}</ul>
+      <div class="muted" style="margin-bottom:4px">\uac80\uc99d \u00b7 \uc7ac\ud0d0\uc0c9 \ub8e8\ud504</div>
+      <div class="attempts">${attempts}</div>${retry}${chosenHtml}${contribHtml}`;
+    box.appendChild(el);
+  });
+
+  const r = d["\ub9ac\ud3ec\ud2b8"] || {};
+  const rows = (r.items||[]).map(x=>`<tr><td>${esc(x["\ud488\ubaa9"])}</td><td>${esc(x["\uc5c5\uccb4"])}</td><td>${won(x["\uac00\uaca9"])}</td><td>${x["\uc2e0\ub8b0\ub3c4"]}\uc810</td><td class="${x["\uc808\uac10\uc561"]<0?"neg":""}">${won(x["\uc808\uac10\uc561"])}</td></tr>`).join("");
+  $("report").innerHTML = `<table>
+    <thead><tr><th>\ud488\ubaa9</th><th>\uc5c5\uccb4</th><th>\uac00\uaca9</th><th>\uc2e0\ub8b0\ub3c4</th><th>\uc808\uac10\uc561</th></tr></thead>
+    <tbody>${rows}</tbody>
+    <tfoot><tr><td colspan="2">\ucd1d\uc561</td><td>${won(r["\ucd1d\uc561"])}</td><td colspan="2"></td></tr>
+    <tr><td colspan="2">\ud3c9\uade0 \uc2e0\ub8b0\ub3c4</td><td colspan="3" style="text-align:left">${r["\ud3c9\uade0_\uc2e0\ub8b0\ub3c4"]}\uc810</td></tr></tfoot>
+  </table>`;
+}
+render(DATA);
+</script>
+</body>
+</html>

@@ -1,0 +1,80 @@
+{
+  "scenario": "computer_research",
+  "category": "computer",
+  "mode": "build",
+  "input_text": "롤이랑 오버워치 하는데 QHD로 하고 싶어. 150만원 정도.",
+  "mock_slot_fill": {
+    "confirmed": {
+      "purpose": "game",
+      "budget_max": 1500000,
+      "games": ["리그 오브 레전드", "오버워치"],
+      "resolution": "QHD_165"
+    },
+    "assumed": {
+      "assembly": "service",
+      "noise_sensitive": false,
+      "brand_pref": "none"
+    },
+    "assumed_reason": {
+      "assembly": "조립 방식 언급 없음 — 대행 가정",
+      "noise_sensitive": "소음 언급 없음 — 기본값"
+    },
+    "missing": []
+  },
+  "verify": {
+    "mode": "set",
+    "rounds": [
+      {
+        "confidence": 72,
+        "problem_slot": "GPU",
+        "gray_axes": ["RAM QVL"],
+        "issues": [
+          {
+            "axis": "발열·스로틀",
+            "penalty": 15,
+            "judge": "미해소",
+            "prosecutor": "선정 GPU는 3슬롯 두께로, 표준 미들타워에서 통풍이 부족하면 핫스팟 온도가 스로틀 구간에 진입한 사례가 있습니다.",
+            "defender": "케이스 팬 추가를 권장하나 현재 구성에 반영되지 않아 리스크가 남습니다."
+          },
+          {
+            "axis": "전력 여유",
+            "penalty": 13,
+            "judge": "부분 해소",
+            "prosecutor": "GPU 트랜지언트 스파이크 대비 정격 여유가 빠듯합니다.",
+            "defender": "정격 대비 상시부하는 낮으나 스파이크 마진은 경계선입니다."
+          }
+        ]
+      },
+      {
+        "confidence": 86,
+        "gray_axes": ["RAM QVL"],
+        "issues": [
+          {
+            "axis": "발열·스로틀",
+            "penalty": 4,
+            "judge": "경미",
+            "prosecutor": "차선 GPU도 발열 관리가 필요합니다.",
+            "defender": "차선 GPU는 2.5슬롯·저소음 쿨러 구성으로 표준 미들타워에서 스로틀 없이 상시 사용 가능한 것으로 확인됩니다."
+          }
+        ]
+      }
+    ]
+  },
+  "corpus": [
+    {
+      "domain": "computer", "axis": "발열·스로틀",
+      "text": "3슬롯 GPU를 통풍이 나쁜 케이스에 장착하면 핫스팟이 지속 상승해 클럭이 스로틀 구간으로 떨어진 측정 사례.",
+      "source_url": "https://example.com/issue-notes/gpu-thermal", "collected_at": "2026-08-18"
+    },
+    {
+      "domain": "computer", "axis": "발열·스로틀",
+      "text": "2.5슬롯 이하 저소음 쿨러 GPU는 표준 미들타워에서 추가 팬 없이도 상시 부하 온도가 안정 구간.",
+      "source_url": "https://example.com/issue-notes/gpu-thermal-2", "collected_at": "2026-08-25"
+    },
+    {
+      "domain": "computer", "axis": "전력 여유",
+      "text": "동세대 상위 GPU의 순간 전력 스파이크는 정격 대비 1.8배까지 관측된 사례가 있어 정격 여유 40% 이상 권장.",
+      "source_url": "https://example.com/issue-notes/psu-transient", "collected_at": "2026-08-20"
+    }
+  ]
+}

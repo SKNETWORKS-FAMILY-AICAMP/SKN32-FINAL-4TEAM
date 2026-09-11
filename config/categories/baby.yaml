@@ -1,0 +1,19 @@
+category: baby
+label: "유아용품"
+status: stub                  # 유아 상품 카탈로그·월령/KC/리콜 데이터 확보 후 채움
+modes: [born, prenatal]
+required_inputs: [age_or_due, budget_range]
+slot_structure: ["수유", "수면", "위생/기저귀", "외출"]
+verify_branch: per_item      # [3-C] 품목별 검증 → [4] 예산 배분
+
+slot_schema:
+  age_months:   { type: int, nullable: true }
+  due_date:     { type: date, nullable: true }
+  budget_range: { type: int, nullable: true }
+  feeding:      { type: enum, values: [breast, mixed, formula], nullable: true }
+  sleep:        { type: enum, values: [crib, floor], nullable: true }
+  car:          { type: bool, nullable: true }
+  owned:        { type: list }
+
+defaults: {}
+question_sets: []

@@ -1,1 +1,236 @@
-# SKN32-FINAL-4TEAM
+# TrueFit — 목적성 쇼핑 플래너
+
+사용자의 목적·예산·조건에 맞춰 필요한 물품을 구성하고, 선택 근거와 외부 구매 링크를 제공하는 프로젝트입니다. 설계 범위는 **PC 본체 조립과 유아용품 준비**이며 요리 도메인은 제외합니다.
+
+**현재는 PC 추천 시나리오 데모, 가상 설명서 생성기, 설명서 RAG, 화면 목업을 개발한 단계입니다.** 일반 사용자 API·인증·계획 저장·알림까지 연결된 서비스는 아직 아닙니다. 아래는 2026-09-11
+저장소의 코드와 산출물 기준입니다.
+
+![](docs/service-flow/슬라이드1.PNG)
+![](docs/service-flow/슬라이드2.PNG)
+![](docs/service-flow/슬라이드3.PNG)
+
+## 개발 현황
+
+| 영역             | 구현된 내용                                                                                          | 현재 한계                                                                               |
+|------------------|------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------|
+| PC 추천 데모     | 조건 정리 → 요구사양 → 후보 → 필터·순위 → 구성 → 검증·재탐색 → 설명의 콘솔 실행                      | LLM·가격·성능값·검증 점수에 목(mock) 데이터 사용. 실제 호환성·예산 준수 보장 없음       |
+| 화면 목업        | `frontend/TrueFit.html`의 PC·유아용품 화면 흐름, 장바구니 전환·이름 변경·삭제, 브라우저 저장         | 백엔드 미연결. 로그인·회원가입·회원정보 링크의 대상 파일은 현재 저장소에 없음           |
+| API              | FastAPI 앱, 요청·응답 모델, 공통 오류 처리, 상태 확인·개발용 시나리오 API                            | 일반 사용자용 20개 작업은 미구현이며 호출 시 501 등 오류 반환                           |
+| 데이터베이스     | 12개 스키마·58개 업무 테이블의 DDL, FK·UNIQUE·CHECK·인덱스·갱신 시각 트리거, 활성 임베딩 프로필 제약 | 공통 연결 풀과 대부분의 repo 미구현. 전체 업무 무결성·권한·상태 전이 구현은 남아 있음   |
+| 설명서 생성      | 유모차·젖병·기저귀·컵의 규칙 기반 부분 설명서, 사실 원장·인용 위치·해시·검증 파일                    | 모든 출력은 `partial`. 입력에 없는 조작법과 전체 안전 지침을 생성하지 않음              |
+| 설명서 RAG       | Markdown 청크화, DB 적재·게시, pgvector+키워드 검색, 검색·인용 기록, 권한·철회 검사                  | 관리자 CLI 중심. 단일 가상 유모차 자료로 회귀 평가. PDF/OCR·S3·전체 추천 UI 연결 미구현 |
+| 임베딩           | Bedrock Titan v2 어댑터와 명시적 `local-test` 1024차원 벡터                                          | Bedrock 실모델 품질 평가는 미수행. local-test는 어휘 해시 벡터                          |
+| 리뷰·데이터 도구 | PC 합성 리뷰 요약 생성, 공식 스펙 수집 스크립트, 유아용품 상품 생성 코드                             | 운영 리뷰 작성·집계·학습 파이프라인 미구현. 상품 생성 기본 사전 파일 누락               |
+
+## 빠른 시작
+
+프로젝트 루트에서 실행합니다. Python **3.11**과 `uv`를 사용합니다. DB 없이 PC 콘솔 데모와 기본 테스트를 실행할 수 있습니다.
+
+```powershell
+uv sync --locked
+uv run python main.py --list
+uv run python main.py computer_pass
+uv run python main.py computer_research
+uv run python -m pytest -q
+```
+
+- `computer_pass`: 8개 PC 슬롯을 구성하고 1회 검증으로 통과하는 목 시나리오입니다.
+- `computer_research`: 주입된 점수 72 → 후보 교체·재탐색 → 86 흐름을 보여줍니다.
+- `stage4_optimize.py`는 현재 슬롯별 후보를 고르는 근사 구현입니다. 로그의 조합 수는 실제 완전탐색 수행량이 아니며, 재탐색 후 예산을 초과할 수 있습니다.
+- 검증 점수·고정 기여도·합성 가격을 실제 상품의 품질·시세·호환성 평가로 해석하지 않습니다.
+
+설정은 **프로세스 환경변수**로 전달합니다. [`.env.example`](.env.example)은 설정 항목 참고용이며 현재 코드가 `.env` 파일을 자동으로 읽지는 않습니다. PC 데모는 기본
+`MOCK_MODE=1`로 동작합니다. 설명서 RAG CLI의 `--provider`는 이 값과 별개입니다.
+
+### API 실행
+
+```powershell
+uv run uvicorn src.api:app --reload --host 127.0.0.1 --port 8000
+```
+
+- API 문서: [Swagger UI](http://127.0.0.1:8000/docs)
+- 상태 확인: [GET /health](http://127.0.0.1:8000/health)
+
+```powershell
+Invoke-RestMethod http://127.0.0.1:8000/dev/scenarios
+Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/dev/run -ContentType 'application/json' -Body '{"scenario":"computer_pass"}'
+```
+
+`/dev/*`는 DB를 사용하지 않는 개발용 목 실행 경로입니다. `/health`의 성공은 DB 연결이나 전체 서비스 준비 완료를 뜻하지 않습니다. 현재 앱에는 개발 라우터가 포함되어 있으므로 배포 전에 노출
+정책을 적용해야 합니다.
+
+### 화면 목업 보기
+
+API와 별도 터미널에서 정적 파일 서버를 실행합니다.
+
+```powershell
+uv run python -m http.server 8080 --bind 127.0.0.1 --directory frontend
+```
+
+[TrueFit 화면 목업](http://127.0.0.1:8080/TrueFit.html)을 엽니다. 입력과 장바구니 상태는 현재 브라우저의 `localStorage`에 저장하며 서버 계정에 저장하지 않습니다.
+인증 화면 연결은 후속 작업입니다.
+
+`frontend/mockup.html`은 이전 목업이고, `frontend/index.html`은 이전 임시 GUI입니다. 임시 GUI는 `/run`을 호출하지만 현재 FastAPI 경로는 `/dev/run`이므로
+그대로 연결되지 않습니다. FastAPI 앱 자체도 정적 HTML을 제공하지 않습니다.
+
+## 데이터베이스와 구조 문서
+
+PostgreSQL과 pgvector를 같은 DB에서 사용합니다. 설계상 파일 원본은 별도 객체 저장소에 두며, 현재 설명서 RAG는 관리자용 로컬 `.rag-files/`를 사용합니다.
+
+![데이터베이스 → 스키마 → 테이블 구조도](docs/db/database-structure-overview.png)
+
+- [테이블 명세서 v4](docs/db/table_spec.md): 설계 기준, 58개 테이블·컬럼·제약·수용 기준
+- [데이터 구조 설계 근거](데이터_구조_설계_근거.md): 업무별 분리 이유, 초기 범위, 리뷰·학습 데이터 정책
+- [확대 가능한 SVG](docs/db/database-structure-overview.svg)
+- [항목을 편집할 수 있는 PPTX](docs/db/pptx/database-structure-overview.pptx): 가로형 1장, 텍스트·도형·선 개별 편집
+- [DB 마이그레이션 설명](db/README.md)
+
+### 로컬 DB 준비
+
+Docker를 사용할 수 있는 환경에서 실행합니다.
+
+```powershell
+docker compose up -d db
+$env:DATABASE_URL='postgresql://truefit:truefit@localhost:5432/truefit'
+uv run python db/migrate.py up
+uv run python db/migrate.py status
+```
+
+컨테이너는 `pgvector/pgvector:pg16`을 사용합니다. DB가 연결 가능한 상태가 된 뒤 마이그레이션을 적용합니다.
+
+| 마이그레이션                  | 내용                                   |
+|-------------------------------|----------------------------------------|
+| `0000_prereq.sql`             | vector 확장·12개 스키마·갱신 시각 함수 |
+| `0001_tables.sql`             | 58개 업무 테이블·PK·CHECK·기본값       |
+| `0002_unique.sql`             | 단순·복합·부분·표현식 UNIQUE           |
+| `0003_foreign_keys.sql`       | 스키마 간 FK와 소속 일치 복합 FK       |
+| `0004_triggers.sql`           | updated_at 갱신 트리거                 |
+| `0005_indexes.sql`            | 조회·조인·검색 인덱스                  |
+| `0006_rag_active_profile.sql` | 활성 임베딩 프로필 하나만 허용         |
+
+벡터 컬럼은 현재 `vector(1024)`입니다. 명세의 차원 D와 달리 실행 코드에는 초기 차원이 정해져 있으므로 모델·차원 변경 시 재임베딩과 마이그레이션을 검토해야 합니다. DDL 제공이나 RAG 통합 테스트
+통과가 모든 업무 규칙 구현을 뜻하지는 않습니다.
+
+## 가상 사용설명서 생성
+
+예제 유모차 입력에서 별도의 새 출력 폴더로 부분 설명서를 생성합니다. API 키·LLM 호출은 필요 없습니다.
+
+```powershell
+uv run python scripts/generate_baby_manual.py --input data/synthetic_manuals/stroller_example.json --output generated/synthetic_manuals/stroller_readme_run
+```
+
+출력 폴더가 이미 있으면 덮어쓰기를 거절합니다. 재실행할 때 새 경로를 지정합니다. 저장소에는 `generated/synthetic_manuals/stroller_example/` 예시가 이미 있습니다.
+
+출력은 `manual.md`, `facts.jsonl`, `mapping.json`, 상품·참조·프로필 스냅샷, `validation.json`, `manifest.json`입니다. 생성기의 검증 통과는 데이터
+일관성 검사이며 실제 제품 안전 인증이나 사람 검수 완료를 뜻하지 않습니다.
+
+[생성기 구현·입력 계약·테스트](docs/synthetic_manual_generator.md)
+
+## 설명서 RAG 실행
+
+마이그레이션을 적용한 개발 DB와 저장소의 설명서 예시를 사용합니다. 다음은 AWS 호출 없는 가상 코퍼스 회귀 실행입니다.
+
+```powershell
+$env:DATABASE_URL='postgresql://truefit:truefit@localhost:5432/truefit'
+uv run python scripts/rag_manual.py ingest --provider local-test
+uv run python scripts/rag_manual.py query --provider local-test --new-test-run --query '바구니 최대 하중은?'
+uv run python scripts/rag_manual.py evaluate --provider local-test --new-test-run --report generated/rag/stroller_readme_evaluation.json
+```
+
+- `manual.md`만 검색합니다. 사실 원장·상품 스냅샷·평가 정답은 검색·임베딩에서 제외합니다.
+- 절 단위 청크와 원문 해시·문자 범위·줄 번호를 보존하고 검색 실행·결과·인용을 DB에 기록합니다.
+- 정확 코사인 검색과 한국어 문자 bigram/모델명 키워드를 RRF로 결합합니다.
+- 검색과 인용 반환 시 권한·자료 상태·상품/옵션·언어·시장·도메인·모델 프로필을 검사합니다.
+- 근거 부족과 오류를 구분하며, 장애 시 목 결과나 local-test로 자동 대체하지 않습니다.
+- `--new-test-run`은 가상 평가용 실행 문맥을 만듭니다. 실제 소비처는 권한을 확인한 추천 실행 ID를 전달해야 합니다.
+- `--reviewed`는 관리자의 검수 완료 표시입니다. 생성기 검증 결과로 자동 설정하지 않습니다.
+
+Bedrock 경로는 `--provider bedrock`, AWS 자격증명·리전, 기본 `amazon.titan-embed-text-v2:0`을 사용합니다. local-test 모델이 이미 활성인 DB에 다른
+모델을 바로 게시할 수 없습니다. 별도 DB 또는 명시적 프로필 전환이 필요합니다. `RAG_TEST_DATABASE_URL`이 설정돼 있으면 CLI는 `DATABASE_URL`보다 그 값을 우선 사용합니다.
+
+[상세 실행법·PGlite 테스트 DB·Bedrock 설정·제한](docs/rag_implementation.md) · [기존 회귀 평가 산출물](generated/rag/README.md)
+
+## API 계약과 구현 상태
+
+OpenAPI에는 업무·개발용 22개 작업과 `/health` 1개가 등록되어 있습니다. 인증 표시는 구현 목표이며 현재 인증 기능은 미구현입니다.
+
+| 그룹   | 경로                                                                                                                                                       | 현재 상태                          |
+|--------|------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------|
+| 상태   | `GET /health`                                                                                                                                              | 동작                               |
+| 개발   | `GET /dev/scenarios`, `POST /dev/run`                                                                                                                      | 목 시나리오 실행                   |
+| 인증   | `POST /auth/request-code`, `/auth/verify`, `/auth/logout`, `GET /auth/me`                                                                                  | 이메일 코드·JWT·세션 병합 미구현   |
+| 세션   | `POST /session`, `POST /session/{list_id}/category`, `/message`, `/answer`, `/recommend`, `PATCH /session/{list_id}/slot`, `GET /session/{list_id}/result` | 계약·진입점 중심, 서비스 구현 필요 |
+| 리스트 | `POST /lists/{list_id}/confirm`, `/alert`, `GET /lists/{list_id}/report`, `GET /lists`                                                                     | 확정·저장·리포트·알림 미구현       |
+| 리뷰   | `GET /reviews/pending`, `POST /reviews/part`, `/reviews/build`, `/reviews/{review_id}/publish`, `GET /reviews/summary/{product_key}`                       | 작성·게시·운영 집계 미구현         |
+
+설명서 RAG는 CLI·서비스 함수로 구현되어 있으며 별도 HTTP 엔드포인트를 제공하지 않습니다. 공통 `src/db` 연결 풀은 미구현이지만 RAG CLI·검색 함수는 psycopg 직접 연결과 `RagRepo`
+를 사용합니다.
+
+## 데이터 준비 도구
+
+| 도구                                | 용도와 실행 조건                                                                                                                                                                              |
+|-------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `scripts/build_specs.py`            | PC 공식 스펙 수집, 출처·실패 목록 저장. `requests`, `beautifulsoup4`, `lxml` 추가 설치 필요. 코드에는 Chrome/Edge를 이용한 `--render` 재시도 경로도 있음. 추출되지 않은 규격은 수동 확인 필요 |
+| `scripts/gen_review_summaries.py`   | `data/parts_list.csv`에서 데모용 합성 리뷰 요약·평점 생성. 실행하면 기존 출력 파일을 다시 작성함. 운영 후기나 실제 조작 판정 데이터가 아님                                                    |
+| `scripts/generate_baby_products.py` | 23개 유아용품 품목군의 가상 상품 생성 코드. 기본 입력인 `scripts/유아용품_가상제품_스펙사전_v1.json`은 현재 저장소에 없어 기본 실행 불가. 호환 사전을 `--dictionary`로 제공해야 함            |
+
+[스펙 수집기 설명](scripts/README.md)과 [상품 생성기 기존 사용법](가상제품_생성기_사용법.md)은 참고 문서입니다. 기존 문서의 일부 경로·`--render` 구현 상태·상품 생성 테스트/사전
+목록은 현재 배치와 다르므로 코드 및 위 표를 함께 확인합니다. 부분 설명서 생성은 별도 예제 입력을 사용하므로 누락된 상품 사전 없이 실행할 수 있습니다.
+
+## 저장소 구성
+
+```text
+main.py                        PC 콘솔 데모 진입점
+src/
+  api.py, routers/, schemas.py  FastAPI 라우트와 API 계약
+  pipeline.py, engine/         추천 단계·재탐색·설명, 일부 목/근사
+  rag/                        설명서 청크화·임베딩·검색·검증·설명
+  repo/rag_repo.py             RAG SQL 적재·게시·검색·인용
+  repo/catalog_repo.py         CSV 기반 PC 데모 후보
+  repo/                       그 외 업무 저장소는 대부분 미구현
+  db/, auth/, services/        공통 연결·인증·업무 서비스 뼈대
+  workers/                    추출·리뷰·가격·알림·학습 작업 진입점
+config/categories/            computer 정의, baby 추천 정의 stub
+frontend/                     TrueFit.html 및 이전 화면 목업
+scripts/                      스펙 수집·합성 데이터·설명서·RAG CLI
+data/                        PC 부품·리뷰 예시·시나리오·설명서 입력
+generated/                   설명서 예시·RAG 평가 산출물
+db/                          마이그레이션 러너와 SQL
+docs/                        RAG·설명서 생성·DB 명세와 구조도
+tests/                       파이프라인·설명서·RAG·SQL 통합 테스트
+```
+
+## 테스트와 확인 범위
+
+```powershell
+# DB 없이 실행. DB 통합 테스트는 환경변수 미설정 시 건너뜀
+uv run python -m pytest -q
+
+# 별도 임시 테스트 DB를 준비하고 마이그레이션한 경우
+$env:RAG_TEST_DATABASE_URL='postgresql://postgres:postgres@127.0.0.1:55432/postgres?sslmode=disable'
+uv run python -m pytest -q tests/test_rag_postgres.py
+```
+
+두 번째 명령은 전용 테스트 DB가 필요합니다. Docker 없는 환경의 PGlite 서버 실행·마이그레이션 순서는 [RAG 문서](docs/rag_implementation.md)를 따릅니다.
+
+| 확인 구분                       | 결과                                                                                                          |
+|---------------------------------|---------------------------------------------------------------------------------------------------------------|
+| 이번 README 갱신 시 기본 테스트 | 31 passed, 27 skipped, 3 subtests passed. DB 통합 환경변수 미설정으로 27건 건너뜀                             |
+| 이번 PC 콘솔 확인               | `computer_pass`, `computer_research` 모두 종료 성공                                                           |
+| 기존 저장된 RAG 통합 결과       | PGlite/pgvector에서 58 passed, 3 subtests passed, 설명서 질의 21/21. 이번 갱신에서 DB 통합 재실행은 하지 않음 |
+| 미확인 영역                     | Bedrock 실모델 검색 품질, 운영 PostgreSQL 부하·동시성, 실제 제품 안전성, 브라우저와 백엔드 전체 연결          |
+
+기본 테스트 실행에는 pytest 캐시 디렉터리 쓰기 권한 경고 1건이 있었으며 테스트 자체는 통과했습니다. 기존 결과 파일은 [generated/rag](generated/rag/README.md)에서 확인할 수
+있습니다.
+
+## 다음 구현 과제
+
+1. 공통 DB 연결 풀과 계획·사용자·상품 등 저장소 구현, 명세의 교차 무결성·불변성·동시 수정 검사 적용
+2. 이메일 코드·JWT·소유권 확인, 일반 사용자 API와 화면 목업 연결
+3. 실제 상품 규격·가격 연동, PC 하드필터·호환 검사·예산 준수 최적화 구현
+4. 설명서 RAG의 실제 Bedrock 평가, PDF/OCR·이미지·객체 저장소·비동기 처리 확장
+5. 유아용품 사전 복원·입력 검증, `baby.yaml`과 품목별 추천·예산 분기 구현
+6. 실제 PC 리뷰·운영 집계, 단일 부모 리뷰 증강·라벨 검수·내보내기 구현
+7. 가격 추적·알림·사용자 행동 기록 구현. 자동 학습 배치는 현재 명세에서 보류
+
+[프로젝트 기획서](프로젝트_기획서_v2.md) · [기술 기획서](기술기획서_데모+최종.md)

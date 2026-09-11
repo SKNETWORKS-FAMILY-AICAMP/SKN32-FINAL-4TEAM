@@ -1,0 +1,190 @@
+{"kind":"deck","id":"pr/1c414x","name":"Deck"}
+{"kind":"layout","layoutId":"94413328-19db-4682-8420-4fd626e0ebb4","name":"Master","type":"master"}
+{"kind":"layout","layoutId":"b0eaf1be-4fe8-49c0-8852-d628ec9380cc","name":"Title Slide","type":"title"}
+{"kind":"slide","id":"sl/dvh9yc","slide":1,"title":"목적 입력부터 구매 이후까지","textShapes":33}
+{"kind":"textbox","id":"sh/d0vedkfa","slide":1,"name":"목적 입력부터 구매 이후까지","text":"목적 입력부터 구매 이후까지","textPreview":"목적 입력부터 구매 이후까지","textChars":15,"textLines":1,"bbox":[60,38,1750,70]}
+{"kind":"textbox","id":"sh/qxkfi5wz","slide":1,"name":"가입 없이 추천과 근거를 살펴보고, 마음에 드는 구성을 저장해 구매와 사용으로 이어갑니다.","text":"가입 없이 추천과 근거를 살펴보고, 마음에 드는 구성을 저장해 구매와 사용으로 이어갑니다.","textPreview":"가입 없이 추천과 근거를 살펴보고, 마음에 드는 구성을 저장해 구매와 사용으로 이어갑니다.","textChars":50,"textLines":1,"bbox":[60,120,1780,54]}
+{"kind":"shape","id":"sh/rydwbaxk","slide":1,"name":"흐름 연결선","bbox":[60,1000,1800,0]}
+{"kind":"textbox","id":"sh/4v2xgvet","slide":1,"name":"TrueFit  ·  전체 서비스 기획","text":"TrueFit  ·  전체 서비스 기획","textPreview":"TrueFit  ·  전체 서비스 기획","textChars":21,"textLines":1,"bbox":[60,1020,1700,35]}
+{"kind":"textbox","id":"sh/pwbe90fe","slide":1,"name":"1 / 3","text":"1 / 3","textPreview":"1 / 3","textChars":5,"textLines":1,"bbox":[1760,1020,100,35]}
+{"kind":"textbox","id":"sh/2tkfelwn","slide":1,"name":"대화 · 추천 · 근거 확인은 비로그인으로 이용","text":"대화 · 추천 · 근거 확인은 비로그인으로 이용","textPreview":"대화 · 추천 · 근거 확인은 비로그인으로 이용","textChars":26,"textLines":1,"bbox":[60,207,1010,38]}
+{"kind":"textbox","id":"sh/3utw7qx8","slide":1,"name":"저장 · 확정 · 알림 · 리뷰 작성은 로그인 후 이용","text":"저장 · 확정 · 알림 · 리뷰 작성은 로그인 후 이용","textPreview":"저장 · 확정 · 알림 · 리뷰 작성은 로그인 후 이용","textChars":30,"textLines":1,"bbox":[1110,207,750,38]}
+{"kind":"shape","id":"sh/or6xszex","slide":1,"name":"목적 선택","bbox":[60,285,240,195]}
+{"kind":"textbox","id":"sh/9sfyl4vi","slide":1,"name":"목적 선택","text":"목적 선택","textPreview":"목적 선택","textChars":5,"textLines":1,"bbox":[80,305,200,44]}
+{"kind":"textbox","id":"sh/x0b69gvm","slide":1,"name":"PC / 유아용품\n신규 / 업그레이드","text":"PC / 유아용품\n신규 / 업그레이드","textPreview":"PC / 유아용품 | 신규 / 업그레이드","textChars":20,"textLines":2,"bbox":[80,361,200,108]}
+{"kind":"shape","id":"sh/cz25gbu1","slide":1,"name":"조건 대화","bbox":[320,285,240,195]}
+{"kind":"textbox","id":"sh/byto76dg","slide":1,"name":"조건 대화","text":"조건 대화","textPreview":"조건 대화","textChars":5,"textLines":1,"bbox":[340,305,200,44]}
+{"kind":"textbox","id":"sh/adkne1cv","slide":1,"name":"예산·용도·월령\n부족한 조건 질문","text":"예산·용도·월령\n부족한 조건 질문","textPreview":"예산·용도·월령 | 부족한 조건 질문","textChars":18,"textLines":2,"bbox":[340,361,200,108]}
+{"kind":"shape","id":"sh/pcbm5wvq","slide":1,"name":"추천 생성","bbox":[580,285,240,195]}
+{"kind":"textbox","id":"sh/ob25cru5","slide":1,"name":"추천 생성","text":"추천 생성","textPreview":"추천 생성","textChars":5,"textLines":1,"bbox":[600,305,200,44]}
+{"kind":"textbox","id":"sh/nat436dk","slide":1,"name":"필요 품목 구성\n검증·예산 배분","text":"필요 품목 구성\n검증·예산 배분","textPreview":"필요 품목 구성 | 검증·예산 배분","textChars":17,"textLines":2,"bbox":[600,361,200,108]}
+{"kind":"shape","id":"sh/290na1cz","slide":1,"name":"비교·수정","bbox":[840,285,240,195]}
+{"kind":"textbox","id":"sh/t8v6h0vu","slide":1,"name":"비교·수정","text":"비교·수정","textPreview":"비교·수정","textChars":5,"textLines":1,"bbox":[860,305,200,44]}
+{"kind":"textbox","id":"sh/87m5ovu9","slide":1,"name":"근거·리뷰·대안\n항목 교체·제외","text":"근거·리뷰·대안\n항목 교체·제외","textPreview":"근거·리뷰·대안 | 항목 교체·제외","textChars":17,"textLines":2,"bbox":[860,361,200,108]}
+{"kind":"shape","id":"sh/sbupkz2l","slide":1,"name":"로그인·확정","bbox":[1100,285,240,195]}
+{"kind":"textbox","id":"sh/tc3qd4j6","slide":1,"name":"로그인·확정","text":"로그인·확정","textPreview":"로그인·확정","textChars":6,"textLines":1,"bbox":[1120,305,200,44]}
+{"kind":"textbox","id":"sh/69c7ipkf","slide":1,"name":"이메일 코드 인증\n이름·구매일 저장","text":"이메일 코드 인증\n이름·구매일 저장","textPreview":"이메일 코드 인증 | 이름·구매일 저장","textChars":19,"textLines":2,"bbox":[1120,361,200,108]}
+{"kind":"shape","id":"sh/ral8bu10","slide":1,"name":"리포트·구매","bbox":[1360,285,240,195]}
+{"kind":"textbox","id":"sh/47upgz29","slide":1,"name":"리포트·구매","text":"리포트·구매","textPreview":"리포트·구매","textChars":6,"textLines":1,"bbox":[1380,305,200,44]}
+{"kind":"textbox","id":"sh/583q94ju","slide":1,"name":"확정 구성 확인\n외부 쇼핑몰 이동","text":"확정 구성 확인\n외부 쇼핑몰 이동","textPreview":"확정 구성 확인 | 외부 쇼핑몰 이동","textChars":18,"textLines":2,"bbox":[1380,361,200,108]}
+{"kind":"shape","id":"sh/i5c7epkj","slide":1,"name":"사용 리뷰","bbox":[1620,285,240,195]}
+{"kind":"textbox","id":"sh/j6l87u1o","slide":1,"name":"사용 리뷰","text":"사용 리뷰","textPreview":"사용 리뷰","textChars":5,"textLines":1,"bbox":[1640,305,200,44]}
+{"kind":"textbox","id":"sh/wjapcf2d","slide":1,"name":"부품 / 전체 구성\n실제 PC 사용 경험","text":"부품 / 전체 구성\n실제 PC 사용 경험","textPreview":"부품 / 전체 구성 | 실제 PC 사용 경험","textChars":22,"textLines":2,"bbox":[1640,361,200,108]}
+{"kind":"shape","id":"sh/hkjq5kjy","slide":1,"bbox":[0,0,0,0]}
+{"kind":"shape","id":"sh/ze18va5k","slide":1,"bbox":[0,0,0,0]}
+{"kind":"shape","id":"sh/yd8rm54z","slide":1,"bbox":[0,0,0,0]}
+{"kind":"shape","id":"sh/lgjqxknq","slide":1,"bbox":[0,0,0,0]}
+{"kind":"shape","id":"sh/kfa9ofm5","slide":1,"bbox":[0,0,0,0]}
+{"kind":"shape","id":"sh/7i18zu5w","slide":1,"bbox":[0,0,0,0]}
+{"kind":"shape","id":"sh/mhsrqp4b","slide":1,"name":"흐름 연결선","bbox":[960,260,0,25]}
+{"kind":"shape","id":"sh/94jq1knm","slide":1,"name":"흐름 연결선","bbox":[440,260,520,0]}
+{"kind":"shape","id":"sh/83a9szmh","slide":1,"name":"흐름 연결선","bbox":[440,260,0,25]}
+{"kind":"shape","id":"sh/v6l83u5s","slide":1,"name":"흐름 방향","bbox":[431,273,18,18]}
+{"kind":"textbox","id":"sh/u5srup47","slide":1,"name":"조건 변경·재추천","text":"조건 변경·재추천","textPreview":"조건 변경·재추천","textChars":9,"textLines":1,"bbox":[530,224,460,35]}
+{"kind":"textbox","id":"sh/elkjmxgv","slide":1,"name":"결제는 외부 쇼핑몰에서 진행","text":"결제는 외부 쇼핑몰에서 진행","textPreview":"결제는 외부 쇼핑몰에서 진행","textChars":15,"textLines":1,"bbox":[1375,505,390,44]}
+{"kind":"shape","id":"sh/fmtkf2xg","slide":1,"name":"가격 추적 설정","bbox":[790,630,315,170]}
+{"kind":"textbox","id":"sh/gnm1o7yl","slide":1,"name":"가격 추적 설정","text":"가격 추적 설정","textPreview":"가격 추적 설정","textChars":8,"textLines":1,"bbox":[810,650,275,44]}
+{"kind":"textbox","id":"sh/1ov2hcf6","slide":1,"name":"전체 구성 / 개별 항목\n목표가·종료일 지정","text":"전체 구성 / 개별 항목\n목표가·종료일 지정","textPreview":"전체 구성 / 개별 항목 | 목표가·종료일 지정","textChars":24,"textLines":2,"bbox":[810,706,275,83]}
+{"kind":"shape","id":"sh/2p4jqhgr","slide":1,"name":"가격·재고 확인","bbox":[1160,630,315,170]}
+{"kind":"textbox","id":"sh/3qdkjmxc","slide":1,"name":"가격·재고 확인","text":"가격·재고 확인","textPreview":"가격·재고 확인","textChars":8,"textLines":1,"bbox":[1180,650,275,44]}
+{"kind":"textbox","id":"sh/ormls7yx","slide":1,"name":"배송·할인 포함 비교\n조회 실패 시 판정 보류","text":"배송·할인 포함 비교\n조회 실패 시 판정 보류","textPreview":"배송·할인 포함 비교 | 조회 실패 시 판정 보류","textChars":25,"textLines":2,"bbox":[1180,706,275,83]}
+{"kind":"shape","id":"sh/psv2lcfi","slide":1,"name":"목표가 알림","bbox":[1530,630,315,170]}
+{"kind":"textbox","id":"sh/it0jedgn","slide":1,"name":"목표가 알림","text":"목표가 알림","textPreview":"목표가 알림","textChars":6,"textLines":1,"bbox":[1550,650,275,44]}
+{"kind":"textbox","id":"sh/ju9k7ih8","slide":1,"name":"목표 도달 시 이메일\n리포트에서 구매 링크","text":"목표 도달 시 이메일\n리포트에서 구매 링크","textPreview":"목표 도달 시 이메일 | 리포트에서 구매 링크","textChars":23,"textLines":2,"bbox":[1550,706,275,83]}
+{"kind":"shape","id":"sh/lozmdgzq","slide":1,"name":"흐름 연결선","bbox":[1220,480,0,85]}
+{"kind":"shape","id":"sh/0nq5kbi5","slide":1,"name":"흐름 연결선","bbox":[947,565,273,0]}
+{"kind":"shape","id":"sh/zmh4b6hk","slide":1,"name":"흐름 연결선","bbox":[947,565,0,65]}
+{"kind":"shape","id":"sh/ylonil0z","slide":1,"name":"흐름 방향","bbox":[938,618,18,18]}
+{"kind":"textbox","id":"sh/9czmh0zm","slide":1,"name":"확정 후 선택하는 가격 알림","text":"확정 후 선택하는 가격 알림","textPreview":"확정 후 선택하는 가격 알림","textChars":15,"textLines":1,"bbox":[795,527,430,38]}
+{"kind":"shape","id":"sh/8bq5ovi1","slide":1,"bbox":[0,0,0,0]}
+{"kind":"shape","id":"sh/7qh4fqhg","slide":1,"bbox":[0,0,0,0]}
+{"kind":"shape","id":"sh/mp8nml0b","slide":1,"name":"흐름 연결선","bbox":[1687,575,0,55]}
+{"kind":"shape","id":"sh/pgfm5wji","slide":1,"name":"흐름 연결선","bbox":[1480,575,207,0]}
+{"kind":"shape","id":"sh/of6lcrix","slide":1,"name":"흐름 연결선","bbox":[1480,480,0,95]}
+{"kind":"shape","id":"sh/gzq5srqt","slide":1,"name":"리포트로 돌아가기","bbox":[1471,476,18,18]}
+{"kind":"textbox","id":"sh/h0jmlwre","slide":1,"name":"알림에서 리포트 열기","text":"알림에서 리포트 열기","textPreview":"알림에서 리포트 열기","textChars":11,"textLines":1,"bbox":[1550,580,300,34]}
+{"kind":"textbox","id":"sh/ux8nq18n","slide":1,"name":"사용자가 언제든 다시 조정","text":"사용자가 언제든 다시 조정","textPreview":"사용자가 언제든 다시 조정","textChars":14,"textLines":1,"bbox":[60,640,625,54]}
+{"kind":"textbox","id":"sh/fyh4j698","slide":1,"name":"확정본을 수정하면 새 초안을 만듭니다.\n기존 구성과 근거는 보존하고,\n재확정한 구성에 가격 추적을 연결합니다.","text":"확정본을 수정하면 새 초안을 만듭니다.\n기존 구성과 근거는 보존하고,\n재확정한 구성에 가격 추적을 연결합니다.","textPreview":"확정본을 수정하면 새 초안을 만듭니다. | 기존 구성과 근거는 보존하고, | 재확정한 구성에 가격 추적을 연결합니다.","textChars":61,"textLines":3,"bbox":[60,708,620,128]}
+{"kind":"textbox","id":"sh/43a5wbqp","slide":1,"name":"대화 1건 = 리스트 1건     /     화면은 대화·추천 결과·물품 리스트를 함께 보여줍니다.","text":"대화 1건 = 리스트 1건     /     화면은 대화·추천 결과·물품 리스트를 함께 보여줍니다.","textPreview":"대화 1건 = 리스트 1건     /     화면은 대화·추천 결과·물품 리스트를 함께 보여줍니다.","textChars":55,"textLines":1,"bbox":[60,895,1760,64]}
+{"kind":"notes","id":"nt/dvh9yc","slide":1,"text":"기준: 프로젝트_기획서_v2.md; 기술기획서_데모+최종.md; docs/db/table_spec.md v4. 전체 서비스 완성 시점을 표현한다. 현행 개발 단계와 구분하지 않는다. 기술기획서 최종 범위의 사후 개선 배치를 포함하되, 원문 보관·리뷰 평가·합성 데이터 격리는 v4 정책을 따른다. 요리 도메인은 포함하지 않는다. 사용자 흐름: 기술기획서 2~3절. 가격 추적·재편집: 테이블 명세 51~53, 8~9절. 외부 구매 링크 클릭만으로 구매 완료를 판정하지 않으며 직접 작성 전체 PC 리뷰에는 자기신고 구성과 공개 동의가 필요하다."}
+{"kind":"slide","id":"sl/tna197","slide":2,"title":"추천 엔진의 판단 흐름","textShapes":29}
+{"kind":"textbox","id":"sh/61gvmlwb","slide":2,"name":"추천 엔진의 판단 흐름","text":"추천 엔진의 판단 흐름","textPreview":"추천 엔진의 판단 흐름","textChars":12,"textLines":1,"bbox":[60,38,1750,70]}
+{"kind":"textbox","id":"sh/t47eh0v2","slide":2,"name":"PC는 완성된 부품 조합을 검증하고, 유아용품은 품목별 검증을 마친 뒤 예산을 배분합니다.","text":"PC는 완성된 부품 조합을 검증하고, 유아용품은 품목별 검증을 마친 뒤 예산을 배분합니다.","textPreview":"PC는 완성된 부품 조합을 검증하고, 유아용품은 품목별 검증을 마친 뒤 예산을 배분합니다.","textChars":50,"textLines":1,"bbox":[60,120,1780,54]}
+{"kind":"shape","id":"sh/s3ydoveh","slide":2,"name":"흐름 연결선","bbox":[60,1000,1800,0]}
+{"kind":"textbox","id":"sh/f6pwjqds","slide":2,"name":"TrueFit  ·  전체 서비스 기획","text":"TrueFit  ·  전체 서비스 기획","textPreview":"TrueFit  ·  전체 서비스 기획","textChars":21,"textLines":1,"bbox":[60,1020,1700,35]}
+{"kind":"textbox","id":"sh/u5gvqlw7","slide":2,"name":"2 / 3","text":"2 / 3","textPreview":"2 / 3","textChars":5,"textLines":1,"bbox":[1760,1020,100,35]}
+{"kind":"shape","id":"sh/h8rel0vy","slide":2,"name":"조건 정리","bbox":[60,210,360,140]}
+{"kind":"textbox","id":"sh/g7ixsved","slide":2,"name":"조건 정리","text":"조건 정리","textPreview":"조건 정리","textChars":5,"textLines":1,"bbox":[80,230,320,44]}
+{"kind":"textbox","id":"sh/va5w76do","slide":2,"name":"명시 입력·추정·누락 구분","text":"명시 입력·추정·누락 구분","textPreview":"명시 입력·추정·누락 구분","textChars":14,"textLines":1,"bbox":[80,286,320,53]}
+{"kind":"shape","id":"sh/a9wve1w3","slide":2,"name":"요구사항 변환","bbox":[530,210,360,140]}
+{"kind":"textbox","id":"sh/cr6hk7mx","slide":2,"name":"요구사항 변환","text":"요구사항 변환","textPreview":"요구사항 변환","textChars":7,"textLines":1,"bbox":[550,230,320,44]}
+{"kind":"textbox","id":"sh/dsfitc3i","slide":2,"name":"필수 슬롯·수량·제약 정의","text":"필수 슬롯·수량·제약 정의","textPreview":"필수 슬롯·수량·제약 정의","textChars":14,"textLines":1,"bbox":[550,286,320,53]}
+{"kind":"shape","id":"sh/qp4zix47","slide":2,"name":"후보 수집·필터","bbox":[1000,210,360,140]}
+{"kind":"textbox","id":"sh/rqxgr2lc","slide":2,"name":"후보 수집·필터","text":"후보 수집·필터","textPreview":"후보 수집·필터","textChars":8,"textLines":1,"bbox":[1020,230,320,44]}
+{"kind":"textbox","id":"sh/0v6horm9","slide":2,"name":"상품 규격·가격·재고 확인","text":"상품 규격·가격·재고 확인","textPreview":"상품 규격·가격·재고 확인","textChars":14,"textLines":1,"bbox":[1020,286,320,53]}
+{"kind":"shape","id":"sh/1wfixc3u","slide":2,"name":"적합도 순위","bbox":[1470,210,360,140]}
+{"kind":"textbox","id":"sh/etozmh43","slide":2,"name":"적합도 순위","text":"적합도 순위","textPreview":"적합도 순위","textChars":6,"textLines":1,"bbox":[1490,230,320,44]}
+{"kind":"textbox","id":"sh/zux0vmlo","slide":2,"name":"가격·성능·리뷰·밸런스","text":"가격·성능·리뷰·밸런스","textPreview":"가격·성능·리뷰·밸런스","textChars":12,"textLines":1,"bbox":[1490,286,320,53]}
+{"kind":"shape","id":"sh/gzmhcnmp","slide":2,"bbox":[0,0,0,0]}
+{"kind":"shape","id":"sh/h0vyls3a","slide":2,"bbox":[0,0,0,0]}
+{"kind":"shape","id":"sh/x436tkr2","slide":2,"bbox":[0,0,0,0]}
+{"kind":"textbox","id":"sh/w3u50fah","slide":2,"name":"PC 본체 조립","text":"PC 본체 조립","textPreview":"PC 본체 조립","textChars":8,"textLines":1,"bbox":[60,430,240,50]}
+{"kind":"textbox","id":"sh/bilora9w","slide":2,"name":"신규 구성 또는\n보유 구성 업그레이드","text":"신규 구성 또는\n보유 구성 업그레이드","textPreview":"신규 구성 또는 | 보유 구성 업그레이드","textChars":20,"textLines":2,"bbox":[60,494,250,94]}
+{"kind":"shape","id":"sh/ahcny5sb","slide":2,"name":"세트 최적화","bbox":[345,420,345,160]}
+{"kind":"textbox","id":"sh/5836x4ry","slide":2,"name":"세트 최적화","text":"세트 최적화","textPreview":"세트 최적화","textChars":6,"textLines":1,"bbox":[365,440,305,44]}
+{"kind":"textbox","id":"sh/k7u54zad","slide":2,"name":"부품 조합·예산 조정\n소켓·전력·공간 제약","text":"부품 조합·예산 조정\n소켓·전력·공간 제약","textPreview":"부품 조합·예산 조정 | 소켓·전력·공간 제약","textChars":23,"textLines":2,"bbox":[365,496,305,73]}
+{"kind":"shape","id":"sh/j6lovu98","slide":2,"name":"전체 조합 검증","bbox":[780,420,360,160]}
+{"kind":"textbox","id":"sh/y5cn2psn","slide":2,"name":"전체 조합 검증","text":"전체 조합 검증","textPreview":"전체 조합 검증","textChars":8,"textLines":1,"bbox":[800,440,320,44]}
+{"kind":"textbox","id":"sh/tcn614ra","slide":2,"name":"도구 관측값 + 자료 근거\n충돌·병목·미확인 확인","text":"도구 관측값 + 자료 근거\n충돌·병목·미확인 확인","textPreview":"도구 관측값 + 자료 근거 | 충돌·병목·미확인 확인","textChars":27,"textLines":2,"bbox":[800,496,320,73]}
+{"kind":"shape","id":"sh/sbep8zap","slide":2,"bbox":[0,0,0,0]}
+{"kind":"textbox","id":"sh/qho3m187","slide":2,"name":"유아용품 준비","text":"유아용품 준비","textPreview":"유아용품 준비","textChars":7,"textLines":1,"bbox":[60,706,240,50]}
+{"kind":"textbox","id":"sh/rihkv6ps","slide":2,"name":"월령·발달 조건\n보유품·필요 시점","text":"월령·발달 조건\n보유품·필요 시점","textPreview":"월령·발달 조건 | 보유품·필요 시점","textChars":18,"textLines":2,"bbox":[60,770,250,94]}
+{"kind":"shape","id":"sh/cjqlobqd","slide":2,"name":"품목별 근거 검증","bbox":[345,700,345,160]}
+{"kind":"textbox","id":"sh/dkz2xg7i","slide":2,"name":"품목별 근거 검증","text":"품목별 근거 검증","textPreview":"품목별 근거 검증","textChars":9,"textLines":1,"bbox":[365,720,305,44]}
+{"kind":"textbox","id":"sh/el83ql83","slide":2,"name":"월령·사용 조건\n인증·리콜·위험 확인","text":"월령·사용 조건\n인증·리콜·위험 확인","textPreview":"월령·사용 조건 | 인증·리콜·위험 확인","textChars":20,"textLines":2,"bbox":[365,776,305,73]}
+{"kind":"shape","id":"sh/zmh4z6po","slide":2,"name":"시점별 예산 배분","bbox":[780,700,360,160]}
+{"kind":"textbox","id":"sh/0nqlsbq9","slide":2,"name":"시점별 예산 배분","text":"시점별 예산 배분","textPreview":"시점별 예산 배분","textChars":9,"textLines":1,"bbox":[800,720,320,44]}
+{"kind":"textbox","id":"sh/1ozm1g7u","slide":2,"name":"지금 / 곧 / 나중\n보유 충족·필수품 우선","text":"지금 / 곧 / 나중\n보유 충족·필수품 우선","textPreview":"지금 / 곧 / 나중 | 보유 충족·필수품 우선","textChars":24,"textLines":2,"bbox":[800,776,320,73]}
+{"kind":"shape","id":"sh/mps3ul8f","slide":2,"bbox":[0,0,0,0]}
+{"kind":"shape","id":"sh/na143qp0","slide":2,"name":"추천 결과·근거 설명","bbox":[1430,565,400,185]}
+{"kind":"textbox","id":"sh/v6xknqh4","slide":2,"name":"추천 결과·근거 설명","text":"추천 결과·근거 설명","textPreview":"추천 결과·근거 설명","textChars":11,"textLines":1,"bbox":[1450,585,360,44]}
+{"kind":"textbox","id":"sh/a5o3el0j","slide":2,"name":"선택 이유·계산 기여도\n대안·주의사항·인용 출처\n사용자가 비교 후 선택","text":"선택 이유·계산 기여도\n대안·주의사항·인용 출처\n사용자가 비교 후 선택","textPreview":"선택 이유·계산 기여도 | 대안·주의사항·인용 출처 | 사용자가 비교 후 선택","textChars":39,"textLines":3,"bbox":[1450,641,360,98]}
+{"kind":"shape","id":"sh/x8f2p0zu","slide":2,"name":"흐름 연결선","bbox":[1650,350,0,32]}
+{"kind":"shape","id":"sh/w76lgvip","slide":2,"name":"흐름 연결선","bbox":[305,382,1345,0]}
+{"kind":"shape","id":"sh/jux4rqh0","slide":2,"name":"흐름 연결선","bbox":[305,382,0,398]}
+{"kind":"shape","id":"sh/i9o3il0f","slide":2,"name":"흐름 연결선","bbox":[305,500,40,0]}
+{"kind":"shape","id":"sh/5wzmt0z6","slide":2,"name":"흐름 방향","bbox":[331,491,18,18]}
+{"kind":"shape","id":"sh/kv6lkvil","slide":2,"name":"흐름 연결선","bbox":[305,780,40,0]}
+{"kind":"shape","id":"sh/zydkf6hw","slide":2,"name":"흐름 방향","bbox":[331,771,18,18]}
+{"kind":"shape","id":"sh/yd43610b","slide":2,"bbox":[0,0,0,0]}
+{"kind":"shape","id":"sh/47y903ux","slide":2,"bbox":[0,0,0,0]}
+{"kind":"shape","id":"sh/p8rqt8bi","slide":2,"name":"흐름 연결선","bbox":[960,580,0,44]}
+{"kind":"shape","id":"sh/25grytcr","slide":2,"name":"흐름 연결선","bbox":[517,624,443,0]}
+{"kind":"shape","id":"sh/36p8rytc","slide":2,"name":"흐름 연결선","bbox":[517,580,0,44]}
+{"kind":"shape","id":"sh/g3y9w3ul","slide":2,"name":"흐름 방향","bbox":[508,574,18,18]}
+{"kind":"textbox","id":"sh/h47qp8b6","slide":2,"name":"기준 미달: 후보를 바꿔 재구성·재검증","text":"기준 미달: 후보를 바꿔 재구성·재검증","textPreview":"기준 미달: 후보를 바꿔 재구성·재검증","textChars":21,"textLines":1,"bbox":[420,632,690,36]}
+{"kind":"shape","id":"sh/u1grutcv","slide":2,"name":"흐름 연결선","bbox":[517,860,0,55]}
+{"kind":"shape","id":"sh/f2p8nytg","slide":2,"name":"흐름 연결선","bbox":[290,915,227,0]}
+{"kind":"shape","id":"sh/0z298nu5","slide":2,"name":"흐름 연결선","bbox":[290,650,0,265]}
+{"kind":"shape","id":"sh/10ba1sbq","slide":2,"name":"흐름 연결선","bbox":[290,650,55,0]}
+{"kind":"shape","id":"sh/9g7qls3u","slide":2,"name":"흐름 연결선","bbox":[345,650,0,50]}
+{"kind":"shape","id":"sh/8fy9snm9","slide":2,"name":"흐름 방향","bbox":[336,686,18,18]}
+{"kind":"textbox","id":"sh/nep8jilo","slide":2,"name":"품목 기준 미달: 다음 후보로 재검증","text":"품목 기준 미달: 다음 후보로 재검증","textPreview":"품목 기준 미달: 다음 후보로 재검증","textChars":20,"textLines":1,"bbox":[550,891,780,48]}
+{"kind":"textbox","id":"sh/mtwrqd43","slide":2,"name":"근거가 없으면 미확인으로 표시합니다.\n재탐색 한도 후에도 남는 위험은 드러냅니다.","text":"근거가 없으면 미확인으로 표시합니다.\n재탐색 한도 후에도 남는 위험은 드러냅니다.","textPreview":"근거가 없으면 미확인으로 표시합니다. | 재탐색 한도 후에도 남는 위험은 드러냅니다.","textChars":45,"textLines":2,"bbox":[1230,840,615,90]}
+{"kind":"notes","id":"nt/tna197","slide":2,"text":"기준: 프로젝트_기획서_v2.md; 기술기획서_데모+최종.md; docs/db/table_spec.md v4. 전체 서비스 완성 시점을 표현한다. 현행 개발 단계와 구분하지 않는다. 기술기획서 최종 범위의 사후 개선 배치를 포함하되, 원문 보관·리뷰 평가·합성 데이터 격리는 v4 정책을 따른다. 요리 도메인은 포함하지 않는다. 엔진: 기술기획서 4~11절. 규칙 기반 필터·점수·최적화와 LLM의 조건 추출·근거 문장화를 구분한다. 적대적 디베이트는 폐기한 기획이므로 포함하지 않는다. PC 세트 검증과 유아 품목별 검증의 순서를 보존했다. 재탐색은 설정된 한도 내 수행하며 유아 안전축 미해결 후보는 제외한다. 숫자 임계값은 운영 보정 대상이므로 본 도식에서는 기준 미달로 표현했다."}
+{"kind":"slide","id":"sl/i2xpzc","slide":3,"title":"근거와 피드백이 추천에 반영되는 흐름","textShapes":32}
+{"kind":"textbox","id":"sh/ixszuxon","slide":3,"name":"근거와 피드백이 추천에 반영되는 흐름","text":"근거와 피드백이 추천에 반영되는 흐름","textPreview":"근거와 피드백이 추천에 반영되는 흐름","textChars":20,"textLines":1,"bbox":[60,38,1750,70]}
+{"kind":"textbox","id":"sh/5kjipc7y","slide":3,"name":"자료 검색과 리뷰 분석은 추천을 뒷받침하고, 사용 이후의 피드백은 검토를 거쳐 다음 추천을 개선합니다.","text":"자료 검색과 리뷰 분석은 추천을 뒷받침하고, 사용 이후의 피드백은 검토를 거쳐 다음 추천을 개선합니다.","textPreview":"자료 검색과 리뷰 분석은 추천을 뒷받침하고, 사용 이후의 피드백은 검토를 거쳐 다음 추천을 개선합니다.","textChars":57,"textLines":1,"bbox":[60,120,1780,54]}
+{"kind":"shape","id":"sh/4jahw76d","slide":3,"name":"흐름 연결선","bbox":[60,1000,1800,0]}
+{"kind":"textbox","id":"sh/rm10rmp4","slide":3,"name":"TrueFit  ·  전체 서비스 기획","text":"TrueFit  ·  전체 서비스 기획","textPreview":"TrueFit  ·  전체 서비스 기획","textChars":21,"textLines":1,"bbox":[60,1020,1700,35]}
+{"kind":"textbox","id":"sh/6lszyhoj","slide":3,"name":"3 / 3","text":"3 / 3","textPreview":"3 / 3","textChars":5,"textLines":1,"bbox":[1760,1020,100,35]}
+{"kind":"textbox","id":"sh/to3itc7a","slide":3,"name":"상품 자료","text":"상품 자료","textPreview":"상품 자료","textChars":5,"textLines":1,"bbox":[60,225,245,52]}
+{"kind":"textbox","id":"sh/snuh076p","slide":3,"name":"설명서·사양표\n이미지·공식 정보","text":"설명서·사양표\n이미지·공식 정보","textPreview":"설명서·사양표 | 이미지·공식 정보","textChars":17,"textLines":2,"bbox":[60,286,230,86]}
+{"kind":"shape","id":"sh/7qhgfip0","slide":3,"name":"자료 수집·권한 확인","bbox":[330,220,350,160]}
+{"kind":"textbox","id":"sh/mp8zmdof","slide":3,"name":"자료 수집·권한 확인","text":"자료 수집·권한 확인","textPreview":"자료 수집·권한 확인","textChars":11,"textLines":1,"bbox":[350,240,310,44]}
+{"kind":"textbox","id":"sh/s7et03i5","slide":3,"name":"원본·버전·적용 상품\n객체 저장소에 보관","text":"원본·버전·적용 상품\n객체 저장소에 보관","textPreview":"원본·버전·적용 상품 | 객체 저장소에 보관","textChars":22,"textLines":2,"bbox":[350,296,310,73]}
+{"kind":"shape","id":"sh/t8nut8jq","slide":3,"name":"검색 자료 준비","bbox":[785,220,350,160]}
+{"kind":"textbox","id":"sh/65wbyd0f","slide":3,"name":"검색 자료 준비","text":"검색 자료 준비","textPreview":"검색 자료 준비","textChars":8,"textLines":1,"bbox":[805,240,310,44]}
+{"kind":"textbox","id":"sh/765cry10","slide":3,"name":"추출·OCR·청크화\n임베딩·게시","text":"추출·OCR·청크화\n임베딩·게시","textPreview":"추출·OCR·청크화 | 임베딩·게시","textChars":17,"textLines":2,"bbox":[805,296,310,73]}
+{"kind":"shape","id":"sh/gbyt4nih","slide":3,"name":"근거 검색·인용","bbox":[1240,220,350,160]}
+{"kind":"textbox","id":"sh/hc7uxsj2","slide":3,"name":"근거 검색·인용","text":"근거 검색·인용","textPreview":"근거 검색·인용","textChars":8,"textLines":1,"bbox":[1260,240,310,44]}
+{"kind":"textbox","id":"sh/u9gb2d0b","slide":3,"name":"상품·조건에 맞게 검색\n출처·원문 위치 제시","text":"상품·조건에 맞게 검색\n출처·원문 위치 제시","textPreview":"상품·조건에 맞게 검색 | 출처·원문 위치 제시","textChars":24,"textLines":2,"bbox":[1260,296,310,73]}
+{"kind":"shape","id":"sh/fapcvi1w","slide":3,"bbox":[0,0,0,0]}
+{"kind":"shape","id":"sh/wfutsjid","slide":3,"bbox":[0,0,0,0]}
+{"kind":"textbox","id":"sh/xg3aloji","slide":3,"name":"추천 검증과\n선택 이유에\n함께 사용","text":"추천 검증과\n선택 이유에\n함께 사용","textPreview":"추천 검증과 | 선택 이유에 | 함께 사용","textChars":19,"textLines":3,"bbox":[1640,247,225,106]}
+{"kind":"shape","id":"sh/dkvi9g7a","slide":3,"name":"흐름 연결선","bbox":[1590,300,30,0]}
+{"kind":"shape","id":"sh/cz2h0vqp","slide":3,"name":"흐름 방향","bbox":[1607,291,18,18]}
+{"kind":"textbox","id":"sh/ryt07qp4","slide":3,"name":"실제 리뷰","text":"실제 리뷰","textPreview":"실제 리뷰","textChars":5,"textLines":1,"bbox":[60,460,245,52]}
+{"kind":"textbox","id":"sh/qxkzyl8j","slide":3,"name":"외부 리뷰\n서비스 작성 리뷰","text":"외부 리뷰\n서비스 작성 리뷰","textPreview":"외부 리뷰 | 서비스 작성 리뷰","textChars":15,"textLines":2,"bbox":[60,521,235,92]}
+{"kind":"shape","id":"sh/1ovid076","slide":3,"name":"대상·출처 구분","bbox":[330,455,350,180]}
+{"kind":"textbox","id":"sh/0nm14vq1","slide":3,"name":"대상·출처 구분","text":"대상·출처 구분","textPreview":"대상·출처 구분","textChars":8,"textLines":1,"bbox":[350,475,310,44]}
+{"kind":"textbox","id":"sh/zmd0bqpg","slide":3,"name":"부품 / 전체 PC 구분\n본문 편집 버전 연결\n전체 PC는 사용 구성 고정","text":"부품 / 전체 PC 구분\n본문 편집 버전 연결\n전체 PC는 사용 구성 고정","textPreview":"부품 / 전체 PC 구분 | 본문 편집 버전 연결 | 전체 PC는 사용 구성 고정","textChars":41,"textLines":3,"bbox":[350,531,310,93]}
+{"kind":"shape","id":"sh/el4j2l8v","slide":3,"name":"신호 분석·검토","bbox":[785,455,350,180]}
+{"kind":"textbox","id":"sh/9sfih07i","slide":3,"name":"신호 분석·검토","text":"신호 분석·검토","textPreview":"신호 분석·검토","textChars":8,"textLines":1,"bbox":[805,475,310,44]}
+{"kind":"textbox","id":"sh/8r618f6x","slide":3,"name":"관측 가능한 근거 수집\n의심·불충분 신호 검토\n제외 이유와 문맥 보존","text":"관측 가능한 근거 수집\n의심·불충분 신호 검토\n제외 이유와 문맥 보존","textPreview":"관측 가능한 근거 수집 | 의심·불충분 신호 검토 | 제외 이유와 문맥 보존","textChars":38,"textLines":3,"bbox":[805,531,310,93]}
+{"kind":"shape","id":"sh/6xgf2xof","slide":3,"name":"요약·통계 제공","bbox":[1240,455,350,180]}
+{"kind":"textbox","id":"sh/7ypgb250","slide":3,"name":"요약·통계 제공","text":"요약·통계 제공","textPreview":"요약·통계 제공","textChars":8,"textLines":1,"bbox":[1260,475,310,44]}
+{"kind":"textbox","id":"sh/szyx476l","slide":3,"name":"중복 없이 평점 집계\n전후 통계·대표 요약\n리뷰 근거 카드 제공","text":"중복 없이 평점 집계\n전후 통계·대표 요약\n리뷰 근거 카드 제공","textPreview":"중복 없이 평점 집계 | 전후 통계·대표 요약 | 리뷰 근거 카드 제공","textChars":35,"textLines":3,"bbox":[1260,531,310,93]}
+{"kind":"shape","id":"sh/t07ydcnq","slide":3,"bbox":[0,0,0,0]}
+{"kind":"shape","id":"sh/u10f6hob","slide":3,"bbox":[0,0,0,0]}
+{"kind":"textbox","id":"sh/f29gfm5w","slide":3,"name":"후보 비교와\n근거 검증에\n반영","text":"후보 비교와\n근거 검증에\n반영","textPreview":"후보 비교와 | 근거 검증에 | 반영","textChars":16,"textLines":3,"bbox":[1640,495,230,110]}
+{"kind":"shape","id":"sh/g3ix8r6h","slide":3,"name":"흐름 연결선","bbox":[1590,540,30,0]}
+{"kind":"shape","id":"sh/h4ryhcn2","slide":3,"name":"흐름 방향","bbox":[1607,531,18,18]}
+{"kind":"textbox","id":"sh/250fahon","slide":3,"name":"지속 개선","text":"지속 개선","textPreview":"지속 개선","textChars":5,"textLines":1,"bbox":[60,716,245,52]}
+{"kind":"textbox","id":"sh/3q9gjm58","slide":3,"name":"추천 중 행동\n사용 후 피드백","text":"추천 중 행동\n사용 후 피드백","textPreview":"추천 중 행동 | 사용 후 피드백","textChars":16,"textLines":2,"bbox":[60,777,230,92]}
+{"kind":"shape","id":"sh/bm5w3mxc","slide":3,"name":"행동·사용 경험 수집","bbox":[330,710,350,180]}
+{"kind":"textbox","id":"sh/qlwfuhwr","slide":3,"name":"행동·사용 경험 수집","text":"행동·사용 경험 수집","textPreview":"행동·사용 경험 수집","textChars":11,"textLines":1,"bbox":[350,730,310,44]}
+{"kind":"textbox","id":"sh/do7y5wf2","slide":3,"name":"노출·교체·제외·확정\n리뷰·오류·이슈 제보","text":"노출·교체·제외·확정\n리뷰·오류·이슈 제보","textPreview":"노출·교체·제외·확정 | 리뷰·오류·이슈 제보","textChars":23,"textLines":2,"bbox":[350,786,310,93]}
+{"kind":"shape","id":"sh/cnyxwrex","slide":3,"name":"학습·평가·검수","bbox":[785,710,350,180]}
+{"kind":"textbox","id":"sh/zqpg76x8","slide":3,"name":"학습·평가·검수","text":"학습·평가·검수","textPreview":"학습·평가·검수","textChars":8,"textLines":1,"bbox":[805,730,310,44]}
+{"kind":"textbox","id":"sh/ypgfy1wn","slide":3,"name":"실제 표본과 증강 구분\n정답 라벨·분할 관리\n독립 평가·변경 검토","text":"실제 표본과 증강 구분\n정답 라벨·분할 관리\n독립 평가·변경 검토","textPreview":"실제 표본과 증강 구분 | 정답 라벨·분할 관리 | 독립 평가·변경 검토","textChars":36,"textLines":3,"bbox":[805,786,310,93]}
+{"kind":"shape","id":"sh/lc7y9wfe","slide":3,"name":"추천 기준 개선","bbox":[1240,710,350,180]}
+{"kind":"textbox","id":"sh/0byx0ret","slide":3,"name":"추천 기준 개선","text":"추천 기준 개선","textPreview":"추천 기준 개선","textChars":8,"textLines":1,"bbox":[1260,730,310,44]}
+{"kind":"textbox","id":"sh/fulwv2x4","slide":3,"name":"가중치·예산 프로필\n규격·근거 자료 갱신\n검토·승인 후 반영","text":"가중치·예산 프로필\n규격·근거 자료 갱신\n검토·승인 후 반영","textPreview":"가중치·예산 프로필 | 규격·근거 자료 갱신 | 검토·승인 후 반영","textChars":33,"textLines":3,"bbox":[1260,786,310,93]}
+{"kind":"shape","id":"sh/etcfmxgj","slide":3,"bbox":[0,0,0,0]}
+{"kind":"shape","id":"sh/knqlgzq5","slide":3,"bbox":[0,0,0,0]}
+{"kind":"textbox","id":"sh/5ozm94rq","slide":3,"name":"다음 추천의\n조건 해석·순위·\n검증에 반영","text":"다음 추천의\n조건 해석·순위·\n검증에 반영","textPreview":"다음 추천의 | 조건 해석·순위· | 검증에 반영","textChars":23,"textLines":3,"bbox":[1640,750,230,110]}
+{"kind":"shape","id":"sh/il83e9sz","slide":3,"name":"흐름 연결선","bbox":[1590,800,30,0]}
+{"kind":"shape","id":"sh/jmhk7e9k","slide":3,"name":"흐름 방향","bbox":[1607,791,18,18]}
+{"kind":"textbox","id":"sh/wjqlcza9","slide":3,"name":"합성 표본은 학습·평가용으로 격리합니다. 운영 후기 수·평균에는 실제 리뷰만 포함합니다.","text":"합성 표본은 학습·평가용으로 격리합니다. 운영 후기 수·평균에는 실제 리뷰만 포함합니다.","textPreview":"합성 표본은 학습·평가용으로 격리합니다. 운영 후기 수·평균에는 실제 리뷰만 포함합니다.","textChars":49,"textLines":1,"bbox":[330,928,1500,42]}
+{"kind":"notes","id":"nt/i2xpzc","slide":3,"text":"기준: 프로젝트_기획서_v2.md; 기술기획서_데모+최종.md; docs/db/table_spec.md v4. 전체 서비스 완성 시점을 표현한다. 현행 개발 단계와 구분하지 않는다. 기술기획서 최종 범위의 사후 개선 배치를 포함하되, 원문 보관·리뷰 평가·합성 데이터 격리는 v4 정책을 따른다. 요리 도메인은 포함하지 않는다. 자료: 명세 8.1~8.3절. 외부 리뷰 원문은 저장하지 않고 허용된 요약·출처·비원문 분석값을 사용하며 직접 작성 본문은 버전 관리한다. 리뷰: 명세 8.4~8.6절. 실구매 표시는 진실성 정답이 아니며 supported/manipulation_indicators/undetermined 근거 판정과 분리한다. 실제 train 부모 하나에서 증강하고 평가용 실제 표본은 사람 승인 라벨을 사용한다. 사후 개선: 기술기획서 12절의 최종 서비스 배치 흐름. 실구매 인증을 서비스가 자동 수행한다는 의미는 포함하지 않는다."}

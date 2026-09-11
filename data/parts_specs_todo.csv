@@ -1,0 +1,28 @@
+﻿name,type,field,reason,url
+ASUS ROG MAXIMUS Z790 HERO,mainboard,socket,not_found(static/render),https://www.asus.com/motherboards-components/motherboards/rog-maximus/rog-maximus-z790-hero/techspec/
+ASUS ROG MAXIMUS Z790 HERO,mainboard,min_bios,no_cpu_support_url,
+ASUS ROG STRIX Z790-E GAMING WIFI,mainboard,socket,not_found(static/render),https://www.asus.com/motherboards-components/motherboards/rog-strix/rog-strix-z790-e-gaming-wifi/techspec/
+ASUS ROG STRIX Z790-E GAMING WIFI,mainboard,min_bios,no_cpu_support_url,
+ASUS TUF GAMING Z790-PLUS WIFI,mainboard,min_bios,no_cpu_support_url,
+ASUS PRIME Z790-P WIFI,mainboard,min_bios,no_cpu_support_url,
+ASUS PRIME B760M-A WIFI,mainboard,min_bios,table_not_parseable(JS/PDF?),https://www.asus.com/motherboards-components/motherboards/prime/prime-b760m-a-wifi/helpdesk_cpu/
+ASUS TUF GAMING B760-PLUS WIFI,mainboard,min_bios,no_cpu_support_url,
+ASUS PRIME B760M-K,mainboard,min_bios,no_cpu_support_url,
+ASUS ROG STRIX Z890-E GAMING WIFI,mainboard,socket,not_found(static/render),https://www.asus.com/motherboards-components/motherboards/rog-strix/rog-strix-z890-e-gaming-wifi/techspec/
+ASUS ROG STRIX Z890-E GAMING WIFI,mainboard,min_bios,no_cpu_support_url,
+ASUS TUF GAMING Z890-PLUS WIFI,mainboard,min_bios,no_cpu_support_url,
+ASUS PRIME B860M-A WIFI,mainboard,min_bios,no_cpu_support_url,
+ASUS ROG CROSSHAIR X870E HERO,mainboard,socket,not_found(static/render),https://www.asus.com/motherboards-components/motherboards/rog-crosshair/rog-crosshair-x870e-hero/techspec/
+ASUS ROG CROSSHAIR X870E HERO,mainboard,min_bios,no_cpu_support_url,
+ASUS ROG STRIX X870E-E GAMING WIFI,mainboard,socket,not_found(static/render),https://www.asus.com/motherboards-components/motherboards/rog-strix/rog-strix-x870e-e-gaming-wifi/techspec/
+ASUS ROG STRIX X870E-E GAMING WIFI,mainboard,min_bios,no_cpu_support_url,
+ASUS TUF GAMING X870-PLUS WIFI,mainboard,min_bios,no_cpu_support_url,
+ASUS PRIME X870-P WIFI,mainboard,min_bios,no_cpu_support_url,
+ASUS ROG STRIX B850-E GAMING WIFI,mainboard,socket,not_found(static/render),https://www.asus.com/motherboards-components/motherboards/rog-strix/rog-strix-b850-e-gaming-wifi/techspec/
+ASUS ROG STRIX B850-E GAMING WIFI,mainboard,min_bios,no_cpu_support_url,
+ASUS TUF GAMING B850-PLUS WIFI,mainboard,min_bios,no_cpu_support_url,
+ASUS PRIME B850M-A WIFI,mainboard,min_bios,no_cpu_support_url,
+ASUS ROG STRIX B650E-F GAMING WIFI,mainboard,socket,not_found(static/render),https://www.asus.com/motherboards-components/motherboards/rog-strix/rog-strix-b650e-f-gaming-wifi/techspec/
+ASUS ROG STRIX B650E-F GAMING WIFI,mainboard,min_bios,no_cpu_support_url,
+ASUS TUF GAMING B650-PLUS WIFI,mainboard,min_bios,no_cpu_support_url,
+ASUS PRIME A620M-E,mainboard,min_bios,no_cpu_support_url,

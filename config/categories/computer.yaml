@@ -1,0 +1,37 @@
+category: computer
+label: "컴퓨터 (PC 본체 조립)"
+modes: [build, upgrade]
+required_inputs: [purpose, budget_max]
+slot_structure: [CPU, GPU, RAM, 메인보드, 저장장치, 파워, 케이스, 쿨러]
+verify_branch: set            # [4] 세트 최적화 → [3-C] 세트 검증
+
+slot_schema:
+  purpose:         { type: enum, values: [game, creation, office] }
+  budget_max:      { type: int, nullable: true }
+  games:           { type: list }
+  resolution:      { type: enum, values: [FHD_144, QHD_165, "4K"], nullable: true }
+  assembly:        { type: enum, values: [self, service], nullable: true }
+  noise_sensitive: { type: bool, nullable: true }
+  brand_pref:      { type: enum, values: [intel, amd, none], nullable: true }
+  owned:           { type: list }
+  extra:           { type: list }
+  # 데모 숨김(주석): monitor_owned, peripherals_included, case_size, expandability
+
+defaults:                      # 동적 기본값 실패 시 fallback
+  resolution: FHD_144
+  assembly: service
+  noise_sensitive: false
+  brand_pref: none
+
+question_sets:
+  - { id: q_resolution, select: single, maps_to: resolution,
+      label: "목표 해상도·주사율은?",
+      options: ["FHD 144Hz", "QHD 165Hz", "4K", "잘 모르겠어요"] }
+  - { id: q_games, select: multi, maps_to: games,
+      label: "어떤 게임을 하시나요?" }
+  - { id: q_assembly, select: single, maps_to: assembly,
+      label: "조립은 어떻게 하시겠어요?",
+      options: ["직접 조립", "조립 대행"] }
+  - { id: q_noise, select: single, maps_to: noise_sensitive,
+      label: "소음에 민감하신 편인가요?",
+      options: ["조용한 게 좋아요", "상관없어요"] }
