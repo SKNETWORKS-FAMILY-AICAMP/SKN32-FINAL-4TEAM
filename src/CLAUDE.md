@@ -99,5 +99,24 @@ uv run python main.py computer_pass
 
 ## 브랜치
 
-- 작업 브랜치는 `sllm`이다. 원래 README만 있는 독립 히스토리였고, 2026-09-13에 `front`를 병합해(`--allow-unrelated-histories`) 최신 코드를 받았다.
+- 작업 브랜치는 `sllm`이다. 원래 README만 있는 독립 히스토리였고, 2026-09-13에 `front`를 병합해(`--allow-unrelated-histories`) 최신 코드를 받았다. 같은 날 `develop`도 병합했다(충돌 없음).
 - **git commit·push·branch 변경은 사용자가 요청할 때만 한다.**
+- `develop`을 다시 받을 때는 먼저 `git merge-tree --write-tree HEAD origin/develop`으로 충돌을 예행연습한다 — 워킹트리를 건드리지 않고 exit 0/1로 답이 나온다.
+
+## 남은 작업 (2026-09-13 기준 — 진행되면 이 절을 갱신할 것)
+
+[3-C] 쟁점 문장화와 [5] 설명 문장은 **끝났고 실제 OpenAI 호출까지 확인**했다. 남은 것은 넷이다.
+
+**1. 문장 필드 pending/ready/failed 분리 — 가장 시급하다.**
+`execute_recommendation`이 [2]~[5]를 전부 끝내야 run을 `done`으로 바꾼다. 그런데 이제 [3-C]·[5]가 실제 API를 호출하므로, 부품·가격·검증이 이미 계산됐는데도 문장이 올 때까지 사용자는 아무것도 못 본다. LLM이 실패하면 추천 전체가 실패로 보이는 것도 같은 원인이다. 계약(§D-4-0)대로 부품·가격·검증을 먼저 `done`으로 저장하고 문장 필드는 `pending` → `ready`/`failed`로 채운다. **`recommendation_service.py`는 develop 담당자 영역이라 합의가 먼저다.**
+
+**2. 프롬프트 문안 팀 승인.**
+`prompts.py`의 두 문안은 기획서 §19-3 체크리스트의 미승인 항목이다. 실호출에서 드러난 약점 둘을 같이 올린다 — headline이 검증 신뢰도 인용을 빠뜨리는 경우가 있고, "강력한 성능" 같은 평가 표현이 섞인다(규칙 7 위반이지만 후처리 검사는 통과한다).
+
+**3. 데모 시나리오에 `tool_result` 추가.**
+`data/scenarios/*.json`의 쟁점에 관측값이 없어서 데모 경로는 쟁점 문장을 RAG 근거만으로 만든다. 시연 품질 문제다. 같은 파일들이 이제 쓰지 않는 `prosecutor`/`defender`도 들고 있다.
+
+**4. 팀에 알릴 것 둘.**
+`recommendation_service.py`의 `message=issue.text or ...` 한 줄을 우리가 고쳤다(담당자 영역). 그리고 계약 문서 §D-3이 아직 Bedrock 기준이라 OpenAI 전환이 반영돼 있지 않다.
+
+들어가기 전 참고: `tests/test_list_service.py` 3건은 **`origin/develop` 원본에서도 같은 줄에서 실패한다**(임시 워크트리로 대조 확인함). 우리 변경 탓이 아니고 develop 담당자 몫이다.
