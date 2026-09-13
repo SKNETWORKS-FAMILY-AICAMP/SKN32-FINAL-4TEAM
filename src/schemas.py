@@ -5,12 +5,13 @@
 """
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, Field
 
 
-# ── auth ──
+# ── auth: 코드 로그인 (보류 — §G 재사용 예정) ──
 class RequestCodeIn(BaseModel):
     email: str
 
@@ -22,6 +23,55 @@ class VerifyCodeIn(BaseModel):
 
 class TokenOut(BaseModel):
     token: str
+
+
+# ── auth: 이메일+비밀번호 (§A-4) ──
+class SignupIn(BaseModel):
+    email: str
+    password: str
+    display_name: str
+    terms_agreed: bool
+    privacy_agreed: bool
+    marketing_agreed: bool = False
+
+
+class LoginIn(BaseModel):
+    email: str
+    password: str
+    remember: bool = False
+
+
+class UserOut(BaseModel):
+    id: str
+    email: str
+    display_name: str
+    marketing_agreed: bool
+    created_at: datetime
+
+
+class UserEnvelopeOut(BaseModel):
+    """프론트 TF_AUTH가 `data.user`로 읽는다(frontend/js/api.js) — 사용자 응답은 항상 이 봉투로 감싼다."""
+
+    user: UserOut
+
+
+class ProfilePatchIn(BaseModel):
+    display_name: Optional[str] = None
+    email: Optional[str] = None
+    marketing_agreed: Optional[bool] = None
+
+
+class PasswordChangeIn(BaseModel):
+    current_password: str
+    new_password: str
+
+
+class WithdrawIn(BaseModel):
+    password: str
+
+
+class EmailAvailabilityOut(BaseModel):
+    available: bool
 
 
 # ── session (S1~S3) ──
@@ -191,20 +241,74 @@ class RecommendResultOut(BaseModel):
     error: RecommendErrorOut | None = None
 
 
-# ── list confirm (S5-a) / report (S5-b) ──
-class ConfirmIn(BaseModel):
+# ── 사이드바 목록 · 확정(S5-a) · 리포트(S5-b) · 가격 알림 (§D-4-3) ──
+class ListSummaryOut(BaseModel):
+    list_id: str
     name: str
+    category: Optional[str] = None
+    stage: Literal["category", "conditions", "results", "report"]
+    updated_at: datetime
+
+
+class ListsOut(BaseModel):
+    items: list[ListSummaryOut] = Field(default_factory=list)
+
+
+class ListRenameIn(BaseModel):
+    name: str = Field(min_length=1, max_length=60)
+
+
+class ConfirmIn(BaseModel):
+    name: str = Field(min_length=1, max_length=60)
     planned_purchase_at: Optional[str] = None
     target_amount: Optional[int] = None
+    memo: str = Field(default="", max_length=1000)
+
+
+class ReportProductOut(BaseModel):
+    product_key: str
+    name: str
+    image_url: str | None = None
+    purchase_url: str | None = None
+
+
+class ReportItemOut(BaseModel):
+    slot: str
+    slot_label: str
+    product: ReportProductOut
+    price: int
+    qty: int = 1
+    timing: str = "now"
+    review: ReviewBriefOut | None = None
+    evidence_text: str | None = None
+
+
+class PriceWatchOut(BaseModel):
+    enabled: bool
+    target_amount: int | None = None
+    status: Literal["waiting", "tracking", "reached"] = "waiting"
+    latest_total: int | None = None
+    observed_at: str | None = None
 
 
 class ReportOut(BaseModel):
     list_id: str
     name: str
-    items: list[dict]
+    category: str
+    owner_display_name: str
+    planned_purchase_at: str | None = None
+    target_amount: int | None = None
+    memo: str = ""
     total: int
-    buy_links: list[dict]
-    price_watch: Optional[dict] = None
+    confirmed_at: str
+    items: list[ReportItemOut] = Field(default_factory=list)
+    price_watch: PriceWatchOut
+    data_notice: str = "상품·가격·리뷰는 합성 데이터입니다."
+
+
+class AlertIn(BaseModel):
+    enabled: bool
+    target_amount: Optional[int] = None
 
 
 # ── reviews (A7) ──

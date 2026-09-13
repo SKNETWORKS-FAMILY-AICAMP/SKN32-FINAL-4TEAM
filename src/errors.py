@@ -51,3 +51,8 @@ class Conflict(TruefitError):
 class RateLimited(TruefitError):
     code = "rate_limited"
     http_status = 429
+
+
+class AccountLocked(TruefitError):
+    code = "account_locked"
+    http_status = 423

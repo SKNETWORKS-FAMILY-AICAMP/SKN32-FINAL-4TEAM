@@ -24,10 +24,84 @@ class PlanRepo(Repo):
             raise ValueError("revision does not belong to plan")
 
     def get_revision(self, revision_id: UUID) -> dict | None:
-        return self._one("SELECT r.*, p.conversation_id, p.owner_user_id, c.user_id, c.guest_session_hash FROM planning.plan_revision r JOIN planning.plan p ON p.id=r.plan_id JOIN identity.conversation c ON c.id=p.conversation_id WHERE r.id=%s", (revision_id,))
+        return self._one(
+            "SELECT r.*, p.name AS plan_name, p.conversation_id, p.owner_user_id, "
+            "c.user_id, c.guest_session_hash, d.code AS category "
+            "FROM planning.plan_revision r JOIN planning.plan p ON p.id=r.plan_id "
+            "JOIN identity.conversation c ON c.id=p.conversation_id "
+            "JOIN config.domain_version dv ON dv.id=r.domain_version_id "
+            "JOIN config.domain d ON d.id=dv.domain_id "
+            "WHERE r.id=%s", (revision_id,))
 
     def get_current_revision(self, plan_id: UUID) -> dict | None:
-        return self._one("SELECT r.*, p.conversation_id, p.owner_user_id, c.user_id, c.guest_session_hash FROM planning.plan p JOIN planning.plan_revision r ON r.id=p.current_revision_id JOIN identity.conversation c ON c.id=p.conversation_id WHERE p.id=%s", (plan_id,))
+        """소프트 삭제된 목록은 제외한다 — 일반 조회·추천·확정·리포트 전부 이 경로를 탄다."""
+        return self._one(
+            "SELECT r.*, p.name AS plan_name, p.conversation_id, p.owner_user_id, "
+            "c.user_id, c.guest_session_hash, d.code AS category "
+            "FROM planning.plan p JOIN planning.plan_revision r ON r.id=p.current_revision_id "
+            "JOIN identity.conversation c ON c.id=p.conversation_id "
+            "JOIN config.domain_version dv ON dv.id=r.domain_version_id "
+            "JOIN config.domain d ON d.id=dv.domain_id "
+            "WHERE p.id=%s AND p.status='active'", (plan_id,))
+
+    def list_owned(self, *, user_id: UUID | None, guest_session_hash: str | None) -> list[dict]:
+        """사이드바 "내 장바구니" — 최근 수정순(§D-4-3)."""
+        return self._all(
+            "SELECT p.id AS list_id, p.name, p.updated_at, pr.id AS revision_id, pr.state, "
+            "d.code AS category, "
+            "EXISTS(SELECT 1 FROM planning.plan_condition pc WHERE pc.revision_id=pr.id "
+            "  AND pc.condition_key='category' AND pc.status='active') AS has_category, "
+            "EXISTS(SELECT 1 FROM engine.recommendation_run rr WHERE rr.revision_id=pr.id "
+            "  AND rr.status='completed') AS has_result "
+            "FROM planning.plan p "
+            "JOIN planning.plan_revision pr ON pr.id=p.current_revision_id "
+            "JOIN config.domain_version dv ON dv.id=pr.domain_version_id "
+            "JOIN config.domain d ON d.id=dv.domain_id "
+            "JOIN identity.conversation c ON c.id=p.conversation_id "
+            "WHERE p.status='active' AND ("
+            "  (%s::uuid IS NOT NULL AND c.user_id=%s) OR "
+            "  (%s::text IS NOT NULL AND c.guest_session_hash=%s)"
+            ") ORDER BY p.updated_at DESC",
+            (user_id, user_id, guest_session_hash, guest_session_hash),
+        )
+
+    def get_summary(self, list_id: UUID) -> dict | None:
+        """PATCH /lists/{id} 응답(ListSummary)용 — list_owned와 같은 모양의 단건 조회."""
+        return self._one(
+            "SELECT p.id AS list_id, p.name, p.updated_at, pr.id AS revision_id, pr.state, "
+            "d.code AS category, "
+            "EXISTS(SELECT 1 FROM planning.plan_condition pc WHERE pc.revision_id=pr.id "
+            "  AND pc.condition_key='category' AND pc.status='active') AS has_category, "
+            "EXISTS(SELECT 1 FROM engine.recommendation_run rr WHERE rr.revision_id=pr.id "
+            "  AND rr.status='completed') AS has_result "
+            "FROM planning.plan p "
+            "JOIN planning.plan_revision pr ON pr.id=p.current_revision_id "
+            "JOIN config.domain_version dv ON dv.id=pr.domain_version_id "
+            "JOIN config.domain d ON d.id=dv.domain_id "
+            "WHERE p.id=%s",
+            (list_id,),
+        )
+
+    def rename(self, list_id: UUID, name: str) -> None:
+        self._exec("UPDATE planning.plan SET name=%s, updated_at=now() WHERE id=%s", (name, list_id))
+
+    def soft_delete(self, list_id: UUID) -> None:
+        self._exec(
+            "UPDATE planning.plan SET status='deleted', deleted_at=now(), updated_at=now() "
+            "WHERE id=%s AND status='active'",
+            (list_id,),
+        )
+
+    def confirm_revision(self, revision_id: UUID, *, confirmed_total, planned_purchase_at,
+                         target_amount, memo: str) -> bool:
+        """draft → confirmed. 이미 confirmed면 아무것도 안 하고 False."""
+        row = self._one(
+            "UPDATE planning.plan_revision SET state='confirmed', confirmed_at=now(), "
+            "confirmed_total=%s, planned_purchase_at=%s, target_amount=%s, memo=%s, updated_at=now() "
+            "WHERE id=%s AND state='draft' RETURNING id",
+            (confirmed_total, planned_purchase_at, target_amount, memo, revision_id),
+        )
+        return row is not None
 
     def get_lock_version(self, revision_id: UUID) -> int | None:
         row = self._one("SELECT lock_version FROM planning.plan_revision WHERE id=%s", (revision_id,))
