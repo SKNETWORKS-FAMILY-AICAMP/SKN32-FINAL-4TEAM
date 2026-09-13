@@ -300,7 +300,7 @@ def get_stored_result(conn, revision_id: UUID) -> dict | None:
             "price_observed_at": row["observed_at"].isoformat() if row["observed_at"] else None,
             "qty": 1, "selected": True, "timing": "now", "budget_share": None,
             "review": None,
-            "reason": {"status": "ready", "text": row["reason"]} if row["reason"] else {"status": "pending", "text": None},
+            "reason": {"status": row["reason_status"], "text": row["reason"]},
             "checks": {"status": "pending", "text": None},
             "alternatives_count": 0,
         })
@@ -326,7 +326,7 @@ def get_stored_result(conn, revision_id: UUID) -> dict | None:
         ],
     }
     result["explanation"] = {
-        "status": "ready" if run.get("explanation_status") == "ready" else "pending",
+        "status": run.get("explanation_status") or "pending",
         "headline": run.get("explanation_headline"),
         "text": run.get("explanation_text"),
     }
