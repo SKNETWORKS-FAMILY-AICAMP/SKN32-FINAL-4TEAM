@@ -103,6 +103,24 @@ class PlanRepo(Repo):
         )
         return row is not None
 
+    def add_purchase_line(self, revision_id: UUID, offer_id: UUID, offer_observation_id: UUID,
+                          amount: int, snapshot: dict) -> UUID:
+        """확정 시점에 후보를 얼려서 기록 — 이후 추천 결과가 바뀌어도 리포트는 그대로다."""
+        row = self._one(
+            "INSERT INTO planning.purchase_line "
+            "(revision_id, offer_id, selected_observation_id, pack_count, line_amount, snapshot) "
+            "VALUES (%s, %s, %s, 1, %s, %s) RETURNING id",
+            (revision_id, offer_id, offer_observation_id, amount, Jsonb(snapshot)),
+        )
+        return row["id"]
+
+    def list_purchase_lines(self, revision_id: UUID) -> list[dict]:
+        return self._all(
+            "SELECT pack_count, line_amount, snapshot FROM planning.purchase_line "
+            "WHERE revision_id=%s ORDER BY created_at",
+            (revision_id,),
+        )
+
     def get_lock_version(self, revision_id: UUID) -> int | None:
         row = self._one("SELECT lock_version FROM planning.plan_revision WHERE id=%s", (revision_id,))
         return None if row is None else row["lock_version"]

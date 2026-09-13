@@ -50,7 +50,7 @@ class EngineRepo(Repo):
         return self._all("""
         SELECT c.*, p.model AS product_key, v.id AS variant_id, v.variant_key,
                p.name AS product_name, p.brand, p.attributes, p.image_url,
-               of.purchase_url, o.price, o.observed_at,
+               of.id AS offer_id, of.purchase_url, o.price, o.observed_at,
                n.template_key AS slot, n.name AS slot_label
         FROM engine.recommendation_candidate c
         JOIN catalog.product_variant v ON v.id=c.variant_id

@@ -47,6 +47,15 @@ function tfListSummary(id=tfPlan.listId){return (tfPlan.lists||[]).find(item=>it
 function tfStageRoute(stage){return ['category','conditions','results','report'].includes(stage)?stage:'conditions'}
 function tfPlanRoute(){const summary=tfListSummary();if(!tfPlan.listId)return 'category';if(tfPlan.report||summary?.stage==='report')return 'report';if(tfPlan.result||summary?.stage==='results')return 'results';if(tfPlan.condition?.category||summary?.category)return 'conditions';return 'category'}
 function tfSelectList(id){tfStopPoll();tfPlan.listId=id||null;tfPlan.condition=null;tfPlan.result=null;tfPlan.report=null;tfPlan.resultMessages=[];try{id?localStorage.setItem(TF_ACTIVE_LIST_KEY,id):localStorage.removeItem(TF_ACTIVE_LIST_KEY)}catch{}}
+// TF-DEV: "대화 다시 시작" 이후에도 서버는 실제 대화 기록을 계속 보관한다(질문·답변은 그대로 남고 조건 값만 비움).
+// 새로고침해도 화면이 다시 "처음부터"로 보이도록, 리셋 시점의 메시지 개수와 그때 다시 물은 질문 문구를 저장해두고
+// 그 이전 메시지는 화면에서만 가린다(서버 데이터를 지우지 않음). 질문 문구를 같이 고정해야 이후 답변이 쌓여도
+// 재시작 안내 문구가 "현재" 질문으로 계속 바뀌지 않고 리셋 당시 질문("주로 어떤 용도로...") 그대로 유지된다.
+const TF_RESET_MARK_KEY='truefit-condition-reset';
+function tfResetMarks(){try{return JSON.parse(localStorage.getItem(TF_RESET_MARK_KEY)||'{}')}catch{return {}}}
+function tfResetMark(listId){return tfResetMarks()[listId]||null}
+function tfSetResetMark(listId,count,text){try{const marks=tfResetMarks();marks[listId]={count,text};localStorage.setItem(TF_RESET_MARK_KEY,JSON.stringify(marks))}catch{}}
+function tfClearResetMark(listId){try{const marks=tfResetMarks();delete marks[listId];localStorage.setItem(TF_RESET_MARK_KEY,JSON.stringify(marks))}catch{}}
 function tfOnAuthChange(){tfPlan.lists=null;tfPlan.listsLoaded=false;tfPlan.report=null}
 function tfListGone(err){if(err&&err.status===404&&err.code==='not_found'){tfSelectList(null);tfPlan.listsLoaded=false;toast('장바구니를 찾을 수 없어 새로 시작합니다.');go('category');return true}return false}
 function tfStopPoll(){clearTimeout(tfPlan.pollTimer);tfPlan.pollTimer=null}
@@ -60,7 +69,7 @@ function readAuthSession(){return TF_AUTH.user}
 // TF-DEV: 서버 로그인 상태 확인 — 모든 페이지에서 한 번 실행. 결과가 필요한 페이지는 TF_AUTH.ready.then(...)으로 이어 붙인다.
 TF_AUTH.ready=TF_AUTH.refresh();
 // TF-DEV: 카테고리 선택은 index.html 퀵스타트 카드·category.html·푸터 바로가기 모두에서 쓰여 core.js에 둔다.
-async function tfSetCategory(c,{fresh=false}={}){if(tfPlan.busy)return;const category=tfApiCategory(c),summary=tfListSummary(),known=tfPlan.condition?.category||summary?.category||null;if(!fresh&&tfPlan.listId&&known===category){go('conditions');return}if(!fresh&&tfPlan.listId&&known&&known!==category&&!window.confirm('카테고리를 바꾸면 지금까지의 조건과 추천 결과가 초기화돼요. 계속할까요?'))return;tfPlan.busy=true;try{if(fresh||!tfPlan.listId){const created=tfRequire(await TF_PLAN.createSession());tfSelectList(created.list_id)}const state=tfRequire(await TF_PLAN.chooseCategory(tfPlan.listId,category));tfPlan.condition=state;tfPlan.result=null;tfPlan.report=null;tfPlan.resultMessages=[];tfPlan.listsLoaded=false;go('conditions')}catch(err){if(!tfListGone(err))toast(tfAuthErrorMessage(err))}finally{tfPlan.busy=false}}
+async function tfSetCategory(c,{fresh=false}={}){if(tfPlan.busy)return;const category=tfApiCategory(c);tfPlan.busy=true;try{let known=tfPlan.condition?.category||tfListSummary()?.category||null;if(!fresh&&tfPlan.listId&&known==null){try{known=tfRequire(await TF_PLAN.condition(tfPlan.listId)).category||null}catch(err){if(tfListGone(err))return;known=null}}if(!fresh&&tfPlan.listId&&known===category){go('conditions');return}if(!fresh&&tfPlan.listId&&known&&known!==category){if(!window.confirm('다른 카테고리를 선택하면 새 장바구니를 만들어요. 지금 대화는 사이드바에 그대로 남아요. 계속할까요?'))return;fresh=true}if(fresh||!tfPlan.listId){const created=tfRequire(await TF_PLAN.createSession());tfSelectList(created.list_id)}const state=tfRequire(await TF_PLAN.chooseCategory(tfPlan.listId,category));tfPlan.condition=state;tfPlan.result=null;tfPlan.report=null;tfPlan.resultMessages=[];tfPlan.listsLoaded=false;go('conditions')}catch(err){if(!tfListGone(err))toast(tfAuthErrorMessage(err))}finally{tfPlan.busy=false}}
 function choose(c){return tfSetCategory(c,{fresh:true})}
 // TF-DEV: 로그인 필요 화면(account/confirm/report)과 로그아웃 버튼(사이드바·헤더·회원정보)이 공유 — core.js에 둔다.
 function tfSendToLogin(returnPage){try{sessionStorage.setItem('truefit-login-return',returnPage)}catch{}go('login')}

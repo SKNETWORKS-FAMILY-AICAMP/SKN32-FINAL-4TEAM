@@ -66,3 +66,6 @@ tmp/
 # data/parts_specs_raw.csv
 # data/parts_specs_todo.csv
 # data/*_preview.csv
+
+# ── 외부 데이터셋 파생물 (Amazon Reviews'23 엣지 표 · 라이선스 미확인) ──
+data/amazon23/

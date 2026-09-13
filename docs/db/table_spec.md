@@ -1483,6 +1483,8 @@ PC 전체 리뷰를 작성할 때 장착된 부품을 고정한다.
 | `summary` | `text` | N | — | — | 대표 요약 |
 | `normalized_rating` | `numeric(3,2)` | Y | — | — | 공통 5점 척도로 변환한 값 |
 | `collected_at` | `timestamptz` | N | — | — | 수집·처리 시각 |
+| `author_ref` | `text` | Y | — | — | 외부 작성자 식별자의 **소스별 솔트 해시**. 원식별자 미저장. 관계·행동 축(공유 리뷰어·신규성·간격)용 (0010) |
+| `review_posted_at` | `timestamptz` | Y | — | — | 리뷰가 원 소스에 게시된 시각. `collected_at`(수집 시각)과 다르다. 7일 몰림·간격 계산용 (0010) |
 | `processing_version` | `text` | N | — | — | 요약·정제 버전 |
 | `cleaning_status` | `text` | N | — | — | retained/excluded/pending |
 | `exclusion_reason` | `text` | Y | — | — | 제외 사유 |
@@ -1496,11 +1498,15 @@ PC 전체 리뷰를 작성할 때 장착된 부품을 고정한다.
 - 외부 원문 본문 컬럼 없음. 내부 리뷰 대상과 subject 일치. active 내부 요약은 현재 공개·승인된 본문에만 허용. normalized_rating은 NULL 또는 0~5.
 - origin은 수집 경로 구분이다. 합성 여부를 origin에 추가하지 않는다. 합성 리뷰는 dataset.review_sample에만 저장하고, 실제 리뷰의 자동 요약은 기존 origin을 유지한다.
 - 부분 UNIQUE(source_id,external_review_key,processing_version) 및 UNIQUE(review_revision_id,processing_version).
+- `author_ref`·`review_posted_at`은 소스가 제공하지 않으면 NULL로 둔다. 기본값이나 `collected_at`으로 채우지 않는다 — 채우면 한 번에 수집한 리뷰가 전부 "같은 날 몰림"으로 보인다. 둘 중 하나라도 NULL이면 그 행은 관계·행동 축 계산에서 "정의되지 않음"이다. `review_posted_at`은 `dataset.review_sample.review_posted_at`과 같은 이름·같은 의미다(원 시간대·정밀도 기록 규칙도 같다 — 날짜만 있으면 일 단위 몰림만 보고 시간대 집중 분석은 하지 않는다).
+- `origin='first_party'` 행은 `author_ref`를 `review_revision_id → community.review.author_user_id`의 솔트 해시(소스 = first_party)로, `review_posted_at`을 `community.review_revision.published_at`으로 채운다. 관계·행동 축이 origin을 가르지 않고 한 컬럼으로 잇기 위해서다.
+- 관계·행동 축은 **상품 단위 관측 사실**을 낸다. 그 값으로 이 테이블의 `cleaning_status`를 `excluded`로 바꾸지 않는다 — 상품이 의심스럽다는 이유로 개별 리뷰를 제외하지 않는다.
 
 **인덱스 제안**
 
 - PK/UNIQUE 인덱스 및 각 FK 선두 인덱스를 기본으로 한다. 중복 인덱스는 합친다.
 - (subject_id,status,cleaning_status)
+- 부분 (author_ref) WHERE author_ref IS NOT NULL · 부분 (subject_id,review_posted_at) WHERE review_posted_at IS NOT NULL (0010)
 
 <a id="table-43"></a>
 
@@ -2056,6 +2062,7 @@ RAG 자료 인용을 후보의 설명에도 명시적으로 연결한다.
 | pc_build_component.component_snapshot | brand, model, variant_key, product_type, hardware_revision | 게시 시 variant에서 복사. 개인 시리얼 번호는 요구하지 않음 |
 | pc_build_version.environment | BIOS·OS·팬 구성·측정 온도 등 사용자가 확인한 문맥 | 모르는 값은 NULL/미확인. 데이터가 없는 실측값을 추정해 채우지 않음 |
 | review_revision.axis_scores | 도메인의 component 또는 build 평가 축과 1~5 점수 | 대상 수준별 축 검증. 전체 PC 소음 점수를 CPU 소음 평점으로 전파 금지 |
+| review_revision.usage_context.telemetry | 작성 폼 계측: paste_count, paste_chars, typing_ms, edit_count, compose_ms — 전부 0 이상 정수. 선택 키이며 없으면 만들지 않는다 | 정수 외 값·모르는 키 거부(본문·키 입력 내용 저장 금지). 양성 신호로만 쓴다 — 붙여넣기 없음은 무죄 증거가 아니고, 키가 없는 것은 "미계측" 이지 0 이 아니다. 소급 수집 불가라 폼이 생기는 시점에 넣는다 |
 | review_aggregate.ratings | 정제 전후 평점, 분포, source_counts, 정규화 방법 | 같은 분석 집합·척도 기준. 통계와 aggregate_member 수를 맞춤 |
 | price_watch_evaluation.breakdown | purchase_line_id, offer_observation_id, pack_count, amount, shipping, discount | 실재 관측·대상·시각·통화 검증. 전체 배송비 중복 합산 방지 |
 | generation_run.generation_config | template_text 또는 템플릿 참조·해시, parameters, random_seed(미지원 시 null), requested_labels(선택) | 원문·비밀정보 제외; requested_labels는 생성 의도이며 승인 정답이 아님 |

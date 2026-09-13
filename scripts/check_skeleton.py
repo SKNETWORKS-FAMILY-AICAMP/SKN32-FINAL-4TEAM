@@ -92,7 +92,8 @@ check("stub 명시성", stub > total / 5, f"함수/메서드 {total}개 중 {stu
 def cnt(glob: str) -> int:
     return len([p for p in (ROOT / "src").glob(glob) if p.stem != "__init__"])
 
-exp = {"repo/*.py": 11, "services/*.py": 6, "routers/*.py": 5, "workers/*.py": 5}
+# workers 6 = 기존 5 + relation_axis(관계·행동 축 배치). 뼈대에 모듈이 늘면 이 기대값도 같이 올린다
+exp = {"repo/*.py": 11, "services/*.py": 6, "routers/*.py": 5, "workers/*.py": 6}
 struct_ok = all(cnt(g) == v for g, v in exp.items())
 check("구조 개수", struct_ok, " ".join(f"{g.split('/')[0]}={cnt(g)}/{v}" for g, v in exp.items()))
 check("엔진 8단계+[6]", len(list((ROOT / "src/engine").glob("stage*.py"))) == 9)

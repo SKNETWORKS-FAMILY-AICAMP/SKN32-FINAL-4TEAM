@@ -1,8 +1,9 @@
 """리스트(계획) 서비스 — 사이드바 목록 · S5-a 확정 · S5-b 리포트 · 가격 알림 (§D-4-3).
 
 확정 = plan_revision draft → confirmed (이름·구매예정일·목표가·메모). 비로그인은 로그인 요구.
-확정 후 하위 조건·구성 불변(C14) — 확정된 revision에는 다시 추천을 실행하지 않는다(프론트가 결과
-화면으로 안 돌려보낸다). price_watch 생성은 확정 트랜잭션 이후, 확정된 target_amount를 기본값으로 쓴다.
+확정 시점에 선택된 후보를 planning.purchase_line에 얼려서 남긴다 — 이후 추천 결과가 어떻게
+바뀌어도(현재는 확정된 revision에 재추천을 막아 그럴 일이 없지만) 리포트는 확정 순간 그대로
+보여준다. price_watch 생성은 확정 트랜잭션 이후, 확정된 target_amount를 기본값으로 쓴다.
 """
 from __future__ import annotations
 
@@ -11,6 +12,7 @@ from uuid import UUID
 
 from src.auth.deps import Principal
 from src.errors import Conflict, NotFound, ValidationFailed
+from src.repo.engine_repo import EngineRepo
 from src.repo.notification_repo import NotificationRepo
 from src.repo.plan_repo import PlanRepo
 from src.repo.user_repo import UserRepo
@@ -123,6 +125,24 @@ def confirm(conn, list_id: UUID, principal: Principal, *, name: str, planned_pur
     if not ok:
         raise Conflict("이미 확정된 목록입니다.")
     prepo.rename(list_id, name)
+
+    # 확정 성공(state가 draft→confirmed로 바뀐 요청)만 후보를 얼린다 — confirm_revision이
+    # 이미 원자적 UPDATE라 동시 확정 요청 중 단 하나만 여기 도달한다.
+    for row in EngineRepo(conn).get_candidates(UUID(stored["run_id"])):
+        if row["offer_id"] is None or row["offer_observation_id"] is None or row["price"] is None:
+            continue  # 가격 관측이 없는 슬롯 — 구매 항목으로 얼릴 수 없다
+        snapshot = {
+            "slot": row["slot"], "slot_label": row["slot_label"], "qty": 1, "timing": "now",
+            "review": None, "evidence_text": row["reason"] or "",
+            "product": {
+                "product_key": row["product_key"], "name": row["product_name"],
+                "image_url": row["image_url"], "purchase_url": row["purchase_url"],
+            },
+        }
+        prepo.add_purchase_line(
+            revision["id"], row["offer_id"], row["offer_observation_id"], int(row["price"]), snapshot
+        )
+
     return get_report(conn, list_id, principal)
 
 
@@ -134,19 +154,16 @@ def get_report(conn, list_id: UUID, principal: Principal) -> dict:
         raise NotFound("확정된 목록을 찾을 수 없습니다.")
 
     owner = UserRepo(conn).get(revision["owner_user_id"])
-    stored = recommendation_service.get_stored_result(conn, revision["id"]) or {"items": []}
-    items = [
-        {
-            "slot": item["slot"], "slot_label": item["slot_label"],
-            "product": {
-                "product_key": item["product"]["product_key"], "name": item["product"]["name"],
-                "image_url": item["product"]["image_url"], "purchase_url": item["product"]["purchase_url"],
-            },
-            "price": item["price"], "qty": item["qty"], "timing": item["timing"],
-            "review": item["review"], "evidence_text": item["reason"]["text"],
-        }
-        for item in stored["items"]
-    ]
+    items = []
+    for line in prepo.list_purchase_lines(revision["id"]):
+        snapshot = line["snapshot"] or {}
+        items.append({
+            "slot": snapshot.get("slot"), "slot_label": snapshot.get("slot_label"),
+            "product": snapshot.get("product") or {},
+            "price": int(line["line_amount"]), "qty": int(line["pack_count"]),
+            "timing": snapshot.get("timing", "now"), "review": snapshot.get("review"),
+            "evidence_text": snapshot.get("evidence_text", ""),
+        })
     watch = NotificationRepo(conn).get_for_revision(revision["id"])
     return {
         "list_id": str(list_id),
