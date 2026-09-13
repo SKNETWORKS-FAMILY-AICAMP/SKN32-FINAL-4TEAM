@@ -1,52 +1,214 @@
-"""HEAD schema list lifecycle: list, rename, delete, confirm and report."""
-from __future__ import annotations
-import hashlib
-from datetime import date
-from uuid import UUID
-from psycopg.types.json import Jsonb
-from src.auth.deps import Principal
-from src.db.base import Repo
-from src.errors import NotFound, Unauthorized, ValidationFailed
+"""리스트(계획) 서비스 — 사이드바 목록 · S5-a 확정 · S5-b 리포트 · 가격 알림 (§D-4-3).
 
-def _guest_hash(token: str | None) -> str | None: return hashlib.sha256(token.encode()).hexdigest() if token else None
-def _iso(value): return value.isoformat() if value is not None else None
-def _integer(value): return None if value is None else int(value)
-def _owned(repo: Repo, list_id: UUID, principal: Principal, *, lock=False) -> dict:
- suffix=" FOR UPDATE OF p, r" if lock else ""
- row=repo._one("""SELECT p.id AS list_id,p.name AS list_name,p.owner_user_id,r.*,c.user_id AS conversation_user_id,c.guest_session_hash,d.code AS category FROM planning.plan p JOIN planning.plan_revision r ON r.id=p.current_revision_id JOIN identity.conversation c ON c.id=p.conversation_id JOIN config.domain_version dv ON dv.id=r.domain_version_id JOIN config.domain d ON d.id=dv.domain_id WHERE p.id=%s AND p.status='active'"""+suffix,(list_id,))
- if row is None: raise NotFound("장바구니를 찾을 수 없습니다.")
- if not ((principal.user_id is not None and (row["owner_user_id"]==principal.user_id or row["conversation_user_id"]==principal.user_id)) or (row["guest_session_hash"] is not None and row["guest_session_hash"]==_guest_hash(principal.browser_token))): raise NotFound("장바구니를 찾을 수 없습니다.")
- return row
-def _report(repo: Repo,list_id: UUID,principal: Principal)->dict:
- r=_owned(repo,list_id,principal)
- if r["state"]!="confirmed": raise NotFound("확정된 리포트가 없습니다.")
- items=[]; links=[]
- for line in repo._all("SELECT line_amount,pack_count,snapshot FROM planning.purchase_line WHERE revision_id=%s ORDER BY created_at,id",(r["id"],)):
-  s=line["snapshot"] or {}; p=s.get("product") or {}; items.append({"slot":s.get("slot"),"slot_label":s.get("slot_label") or s.get("slot"),"product":p,"price":_integer(s.get("price",line["line_amount"])) or 0,"qty":int(line["pack_count"]),"timing":s.get("timing","now"),"review":s.get("review"),"evidence_text":s.get("evidence_text","")})
-  if p.get("purchase_url"): links.append({"name":p.get("name"),"purchase_url":p["purchase_url"]})
- owner=repo._one("SELECT display_name FROM identity.app_user WHERE id=%s",(r["owner_user_id"],))
- return {"list_id":str(list_id),"name":r["list_name"],"category":r["category"],"owner_display_name":owner["display_name"] if owner else None,"planned_purchase_at":_iso(r["planned_purchase_at"]),"target_amount":_integer(r["target_amount"]),"memo":r["memo"] or "","total":_integer(r["confirmed_total"]) or 0,"confirmed_at":_iso(r["confirmed_at"]),"items":items,"buy_links":links}
-def confirm(conn,list_id:UUID,principal:Principal,*,name:str,planned_purchase_at:date|None,target_amount:int|None,memo:str)->dict:
- if principal.user_id is None: raise Unauthorized("로그인이 필요합니다.")
- repo=Repo(conn); r=_owned(repo,list_id,principal,lock=True)
- if r["state"]=="confirmed": return _report(repo,list_id,principal)
- candidates=repo._all("""SELECT c.id AS candidate_id,c.reason,n.template_key AS slot,n.name AS slot_label,p.model AS product_key,p.name AS product_name,p.image_url,v.id AS variant_id,o.id AS offer_id,o.purchase_url,obs.id AS observation_id,obs.price FROM engine.recommendation_candidate c JOIN planning.requirement req ON req.id=c.requirement_id JOIN planning.plan_node n ON n.id=req.node_id JOIN catalog.product_variant v ON v.id=c.variant_id JOIN catalog.product p ON p.id=v.product_id JOIN catalog.offer_observation obs ON obs.id=c.offer_observation_id JOIN catalog.offer o ON o.id=obs.offer_id WHERE c.run_id=(SELECT id FROM engine.recommendation_run WHERE revision_id=%s AND status='completed' ORDER BY completed_at DESC NULLS LAST,created_at DESC LIMIT 1) AND c.result='selected' AND obs.price IS NOT NULL ORDER BY n.position,c.created_at""",(r["id"],))
- if not candidates: raise ValidationFailed("선택된 품목이 없습니다.",code="no_items_selected")
- total=sum(int(x["price"]) for x in candidates); budget=repo._one("SELECT (value->>'value')::numeric AS amount FROM planning.plan_condition WHERE revision_id=%s AND condition_key='budget_max' AND status='active'",(r["id"],))
- if budget and budget["amount"] is not None and total>int(budget["amount"]): raise ValidationFailed("예산을 초과했습니다.",code="over_budget")
- for x in candidates:
-  s={"candidate_id":str(x["candidate_id"]),"slot":x["slot"],"slot_label":x["slot_label"],"price":int(x["price"]),"timing":"now","review":None,"evidence_text":x["reason"] or "","product":{"product_key":x["product_key"],"variant_id":str(x["variant_id"]),"name":x["product_name"],"image_url":x["image_url"],"purchase_url":x["purchase_url"]}}
-  repo._exec("INSERT INTO planning.purchase_line (revision_id,offer_id,selected_observation_id,pack_count,line_amount,snapshot) VALUES (%s,%s,%s,1,%s,%s)",(r["id"],x["offer_id"],x["observation_id"],x["price"],Jsonb(s)))
- repo._exec("UPDATE planning.plan SET name=%s,owner_user_id=%s,updated_at=now() WHERE id=%s",(name,principal.user_id,list_id)); repo._exec("UPDATE planning.plan_revision SET state='confirmed',name_snapshot=%s,planned_purchase_at=%s,target_amount=%s,memo=%s,confirmed_total=%s,confirmed_at=now(),updated_at=now() WHERE id=%s AND state='draft'",(name,planned_purchase_at,target_amount,memo,total,r["id"]))
- return _report(repo,list_id,principal)
-def get_report(conn,list_id:UUID,principal:Principal)->dict:
- if principal.user_id is None: raise Unauthorized("로그인이 필요합니다.")
- return _report(Repo(conn),list_id,principal)
-def list_conversations(conn,principal:Principal)->list[dict]:
- h=_guest_hash(principal.browser_token); rows=Repo(conn)._all("""SELECT p.id AS list_id,p.name,p.updated_at,r.state,d.code AS category,EXISTS(SELECT 1 FROM engine.recommendation_run run WHERE run.revision_id=r.id) AS has_result FROM planning.plan p JOIN planning.plan_revision r ON r.id=p.current_revision_id JOIN identity.conversation c ON c.id=p.conversation_id JOIN config.domain_version dv ON dv.id=r.domain_version_id JOIN config.domain d ON d.id=dv.domain_id WHERE p.status='active' AND ((%s::uuid IS NOT NULL AND (p.owner_user_id=%s OR c.user_id=%s)) OR (%s::text IS NOT NULL AND c.guest_session_hash=%s)) ORDER BY p.updated_at DESC""",(principal.user_id,principal.user_id,principal.user_id,h,h)); return [{"list_id":str(x["list_id"]),"name":x["name"],"category":x["category"],"stage":"report" if x["state"]=="confirmed" else ("results" if x["has_result"] else "conditions"),"updated_at":_iso(x["updated_at"])} for x in rows]
-def rename(conn,list_id:UUID,principal:Principal,*,name:str)->dict:
- repo=Repo(conn); r=_owned(repo,list_id,principal,lock=True); repo._exec("UPDATE planning.plan SET name=%s,updated_at=now() WHERE id=%s",(name,list_id))
- if r["state"]=="draft": repo._exec("UPDATE planning.plan_revision SET name_snapshot=%s,updated_at=now() WHERE id=%s",(name,r["id"]))
- return next(x for x in list_conversations(conn,principal) if x["list_id"]==str(list_id))
-def delete(conn,list_id:UUID,principal:Principal)->None:
- repo=Repo(conn); _owned(repo,list_id,principal,lock=True); repo._exec("UPDATE planning.plan SET status='deleted',deleted_at=now(),updated_at=now() WHERE id=%s",(list_id,))
+확정 = plan_revision draft → confirmed (이름·구매예정일·목표가·메모). 비로그인은 로그인 요구.
+확정 시점에 선택된 후보를 planning.purchase_line에 얼려서 남긴다 — 이후 추천 결과가 어떻게
+바뀌어도(현재는 확정된 revision에 재추천을 막아 그럴 일이 없지만) 리포트는 확정 순간 그대로
+보여준다. price_watch 생성은 확정 트랜잭션 이후, 확정된 target_amount를 기본값으로 쓴다.
+"""
+from __future__ import annotations
+
+from datetime import datetime, timedelta, timezone
+from uuid import UUID
+
+from src.auth.deps import Principal
+from src.errors import Conflict, NotFound, ValidationFailed
+from src.repo.engine_repo import EngineRepo
+from src.repo.notification_repo import NotificationRepo
+from src.repo.plan_repo import PlanRepo
+from src.repo.user_repo import UserRepo
+from src.services import auth_service, recommendation_service
+from src.services.session_service import _owned, _token_hash
+
+_DEFAULT_NAME_BY_CATEGORY = {"computer": "컴퓨터 장바구니", "baby": "유아용품 장바구니"}
+_PLACEHOLDER_NAMES = {"새 추천", ""}
+_PRICE_WATCH_WINDOW_DAYS = 90
+
+
+def _display_name(name: str, category: str | None) -> str:
+    if name not in _PLACEHOLDER_NAMES:
+        return name
+    return _DEFAULT_NAME_BY_CATEGORY.get(category or "", name)
+
+
+def _stage(row: dict) -> str:
+    if row["state"] == "confirmed":
+        return "report"
+    if row["has_result"]:
+        return "results"
+    if row["has_category"]:
+        return "conditions"
+    return "category"
+
+
+def _require_login(conn, principal: Principal) -> UUID:
+    """단순 user_id 유무만이 아니라 계정이 여전히 active인지까지 확인한다(§A-3).
+
+    JWT 자체는 유효 기간 안이어도 그 사이 탈퇴·정지된 계정일 수 있어서, principal.user_id가
+    채워져 있다는 사실만으로는 로그인 요구 엔드포인트(확정·리포트·알림)를 통과시킬 수 없다.
+    """
+    return auth_service.require_active_user(conn, principal)["id"]
+
+
+def _price_watch_out(watch: dict | None, fallback_target_amount) -> dict:
+    if watch is None:
+        return {
+            "enabled": False, "target_amount": fallback_target_amount,
+            "status": "waiting", "latest_total": None, "observed_at": None,
+        }
+    target = int(watch["target_amount"]) if watch["target_amount"] is not None else fallback_target_amount
+    if watch["state"] != "active":
+        return {"enabled": False, "target_amount": target, "status": "waiting", "latest_total": None, "observed_at": None}
+    status = {"unknown": "waiting", "above": "tracking", "reached": "reached"}.get(
+        watch["last_condition_state"], "waiting"
+    )
+    return {"enabled": True, "target_amount": target, "status": status, "latest_total": None, "observed_at": None}
+
+
+def list_conversations(conn, principal: Principal) -> list[dict]:
+    """사이드바 "내 장바구니" — 로그인 사용자 또는 guest 쿠키 소유분(§D-4-3)."""
+    guest_hash = _token_hash(principal.browser_token) if principal.browser_token else None
+    rows = PlanRepo(conn).list_owned(user_id=principal.user_id, guest_session_hash=guest_hash)
+    return [
+        {
+            "list_id": str(row["list_id"]),
+            "name": _display_name(row["name"], row["category"]),
+            "category": row["category"],
+            "stage": _stage(row),
+            "updated_at": row["updated_at"],
+        }
+        for row in rows
+    ]
+
+
+def rename(conn, list_id: UUID, principal: Principal, *, name: str) -> dict:
+    prepo = PlanRepo(conn)
+    _owned(prepo, list_id, principal)
+    prepo.rename(list_id, name)
+    row = prepo.get_summary(list_id)
+    return {
+        "list_id": str(row["list_id"]), "name": name, "category": row["category"],
+        "stage": _stage(row), "updated_at": row["updated_at"],
+    }
+
+
+def delete(conn, list_id: UUID, principal: Principal) -> None:
+    prepo = PlanRepo(conn)
+    _owned(prepo, list_id, principal)
+    prepo.soft_delete(list_id)
+
+
+def confirm(conn, list_id: UUID, principal: Principal, *, name: str, planned_purchase_at: str | None,
+            target_amount: int | None, memo: str) -> dict:
+    user_id = _require_login(conn, principal)
+    prepo = PlanRepo(conn)
+    revision = _owned(prepo, list_id, principal)
+    if revision["owner_user_id"] != user_id:
+        raise NotFound("목록을 찾을 수 없습니다.")
+
+    stored = recommendation_service.get_stored_result(conn, revision["id"])
+    if stored is None or stored["status"] != "done" or not stored["items"]:
+        raise ValidationFailed("추천 결과가 아직 없습니다. 먼저 추천을 완료해 주세요.", code="no_items_selected")
+    if stored["totals"]["over_budget"]:
+        raise ValidationFailed("선택한 구성이 예산을 초과합니다.", code="over_budget")
+
+    purchase_at = None
+    if planned_purchase_at:
+        try:
+            purchase_at = datetime.fromisoformat(planned_purchase_at)
+        except ValueError:
+            raise ValidationFailed("구매 예정일 형식이 올바르지 않습니다.", field="planned_purchase_at") from None
+
+    ok = prepo.confirm_revision(
+        revision["id"], confirmed_total=stored["totals"]["selected_price"],
+        planned_purchase_at=purchase_at, target_amount=target_amount, memo=memo,
+    )
+    if not ok:
+        raise Conflict("이미 확정된 목록입니다.")
+    prepo.rename(list_id, name)
+
+    # 확정 성공(state가 draft→confirmed로 바뀐 요청)만 후보를 얼린다 — confirm_revision이
+    # 이미 원자적 UPDATE라 동시 확정 요청 중 단 하나만 여기 도달한다.
+    for row in EngineRepo(conn).get_candidates(UUID(stored["run_id"])):
+        if row["offer_id"] is None or row["offer_observation_id"] is None or row["price"] is None:
+            continue  # 가격 관측이 없는 슬롯 — 구매 항목으로 얼릴 수 없다
+        snapshot = {
+            "slot": row["slot"], "slot_label": row["slot_label"], "qty": 1, "timing": "now",
+            "review": None, "evidence_text": row["reason"] or "",
+            "product": {
+                "product_key": row["product_key"], "name": row["product_name"],
+                "image_url": row["image_url"], "purchase_url": row["purchase_url"],
+            },
+        }
+        prepo.add_purchase_line(
+            revision["id"], row["offer_id"], row["offer_observation_id"], int(row["price"]), snapshot
+        )
+
+    return get_report(conn, list_id, principal)
+
+
+def get_report(conn, list_id: UUID, principal: Principal) -> dict:
+    user_id = _require_login(conn, principal)
+    prepo = PlanRepo(conn)
+    revision = _owned(prepo, list_id, principal)
+    if revision["owner_user_id"] != user_id or revision["state"] != "confirmed":
+        raise NotFound("확정된 목록을 찾을 수 없습니다.")
+
+    owner = UserRepo(conn).get(revision["owner_user_id"])
+    items = []
+    for line in prepo.list_purchase_lines(revision["id"]):
+        snapshot = line["snapshot"] or {}
+        items.append({
+            "slot": snapshot.get("slot"), "slot_label": snapshot.get("slot_label"),
+            "product": snapshot.get("product") or {},
+            "price": int(line["line_amount"]), "qty": int(line["pack_count"]),
+            "timing": snapshot.get("timing", "now"), "review": snapshot.get("review"),
+            "evidence_text": snapshot.get("evidence_text", ""),
+        })
+    watch = NotificationRepo(conn).get_for_revision(revision["id"])
+    return {
+        "list_id": str(list_id),
+        "name": _display_name(revision["plan_name"], revision["category"]),
+        "category": revision["category"],
+        "owner_display_name": owner["display_name"] if owner else "",
+        "planned_purchase_at": revision["planned_purchase_at"].date().isoformat()
+        if revision["planned_purchase_at"] else None,
+        "target_amount": int(revision["target_amount"]) if revision["target_amount"] is not None else None,
+        "memo": revision["memo"] or "",
+        "total": int(revision["confirmed_total"]),
+        "confirmed_at": revision["confirmed_at"].isoformat(),
+        "items": items,
+        "price_watch": _price_watch_out(
+            watch, int(revision["target_amount"]) if revision["target_amount"] is not None else None
+        ),
+        "data_notice": "상품·가격·리뷰는 합성 데이터입니다.",
+    }
+
+
+def set_alert(conn, list_id: UUID, principal: Principal, *, enabled: bool, target_amount: int | None) -> dict:
+    user_id = _require_login(conn, principal)
+    prepo = PlanRepo(conn)
+    revision = _owned(prepo, list_id, principal)
+    if revision["owner_user_id"] != user_id or revision["state"] != "confirmed":
+        raise NotFound("확정된 목록을 찾을 수 없습니다.")
+
+    nrepo = NotificationRepo(conn)
+    existing = nrepo.get_for_revision(revision["id"])
+    confirmed_target = int(revision["target_amount"]) if revision["target_amount"] is not None else None
+
+    if not enabled:
+        if existing is not None and existing["state"] == "active":
+            nrepo.pause(existing["id"])
+            existing = nrepo.get_for_revision(revision["id"])
+        return {"price_watch": _price_watch_out(existing, confirmed_target)}
+
+    # target_amount 미지정 시 기존 watch에 이미 설정된 값 → 확정 스냅샷 목표가 순으로 fallback.
+    amount = target_amount
+    if amount is None and existing is not None:
+        amount = existing["target_amount"]
+    if amount is None:
+        amount = revision["target_amount"]
+    if amount is None:
+        raise ValidationFailed("목표 금액을 입력해 주세요.", field="target_amount")
+    ends_at = datetime.now(timezone.utc) + timedelta(days=_PRICE_WATCH_WINDOW_DAYS)
+    watch = nrepo.upsert_active(revision["id"], target_amount=amount, ends_at=ends_at)
+    return {"price_watch": _price_watch_out(watch, confirmed_target)}

@@ -43,6 +43,14 @@ JWT_TTL_DAYS: int = int(os.getenv("JWT_TTL_DAYS", "14"))
 AUTH_CODE_TTL_MIN: int = 10
 AUTH_CODE_MAX_ATTEMPTS: int = 5
 
+# 이메일+비밀번호 로그인 (docs/frontend_외부수정요청.md §A)
+COOKIE_NAME: str = os.getenv("COOKIE_NAME", "truefit_session")
+COOKIE_SECURE: bool = os.getenv("COOKIE_SECURE", "0") == "1"
+SESSION_TTL_HOURS: int = int(os.getenv("SESSION_TTL_HOURS", "12"))
+LOGIN_MAX_FAILURES: int = int(os.getenv("LOGIN_MAX_FAILURES", "5"))
+LOGIN_LOCK_MINUTES: int = int(os.getenv("LOGIN_LOCK_MINUTES", "15"))
+TERMS_VERSION: str = os.getenv("TERMS_VERSION", "2026-09-11")
+
 # --------------------------------------------------------------------------
 # 파이프라인 파라미터
 # --------------------------------------------------------------------------

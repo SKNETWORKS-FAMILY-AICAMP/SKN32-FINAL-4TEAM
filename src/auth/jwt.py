@@ -20,11 +20,12 @@ def _b64decode(value: str) -> bytes:
     return base64.urlsafe_b64decode(value + "=" * (-len(value) % 4))
 
 
-def issue(user_id: UUID, email: str) -> str:
-    """서명된 HS256 JWT 문자열."""
+def issue(user_id: UUID, email: str, *, ttl_seconds: int | None = None) -> str:
+    """서명된 HS256 JWT 문자열. ttl_seconds 미지정 시 JWT_TTL_DAYS 사용."""
     now = int(time.time())
+    ttl = JWT_TTL_DAYS * 86_400 if ttl_seconds is None else ttl_seconds
     header = _b64encode(json.dumps({"alg": "HS256", "typ": "JWT"}, separators=(",", ":")).encode())
-    payload = _b64encode(json.dumps({"sub": str(user_id), "email": email, "iat": now, "exp": now + JWT_TTL_DAYS * 86_400}, separators=(",", ":")).encode())
+    payload = _b64encode(json.dumps({"sub": str(user_id), "email": email, "iat": now, "exp": now + ttl}, separators=(",", ":")).encode())
     signature = _b64encode(hmac.new(JWT_SECRET.encode(), f"{header}.{payload}".encode("ascii"), hashlib.sha256).digest())
     return f"{header}.{payload}.{signature}"
 
