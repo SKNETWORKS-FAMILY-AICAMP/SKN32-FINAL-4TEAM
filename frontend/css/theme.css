@@ -141,5 +141,5 @@ main .about-cta{background:var(--tf-home-section)}
 button{border-radius:var(--tf-button-radius-standard)!important}
 .primary,.top-cta,.play,.flow .chip,.result-overlay-close,.close,.cart-remove,#lang-switch{border-radius:var(--tf-button-radius-pill)!important}
 .sidebar-toggle{border-radius:50%!important}
-.choice,.flow .btn,.flow .category-card,.conversation-option,.candidate-card,.review-score-trigger,.planner-home,.planner-new,.planner-saved a,.spec-file-button,.auth-btn,.auth-secondary-btn,.auth-danger-btn{border-radius:var(--tf-button-radius-standard)!important}
+.choice,.flow .btn,.flow .category-card,.conversation-option,.candidate-card,.review-score-trigger,.planner-home,.planner-new,.planner-saved a,.spec-file-button,.auth-btn,.auth-secondary-btn,.auth-danger-btn,.condition-card,.condition-summary{border-radius:var(--tf-button-radius-standard)!important}
 .basket-context-menu button,.basket-name-form button,.cart-qty button,.summary-edit,.summary-review-link,.report-product-link,.cart-product-link{border-radius:var(--tf-button-radius-compact)!important}
