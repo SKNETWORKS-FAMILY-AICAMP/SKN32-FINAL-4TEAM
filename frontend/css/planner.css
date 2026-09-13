@@ -21,6 +21,10 @@ body:has(.flow:not([hidden]))>header{display:none}
 .flow-steps a,.flow-steps span{display:block;padding:9px 16px;border-radius:999px;background:var(--tf-soft);color:var(--tf-muted);font-size:13px;white-space:nowrap}
 .flow-steps li.active a,.flow-steps li.active span{background:var(--tf-primary);color:var(--tf-on-primary);font-weight:700}
 .flow-steps li.disabled span{opacity:.46;cursor:not-allowed}
+.planner-work .timeline>div{margin-bottom:22px;padding-bottom:22px;border-bottom:1px solid color-mix(in srgb,var(--tf-primary) 32%,var(--tf-border))}
+.planner-work .timeline>div:last-child{margin-bottom:0;padding-bottom:0;border-bottom:0}
+.planner-work .timeline .tag{padding:6px 11px;font-size:13px;margin-right:7px;border-radius:7px}
+.planner-work .timeline p{color:color-mix(in srgb,var(--tf-muted) 88%,var(--tf-text))}
 .condition-layout{display:grid;grid-template-columns:minmax(0,1fr) 240px;gap:22px;align-items:start}
 .condition-main{min-width:0}
 .condition-card{border:1px solid var(--tf-border);border-radius:64px;padding:clamp(34px,5vw,62px);background:var(--tf-soft-sage);box-shadow:0 18px 50px var(--tf-shadow-soft)}
