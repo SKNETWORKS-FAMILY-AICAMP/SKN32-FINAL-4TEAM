@@ -20,8 +20,10 @@ from src.repo.review_repo import (OBS_LABEL, default_risk_store, default_suspect
 _AXIS_MAP = {"가격": "가격", "성능": "성능", "밸런스": "호환성", "호환여유": "호환성"}
 
 # 앞 둘: 이 모듈은 점수를 만들지 않는다. 문장에 섞이면 관측이 점수로 읽힌다 (docs/decisions/0001).
-# 나머지: 지시문 문구가 결과에 들어오면 모델이 프롬프트를 베낀 것이다 — 실제로 한 번 그랬다.
-_BANNED_IN_DRAFT = ("score", "점수", "1~2문장", "문장 한두 개", "슬롯마다", "지시문")
+# 가운데 넷: 지시문 문구가 결과에 들어오면 모델이 프롬프트를 베낀 것이다 — 실제로 한 번 그랬다.
+# 마지막 여섯: 평가·마케팅 표현 — 규칙 7 위반(실호출에서 "강력한 성능"처럼 새나온 적 있다).
+_BANNED_IN_DRAFT = ("score", "점수", "1~2문장", "문장 한두 개", "슬롯마다", "지시문",
+                    "강력", "뛰어나", "최고", "압도적", "완벽", "훌륭")
 
 
 def _ranked_flags(rank: RankResult | None, slot: str, product_key: str) -> list[str]:
@@ -130,6 +132,8 @@ def _llm_draft(build: BuildResult, verification: VerificationResult,
                for i in draft.items
                for slot, other in names.items() if slot != i.slot):
             continue
+        if tgt and str(tgt.confidence) not in draft.headline:
+            continue  # headline이 검증 신뢰도 숫자를 빠뜨렸다 — 규칙 4 위반
         return draft
     log("      [5] 검사 불통과 → 규칙 템플릿")
     return None
