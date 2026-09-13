@@ -84,6 +84,11 @@ def execute_recommendation(revision_id: UUID, run_id: UUID) -> None:
     from src.services import review_service
 
     noop = lambda _m: None  # noqa: E731
+
+    # get_conn() 은 with 블록 전체를 트랜잭션 하나로 묶어 블록이 끝날 때 한 번만 커밋한다.
+    # 그래서 [2]~[4]+검증과 [5]를 같은 with 블록에 두면 complete_run을 앞당겨 불러도
+    # [5]가 끝나기 전엔 아무것도 커밋되지 않아 폴링 중인 GET /result가 여전히 못 본다.
+    # 두 블록(=두 트랜잭션)으로 쪼개야 부품표가 [5] 완료 전에 실제로 보인다.
     try:
         with get_conn() as conn:
             prepo, erepo, prodrepo = PlanRepo(conn), EngineRepo(conn), ProductRepo(conn)
@@ -107,19 +112,18 @@ def execute_recommendation(revision_id: UUID, run_id: UUID) -> None:
             build = stage4_optimize.run(rank, spec, noop)
             build.list_id = str(revision_id)
             verification = stage3c_verify.verify_build(build, category, noop)
-            # rank 를 넘겨야 [3-B] 가 후보에 남긴 리뷰 관측 플래그를 [5] 가 읽는다.
-            # 빼면 모든 슬롯이 "관측 없음" 이 되고, 감점만 남고 근거가 사라진다 (기본값이 None 이라 조용히).
-            explanation = stage5_explain.run(build, verification, noop, rank=rank)
 
-            reason_by_slot = {it.slot: it.reason for it in explanation.items}
+            # 부품·가격·검증은 여기서 이미 확정됐다. [5] 설명 문장(LLM)은 아직 안 돌았으므로
+            # reason=None 으로 저장한다 — add_candidate가 자동으로 reason_status='pending' 처리.
+            candidate_id_by_slot: dict[str, UUID] = {}
             for item in build.items:
                 variant_id = prodrepo.variant_id_by_model(item.name)
                 if variant_id is None:
                     continue  # 카탈로그 미적재 — 이 슬롯은 저장 못 함, 나머지는 계속 진행
                 offer_observation_id = prodrepo.offer_observation_id_by_variant(variant_id)
-                erepo.add_candidate(
+                candidate_id_by_slot[item.slot] = erepo.add_candidate(
                     run_id, req_id_by_slot[item.slot], variant_id, result="selected",
-                    score=item.score, score_method_version="v1", reason=reason_by_slot.get(item.slot),
+                    score=item.score, score_method_version="v1", reason=None,
                     offer_observation_id=offer_observation_id,
                 )
 
@@ -132,6 +136,31 @@ def execute_recommendation(revision_id: UUID, run_id: UUID) -> None:
                     threshold={}, message=issue.judge or issue.axis,
                     checked_at=datetime.now(timezone.utc),
                 )
+
+            erepo.complete_run(run_id)
+        # ↑ with 블록이 끝나며 여기서 커밋된다 — 부품·가격·검증이 done으로 확정.
+    except Exception:  # noqa: BLE001 — 실패해도 running으로 영원히 남지 않게 별도 커넥션으로 failed 처리
+        with get_conn() as fail_conn:
+            fail_conn.execute(
+                "UPDATE engine.recommendation_run SET status='failed', completed_at=now(), updated_at=now() "
+                "WHERE id=%s AND status='running'",
+                (run_id,),
+            )
+        raise
+
+    # [5] 설명 문장(LLM 호출) — 별도 트랜잭션. 실패해도 위에서 이미 커밋한 부품·가격·검증에는
+    # 영향이 없다. run.status는 건드리지 않고 문장 쪽 상태(reason_status/explanation_status)만 옮긴다.
+    try:
+        with get_conn() as conn:
+            erepo = EngineRepo(conn)
+            # rank 를 넘겨야 [3-B] 가 후보에 남긴 리뷰 관측 플래그를 [5] 가 읽는다.
+            # 빼면 모든 슬롯이 "관측 없음" 이 되고, 감점만 남고 근거가 사라진다 (기본값이 None 이라 조용히).
+            explanation = stage5_explain.run(build, verification, noop, rank=rank)
+
+            for it in explanation.items:
+                candidate_id = candidate_id_by_slot.get(it.slot)
+                if candidate_id is not None and it.reason is not None:
+                    erepo.update_candidate_reason(candidate_id, it.reason)
 
             # [5] 의 리뷰 관측(review_line_by_slot)·확인 필요(caveats)를 저장 경로에 싣는다.
             # 여기서 안 실으면 [3-B] 감점은 되는데 "왜" 가 화면에 안 간다 (review_service 주석 참고).
@@ -166,15 +195,12 @@ def execute_recommendation(revision_id: UUID, run_id: UUID) -> None:
                     [it.reason for it in explanation.items], explanation.caveats),
                 reasoning_log=trace,
             )
-            erepo.complete_run(run_id)
-    except Exception:  # noqa: BLE001 — 실패해도 running으로 영원히 남지 않게 별도 커넥션으로 failed 처리
+    except Exception:  # noqa: BLE001 — [5] 실패는 문장만 failed, 부품표는 이미 done인 채로 둔다
         with get_conn() as fail_conn:
-            fail_conn.execute(
-                "UPDATE engine.recommendation_run SET status='failed', completed_at=now(), updated_at=now() "
-                "WHERE id=%s AND status='running'",
-                (run_id,),
-            )
-        raise
+            fail_erepo = EngineRepo(fail_conn)
+            for candidate_id in candidate_id_by_slot.values():
+                fail_erepo.fail_candidate_reason(candidate_id)
+            fail_erepo.fail_explanation(run_id)
 
 
 def verify_and_explain_baby_candidate(*, rag_service, engine_repo, run_id, candidate: dict, slots: dict) -> dict:
