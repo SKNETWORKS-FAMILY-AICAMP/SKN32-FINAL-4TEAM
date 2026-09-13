@@ -9,6 +9,12 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
+from dotenv import load_dotenv
+
+# .env → 프로세스 환경. 이미 설정된 실제 환경변수는 덮지 않는다(override=False 가 기본).
+# 경로를 명시한다 — 실행 위치가 프로젝트 루트가 아닐 때도 같은 파일을 읽어야 한다.
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
+
 APP_NAME: str = "Truefit"
 
 # --------------------------------------------------------------------------
@@ -20,9 +26,10 @@ MOCK_MODE: bool = os.getenv("MOCK_MODE", "1") == "1"
 # --------------------------------------------------------------------------
 # LLM / 임베딩 (벤더 중립 — 값은 배포 시 주입)
 # --------------------------------------------------------------------------
-LLM_PROVIDER: str = os.getenv("LLM_PROVIDER", "mock")   # mock | <managed-llm-api>
+LLM_PROVIDER: str = os.getenv("LLM_PROVIDER", "mock")   # mock | openai
 LLM_MODEL: str = os.getenv("LLM_MODEL", "")             # 경량 대화 모델 식별자
 LLM_REGION: str = os.getenv("LLM_REGION", "")
+OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
 EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "") # 텍스트 임베딩 모델 식별자
 
 # --------------------------------------------------------------------------

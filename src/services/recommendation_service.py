@@ -133,7 +133,7 @@ def execute_recommendation(revision_id: UUID, run_id: UUID) -> None:
                     status="fail" if issue.penalty >= 15 else "unknown",
                     severity="warning" if issue.penalty >= 15 else "info",
                     measured_values={"penalty": issue.penalty, "confidence": verification.targets[0].confidence},
-                    threshold={}, message=issue.judge or issue.axis,
+                    threshold={}, message=issue.text or issue.judge or issue.axis,
                     checked_at=datetime.now(timezone.utc),
                 )
 
