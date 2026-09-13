@@ -65,7 +65,7 @@ def run_pipeline(scenario_name: str, on_log: LogFn = print) -> PipelineResult:
     log("")
 
     # ── ④ 설명 ─────────────────────────────────────────────────────
-    result.explanation = stage5_explain.run(result.build, result.verification, log)
+    result.explanation = stage5_explain.run(result.build, result.verification, log, rank=result.rank)
     log("")
     log("파이프라인 종료.")
     return result

@@ -3,9 +3,9 @@
 실행:  uvicorn src.api:app --reload   →   http://127.0.0.1:8000/docs
 
 라우터:
-  /auth/*     이메일 코드 → JWT
+  /auth/*     이메일+비밀번호 → JWT(httpOnly 쿠키 `truefit_session`)
   /session/*  S1~S3 대화·조건 수집 + [추천 실행]   (인증 불요)
-  /lists/*    S5-a 확정 · S5-b 리포트 · 알림        (JWT 필수)
+  /lists/*    사이드바 목록(비로그인 가능) · S5-a 확정 · S5-b 리포트 · 알림(로그인 필수)
   /reviews/*  A7 리뷰 작성·게시                     (JWT 필수)
   /dev/*      시나리오 기반 파이프라인 (DB 미사용, 개발용)
 """

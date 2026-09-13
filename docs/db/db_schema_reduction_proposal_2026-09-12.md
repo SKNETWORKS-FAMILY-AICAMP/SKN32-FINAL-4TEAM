@@ -197,3 +197,62 @@ forward-only 마이그레이션 구조라 "테이블을 다시 만드는 SQL"은
 ## 4. 진행 방식
 
 DB 마이그레이션 실제 반영은 이 문서 확정 내용을 바탕으로 진행합니다. `rag`를 뺀 나머지(58 → 35, `notification`·`dataset`·`shared` 스키마 삭제 + `config`·`identity`·`catalog`·`assets`·`community`·`evidence`·`engine`·`planning` 병합)는 바로 마이그레이션 작성에 들어가도 됩니다. **`rag` 스키마 삭제는 담당4의 기존 구현(`src/repo/rag_repo.py`, +520줄)을 통째로 무효화하는 가정**이라, 담당4의 명시적 동의를 받은 뒤 별도로 반영합니다.
+
+## 5. 부록 — 로컬 DB를 눈으로 확인하는 법 (pgAdmin)
+
+이 문서 자체는 스키마 축소 제안이지만, 팀원이 로컬 DB 내용을 직접 열어봐야 할 일이 잦아서 접속 방법을 같이 남긴다. **아래 pgAdmin 계정·경로는 이 문서를 작성한 개발자 본인 로컬 PC 기준**이다 — 각자 자기 PC에 pgAdmin을 설치하면 자기만의 로그인 계정이 새로 생긴다(공용 계정 아님). Postgres 접속 정보(`truefit`/`truefit`)는 `db/README.md`·`.env.example`과 동일한 팀 공통 로컬 개발 기본값이다.
+
+### pgAdmin 설치·실행 (최초 1회 설치 후 매번 실행)
+
+```bash
+# 설치 (conda, 최초 1회) — base 환경과 분리된 전용 환경 권장
+conda create -n pgadmin4-env python=3.11 -y
+conda run -n pgadmin4-env python -m pip install pgadmin4
+
+# 실행 (첫 실행 시 이메일/비번을 여기서 바로 지정 — 대화형 프롬프트 생략)
+PGADMIN_SETUP_EMAIL="본인이메일" PGADMIN_SETUP_PASSWORD="본인비번" pgadmin4
+```
+
+실행 후 브라우저에서 `http://127.0.0.1:5050` 접속 → 위에서 지정한 이메일/비번으로 로그인.
+
+> ⚠️ pgAdmin4 9.17(pip 배포판)에는 `pgadmin/model/__init__.py`의 `User.is_locked()` 반환값이 뒤집혀 있어 **정상 계정도 로그인 검증에서 조용히 실패**하는 버그가 있었다(에러 메시지 없이 로그인 화면만 계속 반복). 해당 파일에서 `is_locked()`의 `return True`/`False`를 서로 바꿔주면 해결된다. 최신 버전에서 고쳐졌는지는 설치 시점에 따라 다를 수 있음.
+
+### Postgres 서버 등록 (pgAdmin 안에서, 최초 1회)
+
+좌측 `Servers` 우클릭 → **Register → Server**
+
+| 탭 | 항목 | 값 |
+|---|---|---|
+| General | Name | 아무 이름 (예: `truefit local`) |
+| Connection | Host | `localhost` |
+| Connection | Port | `5432` |
+| Connection | Maintenance database | `truefit` |
+| Connection | Username / Password | `truefit` / `truefit` |
+
+### 기능별로 뭘 보면 되는지
+
+| 기능 | 스키마.테이블 | 확인 포인트 |
+|---|---|---|
+| 회원가입/로그인 | `identity.app_user` | 이메일·표시이름·상태(active/deleted)·가입시각. `password_hash`는 항상 argon2 해시 |
+| | `identity.user_preference` | 가입 시 계정마다 자동 생성되는 기본 설정 1행 |
+| 세션/조건 대화 | `identity.conversation`, `identity.message` | 대화(=장바구니) 소유자(`user_id`/`guest_session_hash`), 조건 대화 로그 |
+| 리스트/조건 | `planning.plan`, `planning.plan_revision`, `planning.plan_condition` | 사이드바 목록, 확정 여부(`state`), 입력된 조건값 |
+| 추천 실행 | `engine.recommendation_run`, `engine.recommendation_candidate`, `engine.validation_result` | 실행 상태, 슬롯별 후보, [3-C] 검증 이슈 |
+| 리스트 확정 | `planning.purchase_line` | 확정 시점에 얼려둔 스냅샷 — 리포트가 여기서 읽음 |
+| 가격 알림 | `notification.price_watch` | on/off, 목표금액, 상태(active/paused) |
+| 리뷰 검증(관계·행동 축) | `evidence.review_summary` | `author_ref`/`review_posted_at` 컬럼 — `data/amazon23/pcparts_product_risk.json` 있어야 값이 채워짐 |
+
+전체 상태 한눈에 보는 쿼리(Query Tool, `truefit` DB 선택 후):
+
+```sql
+SELECT 'app_user' AS 항목, count(*) FROM identity.app_user WHERE status='active'
+UNION ALL SELECT 'plan(장바구니)', count(*) FROM planning.plan WHERE status='active'
+UNION ALL SELECT 'confirmed(확정됨)', count(*) FROM planning.plan_revision WHERE state='confirmed'
+UNION ALL SELECT 'price_watch(알림on)', count(*) FROM notification.price_watch WHERE state='active';
+```
+
+테스트로 쌓인 데이터만 지우고 싶을 때(계정·카탈로그는 유지):
+
+```sql
+TRUNCATE identity.conversation CASCADE;
+```

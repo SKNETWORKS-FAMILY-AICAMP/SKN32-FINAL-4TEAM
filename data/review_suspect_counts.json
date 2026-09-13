@@ -1,0 +1,309 @@
+{
+ "_읽는_사람에게": "이 파일의 숫자는 조작으로 판정된 리뷰 수가 아니다. 정의된 지표에 동시에 걸린 리뷰 수다.",
+ "method": {
+  "rule": "리뷰 하나가 아래 지표 중 2개 이상에 걸리면 센다",
+  "indicators": {
+   "burst": "그 상품 리뷰가 가장 촘촘한 7일 창 안에 있다",
+   "prolific": "쓴 계정의 전역 리뷰가 30건 이상",
+   "one_off": "쓴 계정의 전역 리뷰가 1건뿐",
+   "short_span": "쓴 계정의 활동 기간이 30일 이하 (2건 이상)",
+   "unverified": "플랫폼이 구매를 확인하지 않았다"
+  },
+  "thresholds": {
+   "min_flags": 2,
+   "prolific_min_reviews": 30,
+   "short_span_days": 30,
+   "burst_window_days": 7
+  },
+  "source": "Amazon Reviews 2023 Electronics 리뷰 단위 로그",
+  "scope": "데모 부품 중 관측이 붙은 상품만"
+ },
+ "limits": [
+  "리뷰 단위 정답 라벨이 없어 정밀도(precision)를 잴 수 없다",
+  "\"2개 이상\" 은 근거로 정한 값이 아니다 — 1개면 대부분 걸리고 3개면 거의 남지 않는다",
+  "지표가 서로 배타적이다(1건 계정과 다작 계정은 동시 불가) → 실제로는 (몰림 또는 미확인)+(계정 유형) 조합",
+  "대상 계정의 전역 리뷰 중앙값이 6건인데 데이터 전체는 1건이다 — 인기 상품 조건부 표본",
+  "구매 미확인은 단독으로 유죄 증거가 아니다(무상 제공 프로그램이 설계상 미확인) — 조합의 한 축으로만 쓴 타협",
+  "n 이 작으면 비율이 크게 흔들린다. ci2(이항 95% CI)를 반드시 같이 보여줄 것"
+ ],
+ "baseline": {
+  "n": 7054,
+  "ge2": 220,
+  "rate_pct": 3.1,
+  "note": "이 파일에 담긴 상품 전체의 2개+ 비율. 상품별 값을 여기에 대 본다"
+ },
+ "products": {
+  "amd-ryzen-5-5600": {
+   "asin": "B0BGJGW69N",
+   "n": 197,
+   "ge2": 12,
+   "ge3": 1,
+   "ci2": [
+    3.2,
+    10.4
+   ],
+   "flags": {
+    "burst": 11,
+    "prolific": 17,
+    "one_off": 11,
+    "short_span": 60,
+    "unverified": 10
+   }
+  },
+  "asus-rog-strix-z790-e-gaming-wifi": {
+   "asin": "B0BG6KQPWD",
+   "n": 37,
+   "ge2": 8,
+   "ge3": 0,
+   "ci2": [
+    9.8,
+    38.2
+   ],
+   "flags": {
+    "burst": 5,
+    "prolific": 3,
+    "one_off": 11,
+    "short_span": 8,
+    "unverified": 7
+   }
+  },
+  "msi-mag-b760-tomahawk-wifi": {
+   "asin": "B0BYSWNLKN",
+   "n": 35,
+   "ge2": 2,
+   "ge3": 0,
+   "ci2": [
+    0.7,
+    19.2
+   ],
+   "flags": {
+    "burst": 3,
+    "prolific": 1,
+    "one_off": 2,
+    "short_span": 9,
+    "unverified": 3
+   }
+  },
+  "asus-tuf-gaming-b650-plus-wifi": {
+   "asin": "B0C49JKG41",
+   "n": 173,
+   "ge2": 9,
+   "ge3": 0,
+   "ci2": [
+    2.4,
+    9.6
+   ],
+   "flags": {
+    "burst": 7,
+    "prolific": 13,
+    "one_off": 29,
+    "short_span": 27,
+    "unverified": 8
+   }
+  },
+  "g.skill-ripjaws-v-ddr4-3600-32gb-(2x16)": {
+   "asin": "B07Z45XB3G",
+   "n": 145,
+   "ge2": 4,
+   "ge3": 0,
+   "ci2": [
+    0.8,
+    6.9
+   ],
+   "flags": {
+    "burst": 6,
+    "prolific": 13,
+    "one_off": 20,
+    "short_span": 14,
+    "unverified": 5
+   }
+  },
+  "samsung-990-pro-1tb": {
+   "asin": "B0C6N3GWW6",
+   "n": 99,
+   "ge2": 4,
+   "ge3": 0,
+   "ci2": [
+    1.1,
+    10.0
+   ],
+   "flags": {
+    "burst": 7,
+    "prolific": 11,
+    "one_off": 5,
+    "short_span": 23,
+    "unverified": 8
+   }
+  },
+  "wd-black-sn770-1tb": {
+   "asin": "B0BSKRQF7F",
+   "n": 572,
+   "ge2": 23,
+   "ge3": 0,
+   "ci2": [
+    2.6,
+    6.0
+   ],
+   "flags": {
+    "burst": 21,
+    "prolific": 72,
+    "one_off": 41,
+    "short_span": 126,
+    "unverified": 23
+   }
+  },
+  "crucial-mx500-1tb": {
+   "asin": "B0BQ5JTZ89",
+   "n": 3830,
+   "ge2": 99,
+   "ge3": 1,
+   "ci2": [
+    2.1,
+    3.1
+   ],
+   "flags": {
+    "burst": 36,
+    "prolific": 408,
+    "one_off": 502,
+    "short_span": 380,
+    "unverified": 211
+   }
+  },
+  "corsair-rm750e": {
+   "asin": "B0C1KNVR7B",
+   "n": 172,
+   "ge2": 6,
+   "ge3": 0,
+   "ci2": [
+    1.3,
+    7.4
+   ],
+   "flags": {
+    "burst": 10,
+    "prolific": 10,
+    "one_off": 12,
+    "short_span": 33,
+    "unverified": 7
+   }
+  },
+  "corsair-sf750": {
+   "asin": "B0C4ZNVL77",
+   "n": 140,
+   "ge2": 6,
+   "ge3": 0,
+   "ci2": [
+    1.6,
+    9.1
+   ],
+   "flags": {
+    "burst": 5,
+    "prolific": 19,
+    "one_off": 8,
+    "short_span": 16,
+    "unverified": 4
+   }
+  },
+  "nzxt-h5-flow": {
+   "asin": "B0C5JVXSW6",
+   "n": 49,
+   "ge2": 4,
+   "ge3": 0,
+   "ci2": [
+    2.3,
+    19.6
+   ],
+   "flags": {
+    "burst": 9,
+    "prolific": 1,
+    "one_off": 10,
+    "short_span": 11,
+    "unverified": 2
+   }
+  },
+  "cooler-master-nr200p-max": {
+   "asin": "B0BFH9M9CY",
+   "n": 449,
+   "ge2": 12,
+   "ge3": 1,
+   "ci2": [
+    1.4,
+    4.6
+   ],
+   "flags": {
+    "burst": 15,
+    "prolific": 41,
+    "one_off": 33,
+    "short_span": 49,
+    "unverified": 30
+   }
+  },
+  "asus-prime-ap201": {
+   "asin": "B0C4B1ZH4G",
+   "n": 30,
+   "ge2": 5,
+   "ge3": 0,
+   "ci2": [
+    5.6,
+    34.7
+   ],
+   "flags": {
+    "burst": 6,
+    "prolific": 6,
+    "one_off": 3,
+    "short_span": 6,
+    "unverified": 3
+   }
+  },
+  "thermalright-peerless-assassin-120-se": {
+   "asin": "B09YTL3JT5",
+   "n": 55,
+   "ge2": 4,
+   "ge3": 0,
+   "ci2": [
+    2.0,
+    17.6
+   ],
+   "flags": {
+    "burst": 6,
+    "prolific": 2,
+    "one_off": 4,
+    "short_span": 11,
+    "unverified": 4
+   }
+  },
+  "noctua-nh-d15": {
+   "asin": "B07Y87YHRH",
+   "n": 748,
+   "ge2": 10,
+   "ge3": 0,
+   "ci2": [
+    0.6,
+    2.4
+   ],
+   "flags": {
+    "burst": 15,
+    "prolific": 80,
+    "one_off": 66,
+    "short_span": 75,
+    "unverified": 23
+   }
+  },
+  "deepcool-ak400": {
+   "asin": "B09YPXJK7L",
+   "n": 323,
+   "ge2": 12,
+   "ge3": 0,
+   "ci2": [
+    1.9,
+    6.4
+   ],
+   "flags": {
+    "burst": 14,
+    "prolific": 18,
+    "one_off": 27,
+    "short_span": 53,
+    "unverified": 21
+   }
+  }
+ }
+}
