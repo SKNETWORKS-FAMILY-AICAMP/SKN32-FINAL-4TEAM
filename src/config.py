@@ -20,9 +20,10 @@ MOCK_MODE: bool = os.getenv("MOCK_MODE", "1") == "1"
 # --------------------------------------------------------------------------
 # LLM / 임베딩 (벤더 중립 — 값은 배포 시 주입)
 # --------------------------------------------------------------------------
-LLM_PROVIDER: str = os.getenv("LLM_PROVIDER", "mock")   # mock | <managed-llm-api>
+LLM_PROVIDER: str = os.getenv("LLM_PROVIDER", "mock")   # mock | openai
 LLM_MODEL: str = os.getenv("LLM_MODEL", "")             # 경량 대화 모델 식별자
 LLM_REGION: str = os.getenv("LLM_REGION", "")
+OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
 EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "") # 텍스트 임베딩 모델 식별자
 
 # --------------------------------------------------------------------------
