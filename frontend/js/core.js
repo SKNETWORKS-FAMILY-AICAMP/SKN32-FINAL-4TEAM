@@ -14,7 +14,7 @@ const TF_ROUTES={'':'index.html',category:'category.html',conditions:'conditions
 function tfHref(route){return TF_ROUTES[route]||'index.html'}
 function go(route){location.href=tfHref(route)}
 
-const tfPlan={listId:null,condition:null,result:null,report:null,lists:null,listsLoaded:false,listsLoading:false,listsError:null,resultMessages:[],pollTimer:null,seq:0,busy:false};
+const tfPlan={listId:null,condition:null,result:null,report:null,lists:null,listsLoaded:false,listsLoading:false,listsError:null,resultMessages:[],pollTimer:null,pollAttempts:0,seq:0,busy:false};
 try{tfPlan.listId=localStorage.getItem(TF_ACTIVE_LIST_KEY)||null;localStorage.removeItem('planbasket-demo-v1')}catch{}
 
 const tfSeg=value=>encodeURIComponent(String(value));
@@ -49,7 +49,7 @@ function tfApiCategory(category){return category==='pc'?'computer':category}
 function tfListSummary(id=tfPlan.listId){return (tfPlan.lists||[]).find(item=>item.list_id===id)||null}
 function tfStageRoute(stage){return ['category','conditions','results','report'].includes(stage)?stage:'conditions'}
 function tfPlanRoute(){const summary=tfListSummary();if(!tfPlan.listId)return 'category';if(tfPlan.report||summary?.stage==='report')return 'report';if(tfPlan.result||summary?.stage==='results')return 'results';if(tfPlan.condition?.category||summary?.category)return 'conditions';return 'category'}
-function tfSelectList(id){tfStopPoll();tfPlan.listId=id||null;tfPlan.condition=null;tfPlan.result=null;tfPlan.report=null;tfPlan.resultMessages=[];try{id?localStorage.setItem(TF_ACTIVE_LIST_KEY,id):localStorage.removeItem(TF_ACTIVE_LIST_KEY)}catch{}}
+function tfSelectList(id){tfStopPoll();tfPlan.listId=id||null;tfPlan.condition=null;tfPlan.result=null;tfPlan.report=null;tfPlan.resultMessages=[];tfPlan.pollAttempts=0;try{id?localStorage.setItem(TF_ACTIVE_LIST_KEY,id):localStorage.removeItem(TF_ACTIVE_LIST_KEY)}catch{}}
 // TF-DEV: "대화 다시 시작" 이후에도 서버는 실제 대화 기록을 계속 보관한다(질문·답변은 그대로 남고 조건 값만 비움).
 // 새로고침해도 화면이 다시 "처음부터"로 보이도록, 리셋 시점의 메시지 개수와 그때 다시 물은 질문 문구를 저장해두고
 // 그 이전 메시지는 화면에서만 가린다(서버 데이터를 지우지 않음). 질문 문구를 같이 고정해야 이후 답변이 쌓여도
