@@ -21,7 +21,7 @@ const tfSeg=value=>encodeURIComponent(String(value));
 const TF_PLAN={
  createSession(){return TF_API.post('/session')},
  condition(id){return TF_API.get('/session/'+tfSeg(id))},
- chooseCategory(id,category){return TF_API.post('/session/'+tfSeg(id)+'/category',{category})},
+ chooseCategory(id,category,mode){return TF_API.post('/session/'+tfSeg(id)+'/category',mode?{category,mode}:{category})},
  message(id,text){return TF_API.post('/session/'+tfSeg(id)+'/message',{text})},
  answer(id,questionId,selected){return TF_API.post('/session/'+tfSeg(id)+'/answer',{question_id:questionId,selected})},
  clearSlot(id,field){return TF_API.patch('/session/'+tfSeg(id)+'/slot',{field,value:null})},
@@ -60,6 +60,12 @@ function tfOnAuthChange(){tfPlan.lists=null;tfPlan.listsLoaded=false;tfPlan.repo
 function tfListGone(err){if(err&&err.status===404&&err.code==='not_found'){tfSelectList(null);tfPlan.listsLoaded=false;toast('장바구니를 찾을 수 없어 새로 시작합니다.');go('category');return true}return false}
 function tfStopPoll(){clearTimeout(tfPlan.pollTimer);tfPlan.pollTimer=null}
 function toast(t,centered=false){let el=$('.toast');if(el)el.remove();el=document.createElement('div');el.className='toast'+(centered?' toast-center':'');el.setAttribute('role','status');el.textContent=t;document.body.append(el);setTimeout(()=>el.remove(),3500)}
+// TF-DEV: go()는 location.href로 실제 페이지 이동을 하므로, 이동 직전에 띄운 toast()는
+// 페이지가 언로드되면서 사라져 사용자가 보지 못한다(회원 탈퇴 등). 이동 전에는 메시지를
+// sessionStorage에 적어두고, 다음 페이지가 열릴 때(core.js가 새로 실행될 때) 대신 띄운다.
+const TF_PENDING_TOAST_KEY='truefit-pending-toast';
+function tfQueueToast(message){try{sessionStorage.setItem(TF_PENDING_TOAST_KEY,message)}catch{}}
+(function(){try{const pending=sessionStorage.getItem(TF_PENDING_TOAST_KEY);if(pending){sessionStorage.removeItem(TF_PENDING_TOAST_KEY);toast(pending)}}catch{}})();
 function btn(t,a,cl=''){return `<button class="btn ${cl}" data-action="${a}">${t}</button>`}
 function heading(k,t,p=''){return `<div class="flow-head"><div class="flow-logo">${k}</div><h1 tabindex="-1">${t}</h1>${p?`<p class="muted">${p}</p>`:''}</div>`}
 function field(label,name,type,value,extra=''){return `<label for="f-${name}">${label}</label><input id="f-${name}" name="${name}" type="${type}" value="${esc(value)}" ${extra}>`}
@@ -69,7 +75,12 @@ function readAuthSession(){return TF_AUTH.user}
 // TF-DEV: 서버 로그인 상태 확인 — 모든 페이지에서 한 번 실행. 결과가 필요한 페이지는 TF_AUTH.ready.then(...)으로 이어 붙인다.
 TF_AUTH.ready=TF_AUTH.refresh();
 // TF-DEV: 카테고리 선택은 index.html 퀵스타트 카드·category.html·푸터 바로가기 모두에서 쓰여 core.js에 둔다.
-async function tfSetCategory(c,{fresh=false}={}){if(tfPlan.busy)return;const category=tfApiCategory(c);tfPlan.busy=true;try{let known=tfPlan.condition?.category||tfListSummary()?.category||null;if(!fresh&&tfPlan.listId&&known==null){try{known=tfRequire(await TF_PLAN.condition(tfPlan.listId)).category||null}catch(err){if(tfListGone(err))return;known=null}}if(!fresh&&tfPlan.listId&&known===category){go('conditions');return}if(!fresh&&tfPlan.listId&&known&&known!==category){if(!window.confirm('다른 카테고리를 선택하면 새 장바구니를 만들어요. 지금 대화는 사이드바에 그대로 남아요. 계속할까요?'))return;fresh=true}if(fresh||!tfPlan.listId){const created=tfRequire(await TF_PLAN.createSession());tfSelectList(created.list_id)}const state=tfRequire(await TF_PLAN.chooseCategory(tfPlan.listId,category));tfPlan.condition=state;tfPlan.result=null;tfPlan.report=null;tfPlan.resultMessages=[];tfPlan.listsLoaded=false;go('conditions')}catch(err){if(!tfListGone(err))toast(tfAuthErrorMessage(err))}finally{tfPlan.busy=false}}
+async function tfSetCategory(c,{fresh=false,mode=null}={}){if(tfPlan.busy)return;const category=tfApiCategory(c);tfPlan.busy=true;try{let known=tfPlan.condition?.category||tfListSummary()?.category||null;if(!fresh&&tfPlan.listId&&known==null){try{known=tfRequire(await TF_PLAN.condition(tfPlan.listId)).category||null}catch(err){if(tfListGone(err))return;known=null}}if(!fresh&&tfPlan.listId&&known===category){go('conditions');return}if(!fresh&&tfPlan.listId&&known&&known!==category){if(!window.confirm('다른 카테고리를 선택하면 새 장바구니를 만들어요. 지금 대화는 사이드바에 그대로 남아요. 계속할까요?'))return;fresh=true}
+ // TF-DEV: 컴퓨터는 "새 컴퓨터/업그레이드"(mode)를 반드시 골라야 하는데 물어볼 화면이 없으면 요약에 영원히
+ // "아직 확인되지 않았어요"로 남는다. category.html(tfShowPcModeStep)에서 먼저 고르게 하고, 그 화면이 없는
+ // 곳(랜딩 퀵스타트·푸터 바로가기)에서는 카테고리 화면으로 보낸다.
+ if(category==='computer'&&!mode){if(typeof tfShowPcModeStep==='function')tfShowPcModeStep(fresh);else go('category');return}
+ if(fresh||!tfPlan.listId){const created=tfRequire(await TF_PLAN.createSession());tfSelectList(created.list_id)}const state=tfRequire(await TF_PLAN.chooseCategory(tfPlan.listId,category,mode));tfPlan.condition=state;tfPlan.result=null;tfPlan.report=null;tfPlan.resultMessages=[];tfPlan.listsLoaded=false;go('conditions')}catch(err){if(!tfListGone(err))toast(tfAuthErrorMessage(err))}finally{tfPlan.busy=false}}
 function choose(c){return tfSetCategory(c,{fresh:true})}
 // TF-DEV: 로그인 필요 화면(account/confirm/report)과 로그아웃 버튼(사이드바·헤더·회원정보)이 공유 — core.js에 둔다.
 function tfSendToLogin(returnPage){try{sessionStorage.setItem('truefit-login-return',returnPage)}catch{}go('login')}
