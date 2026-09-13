@@ -107,8 +107,25 @@ uv run python main.py computer_pass
 
 [3-C] 쟁점 문장화와 [5] 설명 문장은 **끝났고 실제 OpenAI 호출까지 확인**했다. 남은 것은 넷이다.
 
-**1. 문장 필드 pending/ready/failed 분리 — 가장 시급하다.**
-`execute_recommendation`이 [2]~[5]를 전부 끝내야 run을 `done`으로 바꾼다. 그런데 이제 [3-C]·[5]가 실제 API를 호출하므로, 부품·가격·검증이 이미 계산됐는데도 문장이 올 때까지 사용자는 아무것도 못 본다. LLM이 실패하면 추천 전체가 실패로 보이는 것도 같은 원인이다. 계약(§D-4-0)대로 부품·가격·검증을 먼저 `done`으로 저장하고 문장 필드는 `pending` → `ready`/`failed`로 채운다. **`recommendation_service.py`는 develop 담당자 영역이라 합의가 먼저다.**
+**1. 문장 필드 pending/ready/failed 분리 — develop이 반영, 머지 완료 (2026-09-13).**
+`docs/개발요청_추천결과_부분저장.md` 요청대로 develop이 3e2a7ee에서 반영했다 —
+`execute_recommendation`이 [2]~[4]+검증을 별도 트랜잭션으로 먼저 `complete_run`하고, [5]는
+그 뒤 또 다른 트랜잭션에서 돌며 성공하면 `reason`/`explanation`을 `ready`로, 실패하면
+`failed`로만 남긴다(`run.status`는 안 건드림). `origin/develop` → `sllm` 머지 확인,
+`merge-tree` 예행연습·실제 머지 둘 다 충돌 없음.
+
+머지 리뷰 중 버그 하나 발견해 바로 고쳤다(6e0bec1) — `get_stored_result`가
+`reason_status`/`explanation_status`의 `'failed'`를 못 읽고 `ready`가 아니면 전부
+`pending`으로 매핑하고 있었다. 이러면 [5]가 진짜 실패했을 때 프론트가 영원히
+`pending`으로 보고 폴링을 안 멈춘다 — 없애려던 무한 로딩이 다른 경로로 재발하는 것.
+DB 스키마(`db/migrations/0008_frontend_contract.sql`)는 처음부터 세 상태를 다 갖고
+있어서 컬럼값을 그대로 옮기도록 2줄만 고쳤다. **develop 담당자에게 이 수정 사실을
+알려야 한다** — 자기 커밋 위에 우리가 고친 것이므로.
+
+**DB 없이는 실제 검증 못 함 — 미확인.** 이 환경엔 `psycopg`도 로컬 Postgres도 없어서
+두 트랜잭션 분리가 실제로 의도대로 동작하는지(부품표가 [5] 전에 진짜로 조회되는지)는
+코드 리딩으로만 확인했다. `pytest`는 기존 기준선(87 passed, 기존에도 실패하던
+`test_list_service.py` 3건 제외) 그대로 유지되는 것만 확인.
 
 **2. 프롬프트 문안 팀 승인 — 초안 작성 완료 (2026-09-13), 승인 대기.**
 `docs/프롬프트_개선_초안_설명문장.md`에 규칙 4(headline 신뢰도 인용)·규칙 7(평가어 금지) 개선안과
