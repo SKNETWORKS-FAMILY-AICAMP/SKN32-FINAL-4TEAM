@@ -100,7 +100,14 @@ def main() -> int:
             print(f"적용 중: {ver} ...")
             try:
                 with conn.transaction():
-                    conn.execute(sql)  # 파라미터 없음 → 다중 문장 허용 (simple protocol)
+                    if ver == "0009_frontend_requirement_revision":
+                        # Older base files created these fields without a 0009 tracking row.
+                        # Verify exact definitions and preserve data; never rewrite applied SQL/checksums.
+                        compatibility = Path(__file__).resolve().parent / "compatibility" / "0009_existing_identity_fields.sql"
+                        print("  0009 호환 적용: 기존 컬럼·트리거 정의 검증 후 누락 항목만 추가")
+                        conn.execute(compatibility.read_text(encoding="utf-8"))
+                    else:
+                        conn.execute(sql)  # 파라미터 없음 → 다중 문장 허용 (simple protocol)
                     conn.execute(
                         "INSERT INTO _migrations.schema_migrations (version, checksum) VALUES (%s, %s)",
                         (ver, _checksum(sql)),

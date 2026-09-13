@@ -6,7 +6,6 @@ from src import schemas
 from src.auth.deps import Principal, optional_principal
 from src.db import get_conn
 from src.errors import NotFound
-from src.repo.plan_repo import PlanRepo
 from src.services import recommendation_service, session_service
 
 router = APIRouter(prefix="/session", tags=["session"])
@@ -15,10 +14,13 @@ router = APIRouter(prefix="/session", tags=["session"])
 def create(response: Response, principal: Principal = Depends(optional_principal)) -> schemas.SessionOut:
     with get_conn() as conn:
         result = session_service.create_session(conn, principal)
-    response.set_cookie(
-        "truefit_guest", result["browser_token"],
-        httponly=True, samesite="lax", max_age=60 * 60 * 24 * 180,
-    )
+    if result["browser_token"] is not None:
+        # 인증된 사용자에게는 게스트 쿠키를 발급/재설정하지 않는다. 유효한 기존 쿠키를
+        # 재사용한 경우에도 같은 값을 다시 써서 만료 시각을 갱신한다(회전은 하지 않는다).
+        response.set_cookie(
+            "truefit_guest", result["browser_token"],
+            httponly=True, samesite="lax", max_age=60 * 60 * 24 * 180,
+        )
     return schemas.SessionOut(list_id=result["list_id"])
 
 @router.get("/{list_id}", response_model=schemas.ConditionState)
@@ -54,7 +56,7 @@ def reset(list_id: UUID, principal: Principal = Depends(optional_principal)) -> 
 @router.post("/{list_id}/recommend", response_model=schemas.RecommendAcceptedOut, status_code=status.HTTP_202_ACCEPTED)
 def recommend(list_id: UUID, body: schemas.RecommendIn = schemas.RecommendIn(), background_tasks: BackgroundTasks = None, principal: Principal = Depends(optional_principal)) -> schemas.RecommendAcceptedOut:
     with get_conn() as conn:
-        revision = session_service._owned(PlanRepo(conn), list_id, principal)
+        revision = session_service.load_owned_draft(conn, list_id, principal)
         accepted = recommendation_service.start_recommendation(conn, revision["id"], strategy=body.strategy or "default")
     background_tasks.add_task(recommendation_service.execute_recommendation, revision["id"], UUID(accepted["run_id"]))
     return schemas.RecommendAcceptedOut(**accepted)
@@ -62,7 +64,7 @@ def recommend(list_id: UUID, body: schemas.RecommendIn = schemas.RecommendIn(), 
 @router.get("/{list_id}/result", response_model=schemas.RecommendResultOut)
 def result(list_id: UUID, principal: Principal = Depends(optional_principal)) -> schemas.RecommendResultOut:
     with get_conn() as conn:
-        revision = session_service._owned(PlanRepo(conn), list_id, principal)
+        revision = session_service.load_owned_draft(conn, list_id, principal)
         stored = recommendation_service.get_stored_result(conn, revision["id"])
     if stored is None:
         raise NotFound("추천 실행 결과가 없습니다. 먼저 /recommend 를 호출하세요.")

@@ -63,7 +63,7 @@ def start_recommendation(conn, revision_id: UUID, *, strategy: str = "default") 
         raise Conflict("이미 추천을 실행하는 중입니다.", code="run_in_progress")
 
     run_id = erepo.start_run(
-        revision_id, revision["domain_version_id"],
+        revision_id, revision["domain_id"],
         input_snapshot={"values": values, "strategy": strategy},
         input_hash=hashlib.sha256(json.dumps(values, sort_keys=True, ensure_ascii=False, default=str).encode()).hexdigest(),
         draft_lock_version=revision["lock_version"],
@@ -98,8 +98,7 @@ def execute_recommendation(revision_id: UUID, run_id: UUID) -> None:
 
             req_id_by_slot = {}
             for slot in spec.targets:
-                node_id = prepo.ensure_node(revision_id, slot, slot)
-                req_id_by_slot[slot] = prepo.ensure_requirement(revision_id, node_id, spec.targets[slot])
+                req_id_by_slot[slot] = prepo.ensure_requirement(revision_id, slot, spec.targets[slot])
 
             by_slot = load_candidates_by_slot()
             hf = stage3a_hardfilter.run(spec, by_slot, noop)
@@ -177,35 +176,24 @@ def execute_recommendation(revision_id: UUID, run_id: UUID) -> None:
         raise
 
 
-def verify_and_explain_baby_candidate(*, rag_service, engine_repo, run_id, candidate: dict, slots: dict) -> dict:
-    """후보 하나의 설명서 검증/설명과 채택 evidence 연결.
+def verify_and_persist_baby_candidate(*, conn, rag_service, run_id, candidate: dict, conditions: dict) -> dict:
+    """후보 하나의 검증(verify_baby_candidate)과 설명(explain_baby_candidate)을 각자
+    별도의 RAG 질의로 수행하고, persist_candidate_check로 원자적으로 저장한다.
 
-    검색 실패는 unknown이며 pass로 승격하지 않는다. 직렬화할 인용은 resolve_evidence
-    재검사를 통과한 것만 반환한다.
+    이전 verify_and_explain_baby_candidate는 검증과 설명에 동일한 SearchRequest를
+    재사용해 explanation hit이 항상 validation hit과 같아지는 결함이 있었다(P3
+    CONTRACTS VE05). verify_baby_candidate/explain_baby_candidate는 서로 다른 질의를
+    쓰므로 인용 근거가 실제로 달라질 수 있다 — 이것이 실제 동작이지 버그가 아니다.
     """
-    from src.engine.stage3c_verify import verify_baby_manual
-    from src.engine.stage5_explain import explain_manual
-    from src.rag.contracts import SearchRequest
-    product_key, variant_key = candidate.get("product_key"), candidate.get("variant_key")
-    if not product_key or not variant_key:
-        return {"eligibility_status": "unknown", "verification_status": "unknown", "coverage_status": "none", "reason": "missing_catalog_identifier", "evidence": []}
-    context = {key: slots.get(key) for key in ("age_months", "weight_kg", "independent_sitting") if slots.get(key) is not None}
-    request = SearchRequest(domain="baby", product_key=product_key, variant_key=variant_key, query="연령, 체중 및 독립 착석 조건", market=candidate.get("market", "KR"), language="ko", corpus="real", purpose="validation", recommendation_run_id=str(run_id), context=context)
-    verified = verify_baby_manual(rag_service, request, **context)
-    if verified.get("status") == "error":
-        return {"eligibility_status": "unknown", "verification_status": "unknown", "coverage_status": "error", "reason": verified.get("error_code", "retrieval_error"), "evidence": []}
-    validation_id = engine_repo.add_validation(run_id, rule_key="baby_manual_applicability", rule_version="v1", executor_version="rag-v1", status=verified.get("eligibility_status", "unknown"), severity="critical", measured_values=context, threshold={}, message=verified.get("reason", "manual verification"), checked_at=__import__("datetime").datetime.now(__import__("datetime").timezone.utc))
-    engine_repo.link_validation_target(validation_id, candidate_id=candidate["candidate_id"])
-    explanation = explain_manual(rag_service, request)
-    evidence = []
-    profile_id = rag_service.repo.active_profile()["id"]
-    for hit in explanation.get("hits", []):
-        resolved = rag_service.repo.resolve_evidence(hit["evidence_id"], request, profile_id)
-        if resolved:
-            engine_repo.link_candidate_evidence(candidate["candidate_id"], hit["evidence_id"], "manual_excerpt")
-            engine_repo.link_validation_evidence(validation_id, hit["evidence_id"])
-            evidence.append(hit)
-    return {"eligibility_status": verified.get("eligibility_status", "unknown"), "verification_status": verified.get("verification_status", "unknown"), "coverage_status": verified.get("coverage_status", "partial"), "reason": verified.get("reason"), "evidence": evidence, "explanation": explanation.get("answer"), "error_code": explanation.get("error_code")}
+    from src.engine.stage3c_verify import verify_baby_candidate
+    from src.engine.stage5_explain import explain_baby_candidate
+    from src.repo.engine_repo import persist_candidate_check
+
+    run_context = {"recommendation_run_id": str(run_id)}
+    check = verify_baby_candidate(rag_service, candidate, conditions, run_context)
+    explanation = explain_baby_candidate(rag_service, candidate, check, run_context)
+    persist_candidate_check(conn, run_id, candidate["candidate_id"], check, explanation)
+    return {"check": check, "explanation": explanation}
 
 
 def _conditions_summary(cat_def: dict, values: dict) -> str:

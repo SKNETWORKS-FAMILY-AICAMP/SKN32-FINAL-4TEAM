@@ -61,6 +61,40 @@ def explain_manual(service, request):
     return service.answer(replace(request, purpose="recommendation"))
 
 
+def explain_baby_candidate(service, candidate: dict, check, run_context: dict):
+    """[5 baby] Per-candidate explanation — CONTRACTS P3 boundary function.
+
+    Runs a separate recommendation-purpose RAG query from verify_baby_candidate's
+    validation-purpose query; the refs returned here are the ones actually used for
+    the user-facing explanation, not a copy of the verification's cited evidence
+    (CONTRACTS VE05: verification refs and explanation refs may differ).
+    """
+    from src.dto import ExplanationWithRefs
+    from src.rag.contracts import SearchRequest
+
+    candidate_id = candidate.get("candidate_id", "")
+    product_key, variant_key = candidate.get("product_key"), candidate.get("variant_key")
+    if not product_key or not variant_key:
+        return ExplanationWithRefs(candidate_id=candidate_id, status="failed",
+                                   error_code="missing_catalog_identifier")
+    request = SearchRequest(
+        domain="baby", product_key=product_key, variant_key=variant_key,
+        query="제품 사양과 특징 설명", market=candidate.get("market", "KR"),
+        language=candidate.get("language", "ko"), corpus=candidate.get("corpus", "real"),
+        purpose="recommendation", recommendation_run_id=run_context.get("recommendation_run_id"),
+    )
+    answer = explain_manual(service, request)
+    if answer["status"] == "error":
+        return ExplanationWithRefs(candidate_id=candidate_id, status="failed",
+                                   error_code=answer.get("error_code"))
+    if answer["status"] != "success":
+        return ExplanationWithRefs(candidate_id=candidate_id, status="pending",
+                                   error_code=answer.get("reason"))
+    refs = [{"evidence_id": h["evidence_id"], "locator": h["locator"]} for h in answer.get("hits", [])]
+    return ExplanationWithRefs(candidate_id=candidate_id, status="ready",
+                               text=answer.get("answer"), refs=refs)
+
+
 def _contribution(build: BuildResult) -> dict[str, int]:
     # TODO: RankResult 의 slot별 breakdown 을 전달받아
     #   contribution[축] = Σ(slot_weight · breakdown[축]) / total 로 집계.

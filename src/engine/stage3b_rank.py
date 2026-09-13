@@ -7,8 +7,11 @@ score = Σ w_axis·norm_axis − (Pending 이면 0.20).
 """
 from __future__ import annotations
 
-from src.config import PENDING_SCORE_PENALTY, REVIEW_AXIS_EXCESS, TOP_N_DEFAULT, TOP_N_IMPACT
-from src.dto import Candidate, HardFilterResult, RankResult, RequirementSpec, Slots
+import yaml
+
+from src.config import CONFIG_DIR, PENDING_SCORE_PENALTY, REVIEW_AXIS_EXCESS, TOP_N_DEFAULT, TOP_N_IMPACT
+from src.dto import (BabyCandidate, CandidateCheck, Candidate, HardFilterResult, RankedCandidates, RankResult,
+                     RequirementSpec, ScoredCandidate, Slots)
 from src.engine import LogFn
 from src.repo.review_repo import (OBS_FLAG_OBSERVED, RISK_STORE_OK, default_risk_store, format_obs_flag,
                                  risk_store_note, risk_store_reason)
@@ -97,3 +100,111 @@ def run(hf: HardFilterResult, spec: RequirementSpec, slots: Slots, log: LogFn) -
         log(f"      {slot}: top-{len(top)}  (ideal_tier={ideal})  1위 score={top[0].score if top else '-'}"
             f"  리뷰관측 {n_obs}/{len(scored)}" + (f" (검토필요 {n_flag})" if n_flag else ""))
     return rr
+
+
+# ── P4 baby basket optimizer: candidate scoring ─────────────────────────────
+BABY_OPTIMIZER_PROFILE_PATH = CONFIG_DIR / "baby_optimizer_profile.yaml"
+
+
+def load_baby_optimizer_profile(path=BABY_OPTIMIZER_PROFILE_PATH) -> dict:
+    """Load the versioned scoring profile (score_method_version + weights).
+
+    Pure file read, no DB/HTTP/RAG — callers that need a snapshot pinned to a
+    revision (mirroring stage2_requirement.load_baby_rules_snapshot) should read
+    this once and pass the dict through, not re-read it per candidate.
+    """
+    return yaml.safe_load(path.read_text(encoding="utf-8"))
+
+
+def _tie_break(c: BabyCandidate) -> tuple[int, str, str]:
+    return (c.price or 0, c.product_key, c.variant_key or "")
+
+
+def _invalid_reason(c: BabyCandidate) -> str | None:
+    """ALGORITHM step 1: integer KRW price, positive qty/unit conversion, stable identity."""
+    if c.price is None or c.price < 0 or int(c.price) != c.price:
+        return "invalid_price"
+    if not c.pack_quantity or c.pack_quantity <= 0:
+        return "invalid_pack_quantity"
+    if not c.unit_qty or c.unit_qty <= 0:
+        return "invalid_unit_qty"
+    if not c.product_key:
+        return "missing_product_key"
+    return None
+
+
+def rank_baby_candidates(
+    requirements, candidates: list[BabyCandidate], checks: list[CandidateCheck], profile: dict,
+) -> RankedCandidates:
+    """[3-B baby] Score P2 candidates against P3 checks — pure function, no DB/HTTP/RAG.
+
+    Never reuses PC's fixed review=0.5/fixed contributions (stage3b_rank._score above):
+    a candidate missing review_summary simply drops the review axis from its own
+    weighted average instead of being scored as if a neutral review were observed.
+    Structurally invalid candidates and candidates missing a CandidateCheck row are
+    excluded from the ranked list but recorded in `excluded`, never silently dropped.
+    """
+    checks_by_id = {c.candidate_id: c for c in checks}
+    weights: dict[str, float] = dict(profile.get("weights", {"price": 1.0}))
+    version = profile.get("score_method_version", "unversioned")
+
+    by_req_raw: dict[str, list[BabyCandidate]] = {}
+    for c in candidates:
+        by_req_raw.setdefault(c.requirement_id, []).append(c)
+
+    by_requirement: dict[str, list[ScoredCandidate]] = {}
+    excluded: list[dict] = []
+
+    for req_id, cands in by_req_raw.items():
+        pool: list[tuple[BabyCandidate, CandidateCheck]] = []
+        for c in cands:
+            reason = _invalid_reason(c)
+            if reason:
+                excluded.append({"candidate_id": c.candidate_id, "requirement_id": req_id, "reason": reason})
+                continue
+            check = checks_by_id.get(c.candidate_id)
+            if check is None:
+                excluded.append({"candidate_id": c.candidate_id, "requirement_id": req_id,
+                                 "reason": "missing_candidate_check"})
+                continue
+            pool.append((c, check))
+
+        if not pool:
+            by_requirement[req_id] = []
+            continue
+
+        prices = [c.price for c, _ in pool]
+        p_min, p_max = min(prices), max(prices)
+
+        scored: list[ScoredCandidate] = []
+        for c, check in pool:
+            breakdown: dict[str, float] = {}
+            weighted, weight_sum = 0.0, 0.0
+            if "price" in weights:
+                price_axis = 1.0 if p_max == p_min else (p_max - c.price) / (p_max - p_min)
+                breakdown["price"] = round(price_axis, 4)
+                weighted += weights["price"] * price_axis
+                weight_sum += weights["price"]
+            if "review" in weights:
+                rating = (c.review_summary or {}).get("avg_rating")
+                if rating is not None:
+                    review_axis = max(0.0, min(1.0, float(rating) / 5.0))
+                    breakdown["review"] = round(review_axis, 4)
+                    weighted += weights["review"] * review_axis
+                    weight_sum += weights["review"]
+                # absent -> typed null: axis + its weight are simply excluded, not
+                # substituted with a fixed/neutral value.
+            score = round(weighted / weight_sum, 4) if weight_sum > 0 else None
+            scored.append(ScoredCandidate(
+                candidate_id=c.candidate_id, requirement_id=req_id, price=c.price,
+                unit_qty=c.unit_qty, score=score, score_breakdown=breakdown,
+                selection_allowed=check.selection_allowed, eligibility=check.eligibility,
+                tie_break=_tie_break(c),
+            ))
+
+        # deterministic: highest score first, then lower price, then product/variant key
+        scored.sort(key=lambda s: (-(s.score if s.score is not None else -1.0), s.tie_break))
+        by_requirement[req_id] = scored
+
+    return RankedCandidates(profile_version=version, weights=weights, by_requirement=by_requirement,
+                            excluded=excluded)

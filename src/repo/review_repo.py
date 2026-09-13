@@ -1,4 +1,7 @@
-"""리뷰 저장소 — community.review(_revision) + evidence.review_subject/summary/aggregate(_member).
+"""리뷰 저장소 — community.review(record_type='review') + evidence.review_subject/summary/aggregate(_member).
+
+P0 v3: review/review_revision, pc_build/pc_build_version 은 community.review 하나로 병합됐고
+(record_type 'review'|'build'), pc_build_component 는 community.review_component 로 이름이 바뀌었다.
 
 리뷰 진위 탐지·오프라인 클렌징·review_summary 산출 로직은 리뷰 담당 팀원.
 이 repo 는 그 산출물을 읽고([3-B]/[3-C]가 소비), 서비스 작성 리뷰(A7)를 저장한다.
@@ -25,8 +28,9 @@ class ReviewRepo(Repo):
     def create(self, author_user_id: UUID, subject_id: UUID) -> UUID:
         raise NotImplementedError
 
-    def add_revision(self, review_id: UUID, domain_version_id: UUID, *, rating: int,
+    def add_revision(self, review_id: UUID, *, rating: int,
                      title: str, body: str, axis_scores: dict, usage_context: dict) -> UUID:
+        """P0 v3: review_revision 테이블이 없으므로 community.review 행 자체를 갱신한다."""
         raise NotImplementedError
 
     def publish(self, review_id: UUID, revision_id: UUID) -> None:

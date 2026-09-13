@@ -12,9 +12,12 @@ from __future__ import annotations
 import json
 from typing import Callable
 
+from typing import Any
+
 from src.categories import load_category, verify_branch
 from src.config import MAX_RESEARCH_ROUNDS, SCENARIO_DIR
-from src.dto import BasketLine, BasketResult, Candidate, PipelineResult, VerificationResult, VerificationTarget
+from src.dto import (BabyCandidate, BabyRequirement, BasketDecision, Candidate, CandidateCheck,
+                     PipelineResult, RankedCandidates)
 from src.engine import stage1_intent, stage2_requirement, stage3_0_candidates
 from src.engine import stage3a_hardfilter, stage3b_rank, stage3c_verify
 from src.engine import stage4_optimize, stage5_explain
@@ -98,26 +101,22 @@ def _run_computer_branch(scenario: dict, result: PipelineResult, log: LogFn) -> 
             return
 
 
-def run_baby_db_pipeline(*, list_id: str, candidates: list[dict], slots: dict, budget_max: int | None = None) -> tuple[BasketResult, VerificationResult]:
-    """DB 카탈로그에서 이미 범위가 결정된 baby 후보를 처리한다.
+def run_baby_optimizer(
+    *, requirements: list[BabyRequirement], candidates: list[BabyCandidate],
+    checks: list[CandidateCheck], owned_items: list[dict[str, Any]] | None = None,
+    budget_max: int | None = None, profile: dict | None = None,
+) -> tuple[RankedCandidates, BasketDecision]:
+    """P4 유아 예산 최적화 경계 (baby computation boundary).
 
-    이 경로는 scenario JSON과 전역 미니 코퍼스를 읽지 않는다. RAG 검증 주입은 다음
-    단계에서 수행한다. product_key/variant_key가 없는 후보는 설명서 검증 대상이 아니다.
+    P2가 만든 BabyRequirement/BabyCandidate와 P3가 만든 CandidateCheck를 받아
+    [3-B baby]/[4 baby]를 실행하는 순수 함수 조합이다 — DB 조회·HTTP 호출·RAG 검색을
+    이 안에서 하지 않는다(OBJECTIVE/CONTRACT). candidate ID를 item ID로 쓰거나
+    qty=1/timing=now/price=0으로 근사하던 이전 `run_baby_db_pipeline` 어댑터를
+    대체한다 — BasketItem/BasketDecision 이 실제 requirement_id·qty·timing·unit_price를
+    가진다. 영속화는 P5 소관(EngineRepo.persist_candidate_check 등)이며 여기서
+    아무 행도 쓰지 않는다.
     """
-    selected: list[BasketLine] = []
-    targets: list[VerificationTarget] = []
-    total = 0
-    for raw in candidates:
-        product_key, variant_key = raw.get("product_key"), raw.get("variant_key")
-        name, price = raw.get("name", ""), int(raw.get("price", 0))
-        if not product_key or not variant_key:
-            targets.append(VerificationTarget(subject=name or "미식별 후보", passed=False, gray_axes=["missing_catalog_identifier"], transcript=[{"reason": "missing_catalog_identifier"}]))
-            continue
-        if budget_max is not None and total + price > budget_max:
-            targets.append(VerificationTarget(subject=name, passed=False, gray_axes=["budget_exceeded"], transcript=[{"reason": "budget_exceeded"}]))
-            continue
-        selected.append(BasketLine(category="baby", sub_item=raw.get("slot", "item"), product_key=product_key, name=name, price=price, score=float(raw.get("score", 0))))
-        total += price
-        targets.append(VerificationTarget(subject=name, passed=False, gray_axes=["manual_verification_pending"], transcript=[{"product_key": product_key, "variant_key": variant_key}]))
-    basket = BasketResult(list_id=list_id, buy_now=selected, totals={"total": total, "currency": "KRW"}, budget={"max": budget_max, "remaining": None if budget_max is None else budget_max-total})
-    return basket, VerificationResult(list_id=list_id, category="baby", mode="per_item", targets=targets)
+    profile = profile if profile is not None else stage3b_rank.load_baby_optimizer_profile()
+    ranked = stage3b_rank.rank_baby_candidates(requirements, candidates, checks, profile)
+    decision = stage4_optimize.optimize_baby(requirements, ranked, owned_items or [], budget_max)
+    return ranked, decision

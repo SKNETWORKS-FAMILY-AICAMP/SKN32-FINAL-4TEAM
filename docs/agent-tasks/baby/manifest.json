@@ -1,0 +1,212 @@
+{
+  "schema_version": 1,
+  "kind": "agent_implementation_work_orders",
+  "baseline_commit": "d96ccd2",
+  "status": "updated_work_orders_for_commit_delta",
+  "excluded_authority": "개발_역할_분담.md",
+  "tasks": [
+    {
+      "id": "P0",
+      "file": "P0_schema_contracts.md",
+      "title": "축소 DB·공통 계약·기존 코드 호환",
+      "depends_on": [],
+      "status": "partial_rework_required",
+      "entry_gate": "ready_after_dependencies",
+      "contract": "CONTRACTS.md",
+      "report": "reports/P0.md",
+      "integration_depends_on": [],
+      "contract_version": 2,
+      "rework_required": true,
+      "baseline_audit": "reports/sync-2026-09-13.md",
+      "execution_policy": "fresh_database_no_legacy_data_migration",
+      "acceptance_policy": "replacement_SR01_SR09_in_P0_work_order",
+      "latest_implementation_record": "reports/P0.md#2026-09-13-v4",
+      "verified_acceptance_cases": ["SR01", "SR02", "SR03", "SR04", "SR05", "SR06", "SR07", "SR08", "SR09"],
+      "verification_note": "v4 closed the SR07 domain-snapshot binding and the SR08 JSON/scope enforcement gaps that v3 did not list as remaining. Behavioral regressions now live in tests/test_schema_reduction_db.py (29 cases). Status stays partial until the CONTRACTS.md owner reviews reports/P0.md against the SR01-SR09 table.",
+      "downstream_blockers": ["baby recommendation rules (P2/P5)", "review authoring logic (P8)"],
+      "commit_delta": "30af559..d96ccd2"
+    },
+    {
+      "id": "P1",
+      "file": "P1_sessions_conditions.md",
+      "title": "DB 접속·게스트 세션·조건 수집",
+      "depends_on": [
+        "P0"
+      ],
+      "status": "partial_upstream",
+      "entry_gate": "ready_after_dependencies",
+      "contract": "CONTRACTS.md",
+      "report": "reports/P1.md",
+      "integration_depends_on": [],
+      "contract_version": 2,
+      "rework_required": true,
+      "baseline_audit": "reports/sync-2026-09-13.md",
+      "commit_delta": "30af559..d96ccd2"
+    },
+    {
+      "id": "P2",
+      "file": "P2_catalog_requirements.md",
+      "title": "유아 카탈로그·단위·필요 품목 규칙",
+      "depends_on": [
+        "P0"
+      ],
+      "status": "partial_shared_catalog",
+      "entry_gate": "ready_after_dependencies",
+      "contract": "CONTRACTS.md",
+      "report": "reports/P2.md",
+      "integration_depends_on": [],
+      "contract_version": 2,
+      "rework_required": true,
+      "baseline_audit": "reports/sync-2026-09-13.md"
+    },
+    {
+      "id": "P3",
+      "file": "P3_verification_rag.md",
+      "title": "후보 안전 조건·설명서 검증·근거 연결",
+      "depends_on": [
+        "P0",
+        "P2"
+      ],
+      "status": "partial_implemented_awaiting_p5_wiring",
+      "entry_gate": "ready_after_dependencies",
+      "contract": "CONTRACTS.md",
+      "report": "reports/P3.md",
+      "integration_depends_on": [],
+      "contract_version": 2,
+      "rework_required": true,
+      "baseline_audit": "reports/sync-2026-09-13.md",
+      "verified_acceptance_cases": ["VE01", "VE02", "VE03", "VE04", "VE05", "VE06", "VE07", "VE08"],
+      "verification_note": "verify_baby_candidate/explain_baby_candidate/persist_candidate_check/resolve_public_evidence exist and are exercised against real PostgreSQL/pgvector with real evidence rows (tests/test_baby_verification.py, 18 tests). Manual-backed rule inventory covers only the one real manual this environment has (stroller); other categories are an explicit reviewed not-applicable decision authored by this task, not an external safety review. Not yet called from any HTTP/execute_recommendation path (P5's edit surface). Status stays partial until the CONTRACTS.md owner reviews reports/P3.md."
+    },
+    {
+      "id": "P4",
+      "file": "P4_basket_optimizer.md",
+      "title": "필수품·예산·구매 시점 최적화",
+      "depends_on": [
+        "P0",
+        "P2",
+        "P3"
+      ],
+      "status": "pending",
+      "entry_gate": "ready_after_dependencies",
+      "contract": "CONTRACTS.md",
+      "report": "reports/P4.md",
+      "integration_depends_on": [],
+      "contract_version": 2,
+      "rework_required": false,
+      "baseline_audit": "reports/sync-2026-09-13.md",
+      "commit_delta": "30af559..d96ccd2"
+    },
+    {
+      "id": "P5",
+      "file": "P5_recommendation_http.md",
+      "title": "추천 실행·저장·결과·후보 편집 API",
+      "depends_on": [
+        "P1",
+        "P2",
+        "P3",
+        "P4"
+      ],
+      "status": "partial_pc_only",
+      "entry_gate": "ready_after_dependencies",
+      "contract": "CONTRACTS.md",
+      "report": "reports/P5.md",
+      "integration_depends_on": [],
+      "contract_version": 2,
+      "rework_required": true,
+      "baseline_audit": "reports/sync-2026-09-13.md",
+      "commit_delta": "30af559..d96ccd2"
+    },
+    {
+      "id": "P6",
+      "file": "P6_authentication.md",
+      "title": "가입·비밀번호 인증·설정·게스트 인계",
+      "depends_on": [
+        "P1"
+      ],
+      "status": "pending",
+      "entry_gate": "ready_after_dependencies",
+      "contract": "CONTRACTS.md",
+      "report": "reports/P6.md",
+      "integration_depends_on": [],
+      "contract_version": 2,
+      "rework_required": false,
+      "baseline_audit": "reports/sync-2026-09-13.md"
+    },
+    {
+      "id": "P7",
+      "file": "P7_lists_reports.md",
+      "title": "목록·확정 스냅샷·리포트·판매처 이동",
+      "depends_on": [
+        "P5",
+        "P6"
+      ],
+      "status": "partial_upstream_integration_required",
+      "entry_gate": "ready_after_dependencies",
+      "contract": "CONTRACTS.md",
+      "report": "reports/P7.md",
+      "integration_depends_on": [],
+      "contract_version": 2,
+      "rework_required": true,
+      "baseline_audit": "reports/sync-2026-09-13.md",
+      "commit_delta": "30af559..d96ccd2"
+    },
+    {
+      "id": "P8",
+      "file": "P8_reviews_feedback.md",
+      "title": "유아 후기·파일 기반 정제·요약/통계·행동 기록",
+      "depends_on": [
+        "P0",
+        "P6"
+      ],
+      "status": "partial_pc_review_only",
+      "entry_gate": "ready_after_dependencies",
+      "contract": "CONTRACTS.md",
+      "report": "reports/P8.md",
+      "integration_depends_on": [
+        "P5",
+        "P7"
+      ],
+      "contract_version": 2,
+      "rework_required": true,
+      "baseline_audit": "reports/sync-2026-09-13.md",
+      "commit_delta": "30af559..d96ccd2"
+    },
+    {
+      "id": "P9",
+      "file": "P9_operational_validation.md",
+      "title": "운영 검증·자료 처리 확장·RAG 전환 게이트",
+      "depends_on": [
+        "P0",
+        "P3",
+        "P5",
+        "P7"
+      ],
+      "status": "conditional",
+      "entry_gate": "O1_ready_after_dependencies; O2-O5_explicit_activation",
+      "contract": "CONTRACTS.md",
+      "report": "reports/P9.md",
+      "integration_depends_on": [],
+      "contract_version": 2,
+      "rework_required": false,
+      "baseline_audit": "reports/sync-2026-09-13.md",
+      "commit_delta": "30af559..d96ccd2"
+    }
+  ],
+  "contract_version": 2,
+  "sync_audit": "reports/sync-2026-09-13.md",
+  "previous_baseline_commit": "30af559",
+  "commit_delta_scope": [
+    "P0",
+    "P1",
+    "P4",
+    "P5",
+    "P7",
+    "P8",
+    "P9"
+  ],
+  "integration_blockers": [
+    "src/routers/lists.py unresolved merge conflict",
+    "list_service legacy SQL incompatible with reduced DB"
+  ]
+}

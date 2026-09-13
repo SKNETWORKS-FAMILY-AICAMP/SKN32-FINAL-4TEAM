@@ -51,7 +51,18 @@ _PRIORITY = [
     ("quiet", ["조용", "저소음", "소음"]),
 ]
 
-_NEEDS = ["수유", "이유식", "수면", "외출", "목욕", "위생", "기저귀", "배변", "의류", "놀이", "안전", "건강"]
+# 키워드 → baby.yaml/CONTRACTS 의 정식 need 라벨(부분 문자열이 아니라 그대로 저장 가능한 값).
+_NEEDS_MAP: list[tuple[str, list[str]]] = [
+    ("수유", ["수유", "젖병", "분유"]),
+    ("이유식·식사", ["이유식", "식사"]),
+    ("수면", ["수면", "잠", "재우"]),
+    ("외출", ["외출", "산책", "유모차", "카시트"]),
+    ("목욕·위생", ["목욕", "위생", "샴푸"]),
+    ("기저귀·배변", ["기저귀", "배변"]),
+    ("의류", ["의류", "옷"]),
+    ("놀이", ["놀이", "장난감"]),
+    ("안전·건강", ["안전", "건강"]),
+]
 
 
 def _first_match(text: str, table: list[tuple[str, list[str]]]) -> str | None:
@@ -90,17 +101,19 @@ def extract_baby(text: str) -> dict:
     months = _parse_months(text)
     if months is not None:
         out["age_months"] = months
-    matched_needs = [n for n in _NEEDS if n in text]
+    matched_needs = [label for label, keywords in _NEEDS_MAP if any(k in text for k in keywords)]
     if matched_needs:
         out["needs"] = matched_needs
     if re.search(r"아토피", text):
         out["health_skin"] = ["아토피"]
     elif re.search(r"민감", text):
         out["health_skin"] = ["민감성 피부"]
-    elif re.search(r"특이사항\s*없|없어요|괜찮아요", text):
-        out["health_skin"] = ["none"]
-    if re.search(r"없어요|없음|아직\s*없", text) and "owned_items" not in out:
-        out["owned_items"] = ["none"]
+    # "피부"/"건강"/"특이사항" 이 명시된 맥락에서만 none 으로 판단한다 — "보유 물품이 없어요" 같은
+    # 무관한 문장의 "없어요" 만 보고 건강 상태를 단정하던 버그를 막는다.
+    elif re.search(r"(특이사항|피부|건강|알러지|알레르기).{0,6}(없|괜찮)", text):
+        out["health_skin"] = []
+    if re.search(r"(보유|가진|갖고\s*있는|물품|아직).{0,8}(없|아직\s*없)", text) or re.fullmatch(r"\s*(아직\s*)?없어요\.?\s*", text):
+        out.setdefault("owned_items", [])
     return out
 
 

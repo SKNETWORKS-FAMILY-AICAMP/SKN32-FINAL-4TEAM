@@ -1,13 +1,19 @@
-"""PostgreSQL/pgvector RAG using the existing assets/rag/evidence schema.
+"""PostgreSQL/pgvector RAG using the reduced assets/rag/evidence schema (P0 v3).
 
 Public-only retrieval; synthetic and real corpora never mix. Caller supplies a
 recommendation run. This repository never invents a run or user identity.
+
+P0 v3 schema note: assets.material_revision/material_applicability were merged into
+assets.product_material (single current file/version/state/applicability row — no
+revision history table); evidence.source was merged into evidence.evidence
+(source_name/source_type/source_base_url/source_rating_scale columns, no source_id FK).
 """
 
 from __future__ import annotations
 
 import json
 import os
+import re
 from dataclasses import asdict
 from pathlib import Path
 from uuid import NAMESPACE_URL, UUID, uuid5
@@ -25,32 +31,38 @@ def stable_id(key: str) -> UUID:
     return uuid5(NAMESPACE_URL, "truefit:synthetic:" + key)
 
 
+_SOURCE_NAME = "가상제품 RAG 테스트 자료"
+_SOURCE_TYPE = "derived"
+
 # Applied before BOTH ranking branches and again before creating an evidence row.
+# One product_material row now carries its own current file/version/state plus an
+# `applicability` jsonb array (each element is a former material_applicability row);
+# it is unnested with jsonb_array_elements and filtered the same way the old join was.
 ELIGIBLE = """
 SELECT c.id AS chunk_id, c.content_text AS text, c.locator, c.content_hash,
        c.review_status, e.embedding, c.search_vector,
-       r.id AS revision_id, r.revision_no, r.source_url, r.retrieved_at AS collected_at,
-       m.id AS material_id, m.source_id, m.title, f.id AS file_id,
+       m.id AS revision_id, m.version AS revision_no, m.source_url, m.retrieved_at AS collected_at,
+       m.id AS material_id, m.source_name, m.source_type, m.title, f.id AS file_id,
        f.sha256 AS file_sha256, f.object_key,
-       a.conditions, j.extraction_manifest
+       app.value->'conditions' AS conditions, j.extraction_manifest
 FROM rag.document_chunk c
 JOIN rag.chunk_embedding e ON e.chunk_id=c.id AND e.profile_id=%(profile_id)s
 JOIN rag.embedding_profile p ON p.id=e.profile_id AND p.status='active'
 JOIN rag.ingestion_job j ON j.id=c.ingestion_id AND j.status='ready'
-JOIN assets.material_revision r ON r.id=j.revision_id AND r.active_ingestion_id=j.id
-JOIN assets.product_material m ON m.id=r.material_id AND m.current_revision_id=r.id
-JOIN assets.file_object f ON f.id=r.file_object_id
-JOIN assets.material_applicability a ON a.revision_id=r.id AND a.verified
+JOIN assets.product_material m ON m.id=j.material_id AND m.active_ingestion_id=j.id
+JOIN assets.file_object f ON f.id=m.file_object_id
+CROSS JOIN LATERAL jsonb_array_elements(m.applicability) app(value)
 WHERE e.status='ready' AND c.review_status <> 'rejected'
-  AND r.status='published' AND m.status='active'
+  AND m.material_status='published' AND m.status='active'
+  AND (app.value->>'verified')::boolean IS TRUE
   AND f.access_scope='public' AND f.scan_status='clean' AND f.storage_status='available'
   AND f.use_policy @> '{"allow_rag":true,"allow_excerpt":true}'::jsonb
-  AND r.language=%(language)s
-  AND a.conditions->>'domain'=%(domain)s
-  AND a.conditions->>'product_key'=%(product_key)s
-  AND a.conditions->>'market'=%(market)s
-  AND (a.variant_id IS NULL OR a.conditions->>'variant_key'=%(variant_key)s)
-  AND %(context)s::jsonb @> COALESCE(a.conditions->'required_context','{}'::jsonb)
+  AND m.language=%(language)s
+  AND app.value->'conditions'->>'domain'=%(domain)s
+  AND app.value->'conditions'->>'product_key'=%(product_key)s
+  AND app.value->'conditions'->>'market'=%(market)s
+  AND (app.value->>'variant_id' IS NULL OR app.value->'conditions'->>'variant_key'=%(variant_key)s)
+  AND %(context)s::jsonb @> COALESCE(app.value->'conditions'->'required_context','{}'::jsonb)
   AND j.extraction_manifest->>'corpus'=%(corpus)s
 """
 
@@ -115,12 +127,12 @@ class RagRepo(Repo):
         except FileExistsError:
             if digest(object_path.read_bytes()) != doc.sha256:
                 raise ValueError("stored_object_hash_mismatch")
-        source, material = stable_id("manual-source"), stable_id(doc.manual_id)
-        revision = stable_id(doc.manual_id + ":" + doc.revision)
+        material = stable_id(doc.manual_id)
         product, variant = stable_id(doc.product_key), stable_id(doc.variant_key)
         job_key = digest(
             (
-                str(revision)
+                str(material)
+                + doc.revision
                 + doc.sha256
                 + embedder.profile_key
                 + PIPELINE_VERSION
@@ -131,25 +143,20 @@ class RagRepo(Repo):
         with self.conn.transaction():
             profile_id = self.ensure_profile(embedder)
             self._exec("SELECT pg_advisory_xact_lock(hashtext(%s))", (str(material),))
-            old = self._one(
-                """SELECT f.sha256,r.status FROM assets.material_revision r
-                JOIN assets.file_object f ON f.id=r.file_object_id WHERE r.id=%s""",
-                (revision,),
-            )
-            if old and (old["sha256"] != doc.sha256 or old["status"] == "revoked"):
-                raise ValueError("immutable_or_revoked_revision_use_new_revision")
             current = self._one(
-                """SELECT r.revision_no FROM assets.product_material m
-                JOIN assets.material_revision r ON r.id=m.current_revision_id WHERE m.id=%s""",
+                """SELECT m.version, m.material_status, f.sha256 FROM assets.product_material m
+                LEFT JOIN assets.file_object f ON f.id=m.file_object_id WHERE m.id=%s""",
                 (material,),
             )
-            if current and current["revision_no"] > revision_no:
-                raise ValueError("cannot_publish_older_revision")
-            self._exec(
-                """INSERT INTO evidence.source(id,name,source_type)
-                VALUES (%s,'가상제품 RAG 테스트 자료','derived') ON CONFLICT (id) DO NOTHING""",
-                (source,),
-            )
+            if current:
+                if current["material_status"] == "revoked":
+                    raise ValueError("revoked_material_cannot_republish")
+                if current["version"] is not None:
+                    current_no = int(current["version"])
+                    if current_no > revision_no:
+                        raise ValueError("cannot_publish_older_revision")
+                    if current_no == revision_no and current["sha256"] != doc.sha256:
+                        raise ValueError("immutable_or_revoked_revision_use_new_revision")
             self._exec(
                 """INSERT INTO catalog.product(id,name,brand,model,product_type,attributes)
                 VALUES (%s,%s,'synthetic',%s,'baby',%s) ON CONFLICT (id) DO NOTHING""",
@@ -159,9 +166,6 @@ class RagRepo(Repo):
                     doc.product_key,
                     Jsonb({"is_synthetic": True}),
                 ),
-            )
-            self._exec(
-                "INSERT INTO shared.unit(code,dimension) VALUES ('each','count') ON CONFLICT DO NOTHING"
             )
             self._exec(
                 """INSERT INTO catalog.product_variant(id,product_id,variant_key)
@@ -192,17 +196,6 @@ class RagRepo(Repo):
             file = self._one("SELECT * FROM assets.file_object WHERE id=%s", (file_id,))
             if file["storage_status"] != "available" or file["scan_status"] != "clean":
                 raise ValueError("file_not_available")
-            self._exec(
-                """INSERT INTO assets.product_material(id,source_id,title,material_type)
-                VALUES (%s,%s,%s,'manual') ON CONFLICT (id) DO NOTHING""",
-                (material, source, doc.manual_id),
-            )
-            self._exec(
-                """INSERT INTO assets.material_revision
-                (id,material_id,revision_no,file_object_id,language,retrieved_at)
-                VALUES (%s,%s,%s,%s,'ko',now()) ON CONFLICT (id) DO NOTHING""",
-                (revision, material, revision_no, file_id),
-            )
             conditions = {
                 "domain": "baby",
                 "product_key": doc.product_key,
@@ -210,11 +203,25 @@ class RagRepo(Repo):
                 "market": doc.market,
                 "required_context": {},
             }
+            applicability = Jsonb(
+                [
+                    {
+                        "product_id": str(product),
+                        "variant_id": str(variant),
+                        "conditions": conditions,
+                        "verified": True,
+                    }
+                ]
+            )
             self._exec(
-                """INSERT INTO assets.material_applicability
-                (revision_id,product_id,variant_id,conditions,verified) VALUES (%s,%s,%s,%s,true)
-                ON CONFLICT DO NOTHING""",
-                (revision, product, variant, Jsonb(conditions)),
+                """INSERT INTO assets.product_material
+                (id,title,material_type,file_object_id,version,language,retrieved_at,material_status,status,applicability,source_name,source_type)
+                VALUES (%s,%s,'manual',%s,%s,'ko',now(),'published','active',%s,%s,%s)
+                ON CONFLICT (id) DO UPDATE SET
+                  title=EXCLUDED.title, file_object_id=EXCLUDED.file_object_id, version=EXCLUDED.version,
+                  retrieved_at=EXCLUDED.retrieved_at, material_status='published', status='active',
+                  applicability=EXCLUDED.applicability, source_name=EXCLUDED.source_name, source_type=EXCLUDED.source_type""",
+                (material, doc.manual_id, file_id, str(revision_no), applicability, _SOURCE_NAME, _SOURCE_TYPE),
             )
             manifest = {
                 "corpus": "synthetic",
@@ -226,9 +233,9 @@ class RagRepo(Repo):
             }
             self._exec(
                 """INSERT INTO rag.ingestion_job
-                (id,revision_id,pipeline_version,idempotency_key,status,attempts,completed_at,extraction_manifest)
-                VALUES (%s,%s,%s,%s,'ready',1,now(),%s) ON CONFLICT (id) DO NOTHING""",
-                (job, revision, PIPELINE_VERSION, job_key, Jsonb(manifest)),
+                (id,material_id,material_version,pipeline_version,idempotency_key,status,attempts,completed_at,extraction_manifest)
+                VALUES (%s,%s,%s,%s,%s,'ready',1,now(),%s) ON CONFLICT (id) DO NOTHING""",
+                (job, material, str(revision_no), PIPELINE_VERSION, job_key, Jsonb(manifest)),
             )
             for chunk, vector in zip(doc.chunks, vectors):
                 chunk_id = stable_id(str(job) + ":" + str(chunk.ordinal))
@@ -253,21 +260,12 @@ class RagRepo(Repo):
                     (chunk_id, profile_id, json.dumps(vector), chunk.content_hash),
                 )
             self._exec(
-                """UPDATE assets.material_revision SET status='superseded'
-                WHERE material_id=%s AND id<>%s AND status='published'""",
-                (material, revision),
-            )
-            self._exec(
-                "UPDATE assets.material_revision SET active_ingestion_id=%s,status='published' WHERE id=%s",
-                (job, revision),
-            )
-            self._exec(
-                "UPDATE assets.product_material SET current_revision_id=%s,status='active' WHERE id=%s",
-                (revision, material),
+                "UPDATE assets.product_material SET active_ingestion_id=%s WHERE id=%s",
+                (job, material),
             )
         return {
             "material_id": str(material),
-            "revision_id": str(revision),
+            "revision_id": str(material),
             "ingestion_id": str(job),
             "profile_id": str(profile_id),
             "chunk_count": len(doc.chunks),
@@ -304,7 +302,7 @@ class RagRepo(Repo):
             kr AS (SELECT chunk_id,row_number() OVER(ORDER BY keyword_score DESC,chunk_id) AS rank
                    FROM scored WHERE keyword_score > 0 ORDER BY keyword_score DESC,chunk_id LIMIT %(candidate_limit)s)
             SELECT s.chunk_id,s.text,s.locator,s.content_hash,s.review_status,s.revision_id,
-                   s.revision_no,s.source_url,s.collected_at,s.material_id,s.source_id,s.title,
+                   s.revision_no,s.source_url,s.collected_at,s.material_id,s.source_name,s.source_type,s.title,
                    s.file_id,s.file_sha256,s.conditions,s.extraction_manifest,s.vector_score,s.keyword_score,
                    COALESCE(1.0/(60+vr.rank),0)+COALESCE(1.0/(60+kr.rank),0) AS score
             FROM scored s LEFT JOIN vr USING(chunk_id) LEFT JOIN kr USING(chunk_id)
@@ -355,7 +353,7 @@ class RagRepo(Repo):
                 params["chunk_id"] = hit["chunk_id"]
                 # Lock the rows that carry authorization until evidence is saved.
                 current = self._one(
-                    ELIGIBLE + " AND c.id=%(chunk_id)s FOR SHARE OF f,r,m,a,j,e,p,c",
+                    ELIGIBLE + " AND c.id=%(chunk_id)s FOR SHARE OF f,m,j,e,p,c",
                     params,
                 )
                 if current is None or current["content_hash"] != hit["content_hash"]:
@@ -387,9 +385,9 @@ class RagRepo(Repo):
                 }
                 evidence_id = self._one(
                     """INSERT INTO evidence.evidence
-                    (source_id,kind,retrieval_hit_id,citation_snapshot,retrieved_at)
-                    VALUES (%s,'material',%s,%s,now()) RETURNING id""",
-                    (current["source_id"], hit_id, Jsonb(snapshot)),
+                    (source_name,source_type,kind,retrieval_hit_id,citation_snapshot,retrieved_at)
+                    VALUES (%s,%s,'material',%s,%s,now()) RETURNING id""",
+                    (current["source_name"], current["source_type"], hit_id, Jsonb(snapshot)),
                 )["id"]
                 accepted.append(
                     {
@@ -441,26 +439,80 @@ class RagRepo(Repo):
     def revoke_material(self, material_id):
         with self.conn.transaction():
             self._exec(
-                "UPDATE assets.product_material SET status='retired' WHERE id=%s",
-                (material_id,),
-            )
-            self._exec(
-                "UPDATE assets.material_revision SET status='revoked' WHERE material_id=%s",
+                "UPDATE assets.product_material SET status='retired', material_status='revoked' WHERE id=%s",
                 (material_id,),
             )
             self._exec(
                 """UPDATE rag.chunk_embedding SET status='revoked',embedding=NULL WHERE chunk_id IN
                 (SELECT c.id FROM rag.document_chunk c JOIN rag.ingestion_job j ON j.id=c.ingestion_id
-                 JOIN assets.material_revision r ON r.id=j.revision_id WHERE r.material_id=%s)""",
+                 WHERE j.material_id=%s)""",
                 (material_id,),
             )
             self._exec(
                 """UPDATE evidence.evidence SET status='revoked' WHERE retrieval_hit_id IN
                 (SELECT h.id FROM rag.retrieval_hit h JOIN rag.document_chunk c ON c.id=h.chunk_id
-                 JOIN rag.ingestion_job j ON j.id=c.ingestion_id JOIN assets.material_revision r ON r.id=j.revision_id
-                 WHERE r.material_id=%s)""",
+                 JOIN rag.ingestion_job j ON j.id=c.ingestion_id WHERE j.material_id=%s)""",
                 (material_id,),
             )
+
+    def resolve_public_evidence(self, refs: list[dict], principal_scope: dict) -> list[dict]:
+        """Re-check publication/permission/scope for each ref at citation-return time
+        (P3 CONTRACTS step 6: "recheck at citation return and again via P5 result
+        reads"). Reuses `resolve_evidence`'s existing revalidation, rebuilding the
+        original scoped SearchRequest from the retrieval_run's own scope_snapshot
+        rather than trusting fields on `refs` (which a caller could tamper with).
+
+        principal_scope requires "recommendation_run_id": an evidence row whose
+        retrieval belongs to a *different* run resolves to unavailable — evidence
+        access is scoped per recommendation run, not global by material id.
+
+        A revoked/permission-changed/out-of-scope ref returns available=False with
+        the evidence_id/locator trace kept (VE06); it is never silently dropped.
+        """
+        from src.reduction_contracts import PublicEvidence
+
+        out: list[PublicEvidence] = []
+        for ref in refs:
+            evidence_id = ref.get("evidence_id") if isinstance(ref, dict) else None
+            locator = (ref.get("locator") if isinstance(ref, dict) else None) or {}
+            if not evidence_id:
+                out.append(PublicEvidence(evidence_id="", available=False,
+                                          redacted_reason="malformed_ref"))
+                continue
+            row = self._one(
+                """SELECT rr.recommendation_run_id, rr.scope_snapshot, rr.profile_id, ev.status
+                   FROM evidence.evidence ev
+                   JOIN rag.retrieval_hit rh ON rh.id = ev.retrieval_hit_id
+                   JOIN rag.retrieval_run rr ON rr.id = rh.retrieval_run_id
+                   WHERE ev.id = %s""",
+                (evidence_id,),
+            )
+            if row is None or str(row["recommendation_run_id"]) != str(principal_scope.get("recommendation_run_id")):
+                out.append(PublicEvidence(evidence_id=evidence_id, available=False,
+                                          locator=locator, redacted_reason="out_of_scope"))
+                continue
+            snapshot = row["scope_snapshot"]
+            request = SearchRequest(
+                domain=snapshot["domain"], product_key=snapshot["product_key"],
+                variant_key=snapshot.get("variant_key"), market=snapshot.get("market", "KR"),
+                language=snapshot.get("language", "ko"), corpus=snapshot.get("corpus", "real"),
+                purpose=snapshot.get("purpose", "validation"), query=snapshot.get("query", "evidence"),
+                recommendation_run_id=snapshot.get("recommendation_run_id"),
+                context=snapshot.get("context") or {},
+            )
+            current = self.resolve_evidence(evidence_id, request, row["profile_id"])
+            if current is None:
+                out.append(PublicEvidence(evidence_id=evidence_id, available=False, locator=locator,
+                                          redacted_reason="revoked_or_permission_changed"))
+                continue
+            out.append(PublicEvidence(
+                evidence_id=evidence_id, available=True,
+                text=re.sub(r"<!--.*?-->", "", current["text"]).strip(),
+                locator=current["locator"], material_id=str(current["material_id"]),
+                material_version=str(current["revision_no"]),
+                is_synthetic=current["extraction_manifest"].get("corpus") == "synthetic",
+            ))
+        return [pe.model_dump() for pe in out]
 
     def process_job(self, ingestion_id, embedder):
         # Upload/OCR worker is outside this slice. Do not mark unsupported jobs ready.
@@ -479,3 +531,9 @@ class RagRepo(Repo):
                 (ingestion_id,),
             )
         raise ValueError("unsupported_ingestion_source_use_manual_cli")
+
+
+def resolve_public_evidence(conn, refs: list[dict], principal_scope: dict) -> list[dict]:
+    """P3 CONTRACTS boundary function — module-level wrapper over
+    RagRepo.resolve_public_evidence so callers do not need to construct a repo."""
+    return RagRepo(conn).resolve_public_evidence(refs, principal_scope)

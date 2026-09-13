@@ -77,11 +77,14 @@ class NextQuestionOut(BaseModel):
 class ConditionState(BaseModel):
     list_id: str
     category: str | None = None
+    mode: str | None = None
     messages: list[MessageOut] = Field(default_factory=list)
     fields: list[FieldOut] = Field(default_factory=list)
     next_question: NextQuestionOut | None = None
     can_recommend: bool = False
     accepts_spec_file: bool = False
+    revision_id: str | None = None
+    lock_version: int | None = None
 
 
 # ── recommend / result (§D-4-2) ──

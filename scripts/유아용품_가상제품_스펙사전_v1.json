@@ -1,0 +1,1576 @@
+{
+  "dictionary_version": "1.0.0",
+  "notice": "가상 데이터 사전. 실제 제품 사양·안전 인증 정보가 아님.",
+  "common_fields": [
+    {
+      "key": "product_id",
+      "required": true
+    },
+    {
+      "key": "brand",
+      "required": true
+    },
+    {
+      "key": "model",
+      "required": true
+    },
+    {
+      "key": "category_id",
+      "required": true
+    },
+    {
+      "key": "variant_id",
+      "required": true
+    },
+    {
+      "key": "market",
+      "required": true
+    },
+    {
+      "key": "is_synthetic",
+      "required": true
+    }
+  ],
+  "categories": [
+    {
+      "id": "stroller",
+      "label": "유모차",
+      "fields": [
+        {
+          "key": "type",
+          "type": "string",
+          "synthetic_examples": [
+            "compact",
+            "standard"
+          ],
+          "allowed_values": [
+            "compact",
+            "standard"
+          ]
+        },
+        {
+          "key": "assembled_weight_kg",
+          "type": "number",
+          "synthetic_examples": [
+            6.5,
+            7.2,
+            10.5,
+            12.5
+          ]
+        },
+        {
+          "key": "folded_cm",
+          "type": "object",
+          "synthetic_examples": [
+            {
+              "width": 45,
+              "depth": 25,
+              "height": 55
+            },
+            {
+              "width": 60,
+              "depth": 45,
+              "height": 85
+            }
+          ]
+        },
+        {
+          "key": "unfolded_cm",
+          "type": "object",
+          "synthetic_examples": [
+            {
+              "width": 55,
+              "depth": 85,
+              "height": 105
+            },
+            {
+              "width": 60,
+              "depth": 95,
+              "height": 110
+            }
+          ]
+        },
+        {
+          "key": "seat_max_kg",
+          "type": "number",
+          "synthetic_examples": [
+            22
+          ]
+        },
+        {
+          "key": "basket_max_kg",
+          "type": "number",
+          "synthetic_examples": [
+            3,
+            5
+          ]
+        },
+        {
+          "key": "newborn_setup",
+          "type": "string",
+          "synthetic_examples": [
+            "not_supported"
+          ],
+          "allowed_values": [
+            "not_supported"
+          ]
+        },
+        {
+          "key": "one_hand_fold",
+          "type": "boolean",
+          "synthetic_examples": [
+            true,
+            false
+          ]
+        },
+        {
+          "key": "self_standing_folded",
+          "type": "boolean",
+          "synthetic_examples": [
+            true,
+            false
+          ]
+        },
+        {
+          "key": "compatible_adapter_ids",
+          "type": "array",
+          "synthetic_examples": []
+        }
+      ]
+    },
+    {
+      "id": "car_seat",
+      "label": "카시트",
+      "fields": [
+        {
+          "key": "seat_type",
+          "type": "string",
+          "synthetic_examples": [
+            "infant",
+            "convertible"
+          ],
+          "allowed_values": [
+            "infant",
+            "convertible"
+          ]
+        },
+        {
+          "key": "installation",
+          "type": "string",
+          "synthetic_examples": [
+            "isofix"
+          ],
+          "allowed_values": [
+            "isofix"
+          ]
+        },
+        {
+          "key": "required_anchors",
+          "type": "array",
+          "synthetic_examples": [
+            "support_leg"
+          ]
+        },
+        {
+          "key": "weight_kg",
+          "type": "number",
+          "synthetic_examples": [
+            4.5,
+            13
+          ]
+        },
+        {
+          "key": "rotation",
+          "type": "boolean",
+          "synthetic_examples": [
+            true,
+            false
+          ]
+        },
+        {
+          "key": "newborn_insert_included",
+          "type": "boolean",
+          "synthetic_examples": [
+            true,
+            false
+          ]
+        },
+        {
+          "key": "mode_limits",
+          "type": "array",
+          "synthetic_examples": [
+            {
+              "mode": "rear_facing",
+              "min_height_cm": 40,
+              "max_height_cm": 83,
+              "max_weight_kg": 13
+            }
+          ]
+        },
+        {
+          "key": "compatible_vehicle_seat_ids",
+          "type": "array",
+          "synthetic_examples": []
+        },
+        {
+          "key": "recline_positions",
+          "type": "number",
+          "synthetic_examples": [
+            3,
+            4,
+            5
+          ]
+        },
+        {
+          "key": "harness_type",
+          "type": "string",
+          "synthetic_examples": [
+            "5point"
+          ],
+          "allowed_values": [
+            "5point"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "carrier",
+      "label": "아기띠",
+      "fields": [
+        {
+          "key": "type",
+          "type": "string",
+          "synthetic_examples": [
+            "structured"
+          ],
+          "allowed_values": [
+            "structured"
+          ]
+        },
+        {
+          "key": "min_weight_kg",
+          "type": "number",
+          "synthetic_examples": [
+            3.5
+          ]
+        },
+        {
+          "key": "max_weight_kg",
+          "type": "number",
+          "synthetic_examples": [
+            20
+          ]
+        },
+        {
+          "key": "position_rules",
+          "type": "array",
+          "synthetic_examples": [
+            {
+              "position": "front_inward",
+              "min_weight_kg": 3.5,
+              "max_weight_kg": 20,
+              "requires_head_control": false
+            }
+          ]
+        },
+        {
+          "key": "fabric_material",
+          "type": "string",
+          "synthetic_examples": [
+            "cotton_blend",
+            "mesh"
+          ],
+          "allowed_values": [
+            "cotton_blend",
+            "mesh"
+          ]
+        },
+        {
+          "key": "machine_washable",
+          "type": "boolean",
+          "synthetic_examples": [
+            true,
+            false
+          ]
+        }
+      ]
+    },
+    {
+      "id": "crib",
+      "label": "아기침대",
+      "fields": [
+        {
+          "key": "type",
+          "type": "string",
+          "synthetic_examples": [
+            "crib"
+          ],
+          "allowed_values": [
+            "crib"
+          ]
+        },
+        {
+          "key": "outer_cm",
+          "type": "object",
+          "synthetic_examples": [
+            {
+              "width": 65,
+              "depth": 125,
+              "height": 90
+            }
+          ]
+        },
+        {
+          "key": "mattress_cm",
+          "type": "object",
+          "synthetic_examples": [
+            {
+              "width": 60,
+              "length": 120,
+              "thickness": 6
+            }
+          ]
+        },
+        {
+          "key": "base_height_levels",
+          "type": "number",
+          "synthetic_examples": [
+            2,
+            3
+          ]
+        },
+        {
+          "key": "mode_stop_conditions",
+          "type": "array",
+          "synthetic_examples": [
+            {
+              "mode": "highest_base",
+              "stop_when": "attempts_to_sit"
+            },
+            {
+              "mode": "lowest_base",
+              "stop_when": "climbs_out"
+            }
+          ]
+        },
+        {
+          "key": "compatible_mattress_ids",
+          "type": "array",
+          "synthetic_examples": []
+        },
+        {
+          "key": "mattress_included",
+          "type": "boolean",
+          "synthetic_examples": [
+            true,
+            false
+          ]
+        },
+        {
+          "key": "material",
+          "type": "string",
+          "synthetic_examples": [
+            "MDF",
+            "solid_wood"
+          ],
+          "allowed_values": [
+            "MDF",
+            "solid_wood"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sleepwear",
+      "label": "수면조끼/우주복",
+      "fields": [
+        {
+          "key": "type",
+          "type": "string",
+          "synthetic_examples": [
+            "swaddle",
+            "sleep_sack"
+          ],
+          "allowed_values": [
+            "swaddle",
+            "sleep_sack"
+          ]
+        },
+        {
+          "key": "arms_restrained",
+          "type": "boolean",
+          "synthetic_examples": [
+            true,
+            false
+          ]
+        },
+        {
+          "key": "height_range_cm",
+          "type": "object",
+          "synthetic_examples": [
+            {
+              "min": 50,
+              "max": 60
+            },
+            {
+              "min": 60,
+              "max": 75
+            }
+          ]
+        },
+        {
+          "key": "weight_range_kg",
+          "type": "object",
+          "synthetic_examples": [
+            {
+              "min": 3.5,
+              "max": 6
+            },
+            {
+              "min": 6,
+              "max": 9
+            }
+          ]
+        },
+        {
+          "key": "stop_conditions",
+          "type": "array",
+          "synthetic_examples": []
+        },
+        {
+          "key": "fabric",
+          "type": "string",
+          "synthetic_examples": [
+            "cotton",
+            "bamboo"
+          ],
+          "allowed_values": [
+            "cotton",
+            "bamboo"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "bouncer",
+      "label": "바운서",
+      "fields": [
+        {
+          "key": "drive",
+          "type": "string",
+          "synthetic_examples": [
+            "manual",
+            "electric"
+          ],
+          "allowed_values": [
+            "manual",
+            "electric"
+          ]
+        },
+        {
+          "key": "intended_for_sleep",
+          "type": "boolean",
+          "synthetic_examples": [
+            false
+          ]
+        },
+        {
+          "key": "harness",
+          "type": "boolean",
+          "synthetic_examples": [
+            true
+          ]
+        },
+        {
+          "key": "mode_limits",
+          "type": "array",
+          "synthetic_examples": [
+            {
+              "mode": "bouncer",
+              "min_weight_kg": 3.5,
+              "max_weight_kg": 9,
+              "stop_when": "attempts_to_sit"
+            }
+          ]
+        },
+        {
+          "key": "power_sources",
+          "type": "array",
+          "synthetic_examples": []
+        },
+        {
+          "key": "recline_positions",
+          "type": "number",
+          "synthetic_examples": [
+            2,
+            3
+          ]
+        }
+      ]
+    },
+    {
+      "id": "high_chair",
+      "label": "하이체어",
+      "fields": [
+        {
+          "key": "mode_limits",
+          "type": "array",
+          "synthetic_examples": [
+            {
+              "mode": "high_chair",
+              "min_age_months": 6,
+              "max_weight_kg": 15
+            }
+          ]
+        },
+        {
+          "key": "harness_included",
+          "type": "boolean",
+          "synthetic_examples": [
+            true
+          ]
+        },
+        {
+          "key": "required_set_ids",
+          "type": "array",
+          "synthetic_examples": []
+        },
+        {
+          "key": "seat_height_adjustable",
+          "type": "boolean",
+          "synthetic_examples": [
+            true,
+            false
+          ]
+        },
+        {
+          "key": "tray_removable",
+          "type": "boolean",
+          "synthetic_examples": [
+            true,
+            false
+          ]
+        }
+      ]
+    },
+    {
+      "id": "bottle",
+      "label": "젖병",
+      "fields": [
+        {
+          "key": "flow_grade",
+          "type": "string",
+          "synthetic_examples": [
+            "slow",
+            "medium",
+            "fast"
+          ],
+          "allowed_values": [
+            "slow",
+            "medium",
+            "fast"
+          ]
+        },
+        {
+          "key": "nipple_material",
+          "type": "string",
+          "synthetic_examples": [
+            "silicone",
+            "latex"
+          ],
+          "allowed_values": [
+            "silicone",
+            "latex"
+          ]
+        },
+        {
+          "key": "capacity_ml",
+          "type": "number",
+          "synthetic_examples": [
+            160,
+            240
+          ]
+        },
+        {
+          "key": "neck_system_id",
+          "type": "string",
+          "synthetic_examples": [
+            "placeholder"
+          ]
+        },
+        {
+          "key": "compatible_nipple_ids",
+          "type": "array",
+          "synthetic_examples": []
+        },
+        {
+          "key": "care_by_component",
+          "type": "array",
+          "synthetic_examples": [
+            {
+              "component": "bottle",
+              "methods": [
+                "hand_wash"
+              ]
+            },
+            {
+              "component": "nipple",
+              "methods": [
+                "hand_wash"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pump",
+      "label": "유축기",
+      "fields": [
+        {
+          "key": "drive",
+          "type": "string",
+          "synthetic_examples": [
+            "manual",
+            "electric"
+          ],
+          "allowed_values": [
+            "manual",
+            "electric"
+          ]
+        },
+        {
+          "key": "sides",
+          "type": "string",
+          "synthetic_examples": [
+            "single",
+            "double"
+          ],
+          "allowed_values": [
+            "single",
+            "double"
+          ]
+        },
+        {
+          "key": "included_flange_mm",
+          "type": "array",
+          "synthetic_examples": [
+            21,
+            24
+          ]
+        },
+        {
+          "key": "available_flange_mm",
+          "type": "array",
+          "synthetic_examples": [
+            21,
+            24,
+            27
+          ]
+        },
+        {
+          "key": "suction_levels",
+          "type": "number",
+          "synthetic_examples": [
+            5,
+            9
+          ]
+        },
+        {
+          "key": "battery_runtime_min",
+          "type": "number",
+          "synthetic_examples": [
+            60,
+            120
+          ]
+        },
+        {
+          "key": "connector_system_id",
+          "type": "string",
+          "synthetic_examples": [
+            "placeholder"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sterilizer",
+      "label": "소독기",
+      "fields": [
+        {
+          "key": "sterilization_method",
+          "type": "string",
+          "synthetic_examples": [
+            "steam",
+            "uv"
+          ],
+          "allowed_values": [
+            "steam",
+            "uv"
+          ]
+        },
+        {
+          "key": "bottle_capacity",
+          "type": "number",
+          "synthetic_examples": [
+            6,
+            9
+          ]
+        },
+        {
+          "key": "functions",
+          "type": "array",
+          "synthetic_examples": [
+            "sterilize",
+            "dry"
+          ]
+        },
+        {
+          "key": "cycle_minutes",
+          "type": "number",
+          "synthetic_examples": [
+            40,
+            60
+          ]
+        },
+        {
+          "key": "capacity_reference",
+          "type": "string",
+          "synthetic_examples": [
+            "placeholder"
+          ]
+        },
+        {
+          "key": "filter_replacement_days",
+          "type": "number",
+          "synthetic_examples": [
+            180
+          ]
+        },
+        {
+          "key": "supported_care_profile_ids",
+          "type": "array",
+          "synthetic_examples": []
+        }
+      ]
+    },
+    {
+      "id": "formula_maker",
+      "label": "분유제조기",
+      "fields": [
+        {
+          "key": "type",
+          "type": "string",
+          "synthetic_examples": [
+            "automatic_mixer",
+            "water_kettle"
+          ],
+          "allowed_values": [
+            "automatic_mixer",
+            "water_kettle"
+          ]
+        },
+        {
+          "key": "boils_water",
+          "type": "boolean",
+          "synthetic_examples": [
+            true,
+            false
+          ]
+        },
+        {
+          "key": "clean_after_bottles",
+          "type": "number",
+          "synthetic_examples": [
+            4
+          ]
+        },
+        {
+          "key": "formula_settings",
+          "type": "array",
+          "synthetic_examples": [
+            {
+              "formula_id": "placeholder",
+              "setting": "DEMO-A"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "formula",
+      "label": "분유",
+      "fields": [
+        {
+          "key": "form",
+          "type": "string",
+          "synthetic_examples": [
+            "powder",
+            "liquid"
+          ],
+          "allowed_values": [
+            "powder",
+            "liquid"
+          ]
+        },
+        {
+          "key": "net_quantity",
+          "type": "number",
+          "synthetic_examples": [
+            800,
+            200
+          ]
+        },
+        {
+          "key": "quantity_unit",
+          "type": "string",
+          "synthetic_examples": [
+            "g",
+            "mL"
+          ],
+          "allowed_values": [
+            "g",
+            "mL"
+          ]
+        },
+        {
+          "key": "ingredients",
+          "type": "array",
+          "synthetic_examples": [
+            "우유 유래 성분",
+            "유당"
+          ]
+        },
+        {
+          "key": "allergens",
+          "type": "array",
+          "synthetic_examples": [
+            "milk"
+          ]
+        },
+        {
+          "key": "use_within_days_after_open",
+          "type": "number",
+          "synthetic_examples": [
+            21,
+            1
+          ]
+        },
+        {
+          "key": "preparation_profile_id",
+          "type": "string",
+          "synthetic_examples": [
+            "placeholder"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "baby_food",
+      "label": "이유식",
+      "fields": [
+        {
+          "key": "storage",
+          "type": "string",
+          "synthetic_examples": [
+            "chilled",
+            "frozen",
+            "ambient"
+          ],
+          "allowed_values": [
+            "chilled",
+            "frozen",
+            "ambient"
+          ]
+        },
+        {
+          "key": "shelf_life_days",
+          "type": "number",
+          "synthetic_examples": [
+            7,
+            30,
+            180
+          ]
+        },
+        {
+          "key": "after_open_hours",
+          "type": "number",
+          "synthetic_examples": [
+            24
+          ]
+        },
+        {
+          "key": "package_type",
+          "type": "string",
+          "synthetic_examples": [
+            "cup",
+            "pouch"
+          ],
+          "allowed_values": [
+            "cup",
+            "pouch"
+          ]
+        },
+        {
+          "key": "ingredients",
+          "type": "array",
+          "synthetic_examples": [
+            "쌀",
+            "당근",
+            "닭고기"
+          ]
+        },
+        {
+          "key": "allergens",
+          "type": "array",
+          "synthetic_examples": []
+        },
+        {
+          "key": "stage_months",
+          "type": "object",
+          "synthetic_examples": [
+            {
+              "min": 6,
+              "max": 8
+            },
+            {
+              "min": 9,
+              "max": 11
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cup",
+      "label": "빨대컵",
+      "fields": [
+        {
+          "key": "drinking_type",
+          "type": "string",
+          "synthetic_examples": [
+            "open",
+            "straw",
+            "weighted_straw"
+          ],
+          "allowed_values": [
+            "open",
+            "straw",
+            "weighted_straw"
+          ]
+        },
+        {
+          "key": "lid_system_id",
+          "type": "string",
+          "synthetic_examples": [
+            "placeholder"
+          ]
+        },
+        {
+          "key": "compatible_straw_ids",
+          "type": "array",
+          "synthetic_examples": []
+        },
+        {
+          "key": "care_methods",
+          "type": "array",
+          "synthetic_examples": [
+            "hand_wash"
+          ]
+        },
+        {
+          "key": "washable_part_count",
+          "type": "number",
+          "synthetic_examples": [
+            1,
+            4
+          ]
+        },
+        {
+          "key": "capacity_ml",
+          "type": "number",
+          "synthetic_examples": [
+            150,
+            200
+          ]
+        }
+      ]
+    },
+    {
+      "id": "bib",
+      "label": "턱받이",
+      "fields": [
+        {
+          "key": "food_pocket",
+          "type": "boolean",
+          "synthetic_examples": [
+            true,
+            false
+          ]
+        },
+        {
+          "key": "detachable_pocket",
+          "type": "boolean",
+          "synthetic_examples": [
+            true,
+            false
+          ]
+        },
+        {
+          "key": "material",
+          "type": "string",
+          "synthetic_examples": [
+            "silicone",
+            "fabric"
+          ],
+          "allowed_values": [
+            "silicone",
+            "fabric"
+          ]
+        },
+        {
+          "key": "sleeves",
+          "type": "boolean",
+          "synthetic_examples": [
+            true,
+            false
+          ]
+        },
+        {
+          "key": "wash_method",
+          "type": "string",
+          "synthetic_examples": [
+            "hand",
+            "machine"
+          ],
+          "allowed_values": [
+            "hand",
+            "machine"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "diaper",
+      "label": "기저귀",
+      "fields": [
+        {
+          "key": "type",
+          "type": "string",
+          "synthetic_examples": [
+            "disposable",
+            "pull_up"
+          ],
+          "allowed_values": [
+            "disposable",
+            "pull_up"
+          ]
+        },
+        {
+          "key": "size_label",
+          "type": "string",
+          "synthetic_examples": [
+            "placeholder"
+          ]
+        },
+        {
+          "key": "weight_range_kg",
+          "type": "object",
+          "synthetic_examples": [
+            {
+              "min": 4,
+              "max": 8
+            },
+            {
+              "min": 6,
+              "max": 11
+            },
+            {
+              "min": 9,
+              "max": 14
+            }
+          ]
+        },
+        {
+          "key": "fit_profile_id",
+          "type": "string",
+          "synthetic_examples": [
+            "placeholder"
+          ]
+        },
+        {
+          "key": "pack_count",
+          "type": "integer",
+          "synthetic_examples": [
+            1,
+            2,
+            4
+          ]
+        },
+        {
+          "key": "pieces_per_pack",
+          "type": "integer",
+          "synthetic_examples": [
+            40,
+            60
+          ]
+        }
+      ]
+    },
+    {
+      "id": "wipes",
+      "label": "물티슈",
+      "fields": [
+        {
+          "key": "fragrance_added",
+          "type": "boolean",
+          "synthetic_examples": [
+            true,
+            false
+          ]
+        },
+        {
+          "key": "intended_use",
+          "type": "string",
+          "synthetic_examples": [
+            "skin"
+          ],
+          "allowed_values": [
+            "skin"
+          ]
+        },
+        {
+          "key": "ingredients",
+          "type": "array",
+          "synthetic_examples": [
+            "water",
+            "glycerin"
+          ]
+        },
+        {
+          "key": "sheets_per_pack",
+          "type": "integer",
+          "synthetic_examples": [
+            80,
+            100
+          ]
+        },
+        {
+          "key": "pack_count",
+          "type": "integer",
+          "synthetic_examples": [
+            1,
+            10
+          ]
+        }
+      ]
+    },
+    {
+      "id": "bath",
+      "label": "목욕용품",
+      "fields": [
+        {
+          "key": "foldable",
+          "type": "boolean",
+          "synthetic_examples": [
+            true,
+            false
+          ]
+        },
+        {
+          "key": "support_included",
+          "type": "boolean",
+          "synthetic_examples": [
+            true,
+            false
+          ]
+        },
+        {
+          "key": "folded_cm",
+          "type": "object",
+          "synthetic_examples": [
+            {
+              "width": 50,
+              "depth": 10,
+              "height": 40
+            }
+          ]
+        },
+        {
+          "key": "support_ids",
+          "type": "array",
+          "synthetic_examples": []
+        },
+        {
+          "key": "component_limits",
+          "type": "array",
+          "synthetic_examples": [
+            {
+              "component_id": "placeholder",
+              "max_weight_kg": 8
+            }
+          ]
+        },
+        {
+          "key": "stand_supported",
+          "type": "boolean",
+          "synthetic_examples": [
+            false
+          ]
+        },
+        {
+          "key": "material",
+          "type": "string",
+          "synthetic_examples": [
+            "PP_plastic"
+          ],
+          "allowed_values": [
+            "PP_plastic"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "skincare",
+      "label": "스킨케어",
+      "fields": [
+        {
+          "key": "type",
+          "type": "string",
+          "synthetic_examples": [
+            "wash",
+            "lotion"
+          ],
+          "allowed_values": [
+            "wash",
+            "lotion"
+          ]
+        },
+        {
+          "key": "fragrance_added",
+          "type": "boolean",
+          "synthetic_examples": [
+            true,
+            false
+          ]
+        },
+        {
+          "key": "rinse_required",
+          "type": "boolean",
+          "synthetic_examples": [
+            true,
+            false
+          ]
+        },
+        {
+          "key": "body_area",
+          "type": "string",
+          "synthetic_examples": [
+            "hair_and_body",
+            "face_and_body"
+          ],
+          "allowed_values": [
+            "hair_and_body",
+            "face_and_body"
+          ]
+        },
+        {
+          "key": "ingredients",
+          "type": "array",
+          "synthetic_examples": [
+            "water",
+            "glycerin"
+          ]
+        },
+        {
+          "key": "net_quantity",
+          "type": "number",
+          "synthetic_examples": [
+            200,
+            300
+          ]
+        }
+      ]
+    },
+    {
+      "id": "thermometer",
+      "label": "체온계",
+      "fields": [
+        {
+          "key": "measurement_site",
+          "type": "string",
+          "synthetic_examples": [
+            "axillary",
+            "ear"
+          ],
+          "allowed_values": [
+            "axillary",
+            "ear"
+          ]
+        },
+        {
+          "key": "technology",
+          "type": "string",
+          "synthetic_examples": [
+            "contact",
+            "infrared"
+          ],
+          "allowed_values": [
+            "contact",
+            "infrared"
+          ]
+        },
+        {
+          "key": "measurement_seconds",
+          "type": "number",
+          "synthetic_examples": [
+            30,
+            3
+          ]
+        },
+        {
+          "key": "declared_error_c",
+          "type": "number",
+          "synthetic_examples": [
+            0.2
+          ]
+        },
+        {
+          "key": "disposable_cover_required",
+          "type": "boolean",
+          "synthetic_examples": [
+            true,
+            false
+          ]
+        },
+        {
+          "key": "error_test_conditions",
+          "type": "object",
+          "synthetic_examples": [
+            {
+              "min_c": 35,
+              "max_c": 42,
+              "ambient_c": 23,
+              "protocol_id": "placeholder"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pacifier",
+      "label": "쪽쪽이",
+      "fields": [
+        {
+          "key": "age_months",
+          "type": "object",
+          "synthetic_examples": [
+            {
+              "min": 0,
+              "max": 6
+            },
+            {
+              "min": 6,
+              "max": 18
+            }
+          ]
+        },
+        {
+          "key": "vent_holes",
+          "type": "boolean",
+          "synthetic_examples": [
+            true
+          ]
+        },
+        {
+          "key": "care_methods",
+          "type": "array",
+          "synthetic_examples": [
+            "hand_wash"
+          ]
+        },
+        {
+          "key": "size_label",
+          "type": "string",
+          "synthetic_examples": [
+            "S",
+            "M"
+          ],
+          "allowed_values": [
+            "S",
+            "M"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gate",
+      "label": "안전문/펜스",
+      "fields": [
+        {
+          "key": "type",
+          "type": "string",
+          "synthetic_examples": [
+            "gate",
+            "playpen"
+          ],
+          "allowed_values": [
+            "gate",
+            "playpen"
+          ]
+        },
+        {
+          "key": "auto_lock",
+          "type": "boolean",
+          "synthetic_examples": [
+            true,
+            false
+          ]
+        },
+        {
+          "key": "mounting",
+          "type": "string",
+          "synthetic_examples": [
+            "wall_fixed",
+            "freestanding"
+          ],
+          "allowed_values": [
+            "wall_fixed",
+            "freestanding"
+          ]
+        },
+        {
+          "key": "opening_width_cm",
+          "type": "object",
+          "synthetic_examples": [
+            {
+              "min": 75,
+              "max": 85
+            }
+          ]
+        },
+        {
+          "key": "inner_cm",
+          "type": "object",
+          "synthetic_examples": [
+            {
+              "width": 200,
+              "depth": 140
+            }
+          ]
+        },
+        {
+          "key": "compatible_extension_ids",
+          "type": "array",
+          "synthetic_examples": []
+        },
+        {
+          "key": "top_of_stairs_supported",
+          "type": "boolean",
+          "synthetic_examples": [
+            false
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mat",
+      "label": "놀이매트",
+      "fields": [
+        {
+          "key": "type",
+          "type": "string",
+          "synthetic_examples": [
+            "activity",
+            "play"
+          ],
+          "allowed_values": [
+            "activity",
+            "play"
+          ]
+        },
+        {
+          "key": "size_cm",
+          "type": "object",
+          "synthetic_examples": [
+            {
+              "width": 150,
+              "length": 100,
+              "thickness": 2
+            },
+            {
+              "width": 200,
+              "length": 140,
+              "thickness": 4
+            },
+            {
+              "width": 240,
+              "length": 140,
+              "thickness": 1.2
+            }
+          ]
+        },
+        {
+          "key": "construction",
+          "type": "string",
+          "synthetic_examples": [
+            "single_sheet",
+            "folding"
+          ],
+          "allowed_values": [
+            "single_sheet",
+            "folding"
+          ]
+        },
+        {
+          "key": "surface_material",
+          "type": "string",
+          "synthetic_examples": [
+            "fabric",
+            "PU"
+          ],
+          "allowed_values": [
+            "fabric",
+            "PU"
+          ]
+        },
+        {
+          "key": "core_material",
+          "type": "string",
+          "synthetic_examples": [
+            "fiber",
+            "PE_foam"
+          ],
+          "allowed_values": [
+            "fiber",
+            "PE_foam"
+          ]
+        },
+        {
+          "key": "wipe_clean",
+          "type": "boolean",
+          "synthetic_examples": [
+            true,
+            false
+          ]
+        },
+        {
+          "key": "activity_count",
+          "type": "number",
+          "synthetic_examples": [
+            0,
+            4,
+            8
+          ]
+        },
+        {
+          "key": "acoustic_test_profile_id",
+          "type": "string",
+          "synthetic_examples": [
+            null
+          ]
+        }
+      ]
+    }
+  ]
+}

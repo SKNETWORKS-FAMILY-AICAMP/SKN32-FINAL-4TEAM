@@ -1,8 +1,11 @@
-"""assets.* + evidence.source/evidence 저장소 — file_object / product_material /
-material_revision / material_applicability / source / evidence.
+"""assets.* + evidence.evidence 저장소 — file_object / product_material / evidence.
+
+P0 v3: material_revision/material_applicability 는 product_material 컬럼(version/
+material_status/applicability)으로 병합됐고, evidence.source 는 evidence.evidence의
+source_name/source_type/source_base_url/source_rating_scale 컬럼으로 병합됐다.
 
 파일 바이너리는 객체 저장소, DB 에는 식별·권한·해시만(§24). 인용 근거 추적:
-evidence → retrieval_hit → document_chunk → ingestion_job → material_revision → file_object.
+evidence → retrieval_hit → document_chunk → ingestion_job → product_material → file_object.
 """
 from __future__ import annotations
 

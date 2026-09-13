@@ -169,7 +169,7 @@ def test_applicability_and_required_context(env):
     conn, repo, model, doc, published, request, service = env
     assert service.search(replace(request, variant_key=None)).status == "no_evidence"
     conn.execute(
-        "UPDATE assets.material_applicability SET conditions=jsonb_set(conditions,'{required_context}',%s) WHERE revision_id=%s",
+        "UPDATE assets.product_material SET applicability=jsonb_set(applicability,'{0,conditions,required_context}',%s) WHERE id=%s",
         (Jsonb({"mode": "seat"}), published["revision_id"]),
     )
     assert service.search(request).status == "no_evidence"
@@ -230,7 +230,7 @@ def test_failed_embedding_does_not_change_publication(env):
     assert (
         str(
             conn.execute(
-                "SELECT active_ingestion_id FROM assets.material_revision WHERE id=%s",
+                "SELECT active_ingestion_id FROM assets.product_material WHERE id=%s",
                 (published["revision_id"],),
             ).fetchone()[0]
         )

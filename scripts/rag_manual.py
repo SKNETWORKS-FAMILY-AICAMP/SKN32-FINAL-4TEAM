@@ -22,43 +22,52 @@ from src.repo.rag_repo import RagRepo
 
 def create_test_run(conn) -> str:
     """Explicit synthetic evaluation context, never an implicit production identity."""
+    import hashlib
+    import json as _json
+
+    from psycopg.rows import tuple_row
     from psycopg.types.json import Jsonb
 
-    domain = conn.execute("""INSERT INTO config.domain(code,name,status)
-        VALUES ('rag-evaluation-baby','가상 설명서 RAG 평가','active')
-        ON CONFLICT (code) DO UPDATE SET name=EXCLUDED.name RETURNING id""").fetchone()[
-        0
-    ]
-    version = conn.execute(
-        """INSERT INTO config.domain_version
-        (domain_id,version_no,definition,attribute_schema,content_hash)
-        VALUES (%s,1,'{}','{}',%s) ON CONFLICT (domain_id,version_no)
-        DO UPDATE SET content_hash=EXCLUDED.content_hash RETURNING id""",
-        (domain, "0" * 64),
-    ).fetchone()[0]
-    conversation = conn.execute(
+    # status='disabled': 평가 전용 식별자이므로 런타임 세션이 카테고리 도메인으로
+    # 절대 고를 수 없어야 한다. 정의/해시는 비워두지 않는다 — plan_revision 과
+    # recommendation_run 의 domain_snapshot 계약(P0 SR07/SR08)을 그대로 만족해야 한다.
+    definition = {"category": "rag-evaluation-baby", "purpose": "rag_evaluation",
+                  "corpus": "synthetic", "slot_schema": {}}
+    content_hash = hashlib.sha256(
+        _json.dumps(definition, ensure_ascii=False, sort_keys=True).encode()
+    ).hexdigest()
+    cur = conn.cursor(row_factory=tuple_row)
+    domain = cur.execute("""INSERT INTO config.domain(code,name,status,current_version_no,definition,attribute_schema,content_hash)
+        VALUES ('rag-evaluation-baby','가상 설명서 RAG 평가','disabled',1,%s,'{}',%s)
+        ON CONFLICT (code) DO UPDATE SET name=EXCLUDED.name, status='disabled',
+          definition=EXCLUDED.definition, content_hash=EXCLUDED.content_hash RETURNING id""",
+        (Jsonb(definition), content_hash)).fetchone()[0]
+    snapshot = Jsonb({"version_no": 1, "definition": definition,
+                      "attribute_schema": {}, "content_hash": content_hash})
+    conversation = cur.execute(
         "INSERT INTO identity.conversation(guest_session_hash) VALUES (%s) RETURNING id",
         ("synthetic-evaluation-" + str(uuid4()),),
     ).fetchone()[0]
-    plan = conn.execute(
+    plan = cur.execute(
         "INSERT INTO planning.plan(conversation_id,name) VALUES (%s,'RAG synthetic evaluation') RETURNING id",
         (conversation,),
     ).fetchone()[0]
-    revision = conn.execute(
-        """INSERT INTO planning.plan_revision(plan_id,revision_no,domain_version_id,name_snapshot)
-        VALUES (%s,1,%s,'RAG synthetic evaluation') RETURNING id""",
-        (plan, version),
+    revision = cur.execute(
+        """INSERT INTO planning.plan_revision(plan_id,revision_no,domain_id,domain_snapshot,name_snapshot)
+        VALUES (%s,1,%s,%s,'RAG synthetic evaluation') RETURNING id""",
+        (plan, domain, snapshot),
     ).fetchone()[0]
-    conn.execute(
+    cur.execute(
         "UPDATE planning.plan SET current_revision_id=%s WHERE id=%s", (revision, plan)
     )
-    run = conn.execute(
+    run = cur.execute(
         """INSERT INTO engine.recommendation_run
-        (revision_id,domain_version_id,input_snapshot,input_hash,draft_lock_version,engine_versions,status)
-        VALUES (%s,%s,%s,%s,0,%s,'running') RETURNING id""",
+        (revision_id,domain_id,domain_snapshot,input_snapshot,input_hash,draft_lock_version,engine_versions,status)
+        VALUES (%s,%s,%s,%s,%s,0,%s,'running') RETURNING id""",
         (
             revision,
-            version,
+            domain,
+            snapshot,
             Jsonb({"is_synthetic": True, "purpose": "rag_evaluation"}),
             "0" * 64,
             Jsonb({"rag": "manual-markdown-v1"}),

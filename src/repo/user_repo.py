@@ -24,5 +24,17 @@ class ConversationRepo(Repo):
             (conversation_id,),
         )
 
+    def delete_messages(self, conversation_id: UUID) -> None:
+        """POST /reset 계약: 대화 이력을 실제로 비운다(소프트 삭제 컬럼 없음)."""
+        self._exec("DELETE FROM identity.message WHERE conversation_id=%s", (conversation_id,))
+
+    def guest_identity_known(self, guest_session_hash: str) -> bool:
+        """이 해시로 만들어진 대화가 이미 존재하는지 — 위조/미지 쿠키와 구분한다."""
+        row = self._one(
+            "SELECT 1 FROM identity.conversation WHERE guest_session_hash=%s LIMIT 1",
+            (guest_session_hash,),
+        )
+        return row is not None
+
 class UserRepo(Repo):
     pass

@@ -1,0 +1,233 @@
+{
+  "revision_id": "4b0c28ba-725a-4bd5-b2d8-04f47170d579",
+  "run_id": "7441d4e8-55c9-4ebd-85bd-2a3f8d445d8d",
+  "requirements": [
+    {
+      "id": "3419f335-ba86-4556-937b-fd611e139972",
+      "slot_key": "car_seat",
+      "required_qty": 1.0,
+      "mandatory": true,
+      "timing": "now",
+      "fulfilled_by_item_id": null
+    },
+    {
+      "id": "d5beab61-5307-4d20-8e77-5aea36043764",
+      "slot_key": "diaper",
+      "required_qty": 1.0,
+      "mandatory": true,
+      "timing": "now",
+      "fulfilled_by_item_id": null
+    },
+    {
+      "id": "70dfc918-bf5c-4300-9ad1-9e4a52ec51a2",
+      "slot_key": "stroller",
+      "required_qty": 1.0,
+      "mandatory": true,
+      "timing": "now",
+      "fulfilled_by_item_id": "b5817293-f848-45a5-8132-b68a8e1a92a8"
+    },
+    {
+      "id": "f83cca86-064e-4838-bf12-e8a17cd34ed2",
+      "slot_key": "wipes",
+      "required_qty": 1.0,
+      "mandatory": false,
+      "timing": "now",
+      "fulfilled_by_item_id": null
+    }
+  ],
+  "candidates_per_requirement": {
+    "3419f335-ba86-4556-937b-fd611e139972": 5,
+    "d5beab61-5307-4d20-8e77-5aea36043764": 3,
+    "70dfc918-bf5c-4300-9ad1-9e4a52ec51a2": 5,
+    "f83cca86-064e-4838-bf12-e8a17cd34ed2": 1
+  },
+  "checks": [
+    {
+      "candidate_id": "0e301a22-4976-4709-89e4-2ded74255690",
+      "eligibility": "pass",
+      "selection_allowed": true,
+      "coverage": "none"
+    },
+    {
+      "candidate_id": "deaee81f-5998-4479-814b-00cce78ab150",
+      "eligibility": "pass",
+      "selection_allowed": true,
+      "coverage": "none"
+    },
+    {
+      "candidate_id": "057f3119-639d-4cb9-9fb9-df57431610c7",
+      "eligibility": "pass",
+      "selection_allowed": true,
+      "coverage": "none"
+    },
+    {
+      "candidate_id": "2ab32d42-f3ef-414a-ad5f-5b4b8a9c7865",
+      "eligibility": "unknown",
+      "selection_allowed": false,
+      "coverage": "none"
+    },
+    {
+      "candidate_id": "bdad07ed-b7ac-46a0-982e-4cbb331b1b17",
+      "eligibility": "pass",
+      "selection_allowed": true,
+      "coverage": "none"
+    },
+    {
+      "candidate_id": "bbc3c1a9-a5c6-44b3-8014-84e7e6147935",
+      "eligibility": "pass",
+      "selection_allowed": true,
+      "coverage": "none"
+    },
+    {
+      "candidate_id": "66e4016a-6c52-46b2-aacc-1ebf39e9ff7a",
+      "eligibility": "pass",
+      "selection_allowed": true,
+      "coverage": "none"
+    },
+    {
+      "candidate_id": "f35827fc-6113-4e5c-ad2a-58ba84ce234d",
+      "eligibility": "pass",
+      "selection_allowed": true,
+      "coverage": "none"
+    },
+    {
+      "candidate_id": "a4ba1ffe-ef98-4896-a9d2-040fbe55ffcc",
+      "eligibility": "unknown",
+      "selection_allowed": false,
+      "coverage": "none"
+    },
+    {
+      "candidate_id": "130d0f51-e1f4-408f-9faf-c5979b7e59f4",
+      "eligibility": "unknown",
+      "selection_allowed": false,
+      "coverage": "none"
+    },
+    {
+      "candidate_id": "68bee83f-e60a-4d9c-bfeb-b4237de7a257",
+      "eligibility": "pass",
+      "selection_allowed": true,
+      "coverage": "partial"
+    },
+    {
+      "candidate_id": "b42deff3-d371-41ea-8f70-f8d359a95bb4",
+      "eligibility": "unknown",
+      "selection_allowed": false,
+      "coverage": "none"
+    },
+    {
+      "candidate_id": "af812c12-59c3-4e5f-9044-eceadbe9f930",
+      "eligibility": "unknown",
+      "selection_allowed": false,
+      "coverage": "none"
+    },
+    {
+      "candidate_id": "14e91abd-8bb1-4879-90ec-7b53584c9bc1",
+      "eligibility": "pass",
+      "selection_allowed": true,
+      "coverage": "none"
+    }
+  ],
+  "ranked_excluded": [],
+  "decision": {
+    "items": [
+      {
+        "item_id": "95895a2c-4737-4de6-862f-af36aea7492c",
+        "requirement_id": "70dfc918-bf5c-4300-9ad1-9e4a52ec51a2",
+        "group_key": "stroller",
+        "candidate_id": null,
+        "variant_id": null,
+        "status": "owned",
+        "selected": false,
+        "qty": 1.0,
+        "unit_code": "each",
+        "unit_qty": 1.0,
+        "timing": "now",
+        "unit_price": null,
+        "offer_observation_id": null,
+        "validation": {
+          "source": "requirement_fulfilled_by_item_id"
+        }
+      },
+      {
+        "item_id": "f172cd55-1bad-49ec-8084-1ad68274a64a",
+        "requirement_id": "3419f335-ba86-4556-937b-fd611e139972",
+        "group_key": "car_seat",
+        "candidate_id": "bdad07ed-b7ac-46a0-982e-4cbb331b1b17",
+        "variant_id": null,
+        "status": "to_purchase",
+        "selected": true,
+        "qty": 1.0,
+        "unit_code": "each",
+        "unit_qty": 1.0,
+        "timing": "now",
+        "unit_price": 300000,
+        "offer_observation_id": null,
+        "validation": {
+          "score": 1.0,
+          "score_breakdown": {
+            "price": 1.0
+          }
+        }
+      },
+      {
+        "item_id": "bf682a65-3779-4ba5-bb30-d507fa120c70",
+        "requirement_id": "d5beab61-5307-4d20-8e77-5aea36043764",
+        "group_key": "diaper",
+        "candidate_id": "bbc3c1a9-a5c6-44b3-8014-84e7e6147935",
+        "variant_id": null,
+        "status": "to_purchase",
+        "selected": true,
+        "qty": 1.0,
+        "unit_code": "pack",
+        "unit_qty": 40.0,
+        "timing": "now",
+        "unit_price": 18000,
+        "offer_observation_id": null,
+        "validation": {
+          "score": 1.0,
+          "score_breakdown": {
+            "price": 1.0
+          }
+        }
+      },
+      {
+        "item_id": "4597a1f4-2c18-4d1d-878e-c5eb785c7c83",
+        "requirement_id": "f83cca86-064e-4838-bf12-e8a17cd34ed2",
+        "group_key": "wipes",
+        "candidate_id": "14e91abd-8bb1-4879-90ec-7b53584c9bc1",
+        "variant_id": null,
+        "status": "to_purchase",
+        "selected": true,
+        "qty": 1.0,
+        "unit_code": "pack",
+        "unit_qty": 100.0,
+        "timing": "now",
+        "unit_price": 4000,
+        "offer_observation_id": null,
+        "validation": {
+          "score": 1.0,
+          "score_breakdown": {
+            "price": 1.0
+          }
+        }
+      }
+    ],
+    "totals": {
+      "selected_price": 322000,
+      "selected_units": 141.0,
+      "budget_remaining": 178000,
+      "over_budget": false,
+      "soon_price": 0,
+      "later_price": 0
+    },
+    "missing_requirements": [],
+    "feasible": true,
+    "alternatives": {
+      "search": "exact_branch_and_bound",
+      "nodes_visited": 9,
+      "search_seconds": 2.7e-05,
+      "mandatory_now_requirements": 2,
+      "bounded_requirements": []
+    }
+  }
+}

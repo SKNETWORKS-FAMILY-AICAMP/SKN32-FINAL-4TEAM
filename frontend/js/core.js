@@ -39,7 +39,6 @@ const TF_PLAN={
  deleteList(id){return TF_API.del('/lists/'+tfSeg(id))},
  confirm(id,body){return TF_API.post('/lists/'+tfSeg(id)+'/confirm',body)},
  report(id){return TF_API.get('/lists/'+tfSeg(id)+'/report')},
- alert(id,body){return TF_API.post('/lists/'+tfSeg(id)+'/alert',body)}
 };
 function tfUiCategory(category){return category==='computer'?'pc':category||''}
 function tfApiCategory(category){return category==='pc'?'computer':category}

@@ -29,3 +29,12 @@ def load_category(category: str) -> dict:
 def verify_branch(category: str) -> str:
     """'set' = [4]→[3-C] (컴퓨터) / 'per_item' = [3-C]→[4] (유아)."""
     return load_category(category)["verify_branch"]
+
+
+def available_categories() -> list[str]:
+    """정의 파일이 실재하는 카테고리 코드 목록 (정렬).
+
+    config.domain 에는 RAG 평가용처럼 런타임 카테고리가 아닌 행도 있을 수 있으므로,
+    세션이 도메인을 고를 때 후보를 이 목록으로 제한한다.
+    """
+    return sorted(p.stem for p in CATEGORY_DIR.glob("*.yaml"))
