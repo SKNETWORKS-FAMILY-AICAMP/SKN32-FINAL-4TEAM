@@ -1,0 +1,52 @@
+product_key,summary_key,name,type,asin,title,rating_number,average_rating,n_candidates,alt_asins,note
+intel-core-i5-14400f,intel-core-i5-14400f,Intel Core i5-14400F,cpu,,,0,,0,,데이터 기간(~2023-09) 밖: 2024-01 출시
+intel-core-i5-14600k,intel-core-i5-14600k,Intel Core i5-14600K,cpu,,,0,,0,,데이터 기간(~2023-09) 밖: 2023-10 출시 (데이터 종료 후)
+intel-core-i7-14700k,intel-core-i7-14700k,Intel Core i7-14700K,cpu,,,0,,0,,데이터 기간(~2023-09) 밖: 2023-10 출시 (데이터 종료 후)
+intel-core-ultra-7-265k,intel-core-ultra-7-265k,Intel Core Ultra 7 265K,cpu,,,0,,0,,데이터 기간(~2023-09) 밖: 2024-10 출시
+intel-core-ultra-9-285k,intel-core-ultra-9-285k,Intel Core Ultra 9 285K,cpu,,,0,,0,,데이터 기간(~2023-09) 밖: 2024-10 출시
+amd-ryzen-5-7600,amd-ryzen-5-7600,AMD Ryzen 5 7600,cpu,B0BMQJWBDM,"AMD Ryzen™ 5 7600 6-Core, 12-Thread Unlocked Desktop Processor",125,4.7,1,,
+amd-ryzen-7-7700,amd-ryzen-7-7700,AMD Ryzen 7 7700,cpu,B0BMQHSCVF,"AMD Ryzen™ 7 7700 8-Core, 16-Thread Unlocked Desktop Processor",74,4.7,1,,
+amd-ryzen-7-9800x3d,amd-ryzen-7-9800x3d,AMD Ryzen 7 9800X3D,cpu,,,0,,0,,데이터 기간(~2023-09) 밖: 2024-11 출시
+amd-ryzen-9-9950x,amd-ryzen-9-9950x,AMD Ryzen 9 9950X,cpu,,,0,,0,,데이터 기간(~2023-09) 밖: 2024-08 출시
+amd-ryzen-5-5600,amd-ryzen-5-5600,AMD Ryzen 5 5600,cpu,B0BGJGW69N,"AMD Ryzen™ 5 5600 6-Core, 12-Thread Unlocked Desktop Processor with Wraith Stealth Cooler",3364,4.8,1,,
+asus-prime-b760m-a-wifi,asus-prime-b760m-a-wifi,ASUS PRIME B760M-A WIFI,mainboard,B0BR8SH6PD,"ASUS PRIME B760M-A AX D4 Intel B760 (LGA 1700)(13th and 12th Gen)mATX motherboard,PCIe 4.0,2xM.2 slots,2.5Gb LAN,Wi-Fi 6",3,5.0,2,B0BZTB5LKJ,
+asus-rog-strix-z790-e-gaming-wifi,asus-rog-strix-z790-e-gaming-wifi,ASUS ROG STRIX Z790-E GAMING WIFI,mainboard,B0BG6KQPWD,"ASUS ROG Strix Z790-E Gaming WiFi 6E LGA 1700(Intel® 12th&13th Gen) ATX Gaming Motherboard(PCIe 5.0, DDR5,18+1 Power Sta",176,4.1,1,,
+msi-mag-b760-tomahawk-wifi,msi-mag-b760-tomahawk-wifi,MSI MAG B760 TOMAHAWK WIFI,mainboard,B0BYSWNLKN,"MSI MAG B760 Tomahawk WiFi Gaming Motherboard (Supports 12th/13th Gen Intel Processors, LGA 1700, DDR5, PCIe 5.0, M.2, 2",342,4.7,1,,
+msi-mag-z890-tomahawk-wifi,msi-mag-z890-tomahawk-wifi,MSI MAG Z890 TOMAHAWK WIFI,mainboard,,,0,,0,,데이터 기간(~2023-09) 밖: 2024-10 출시
+asrock-b860m-pro-rs,asrock-b860m-pro-rs,ASRock B860M Pro RS,mainboard,,,0,,0,,데이터 기간(~2023-09) 밖: 2025-01 출시
+asus-tuf-gaming-b650-plus-wifi,asus-tuf-gaming-b650-plus-wifi,ASUS TUF GAMING B650-PLUS WIFI,mainboard,B0C49JKG41,"ASUS TUF Gaming B650-PLUS WiFi Socket AM5 (LGA 1718) Ryzen 7000 ATX Gaming Motherboard(14 Power Stages, PCIe® 5.0 M.2 Su",1557,4.5,1,,
+msi-mag-b850-tomahawk-wifi,msi-mag-b850-tomahawk-wifi,MSI MAG B850 TOMAHAWK WIFI,mainboard,,,0,,0,,데이터 기간(~2023-09) 밖: 2025-01 출시
+asrock-x870e-taichi,asrock-x870e-taichi,ASRock X870E Taichi,mainboard,,,0,,0,,데이터 기간(~2023-09) 밖: 2024-10 출시
+asrock-b550m-pro-rs,asrock-b550m-pro-rs,ASRock B550M Pro RS,mainboard,,,0,,0,,후보 없음
+gigabyte-b650-aorus-elite-ax,gigabyte-b650-aorus-elite-ax,GIGABYTE B650 AORUS ELITE AX,mainboard,,,0,,0,,후보 없음
+samsung-ddr5-5600-32gb-(2x16),samsung-ddr5-5600-32gb-2x16,Samsung DDR5-5600 32GB (2x16),ram,,,0,,0,,후보 없음
+g.skill-trident-z5-rgb-ddr5-6000-cl30-32gb-(2x16),g-skill-trident-z5-rgb-ddr5-6000-cl30-32gb-2x16,G.Skill Trident Z5 RGB DDR5-6000 CL30 32GB (2x16),ram,B09Y1KBFWV,G.Skill Trident Z5 RGB Series (Intel XMP) 32GB (2 x 16GB) 288-Pin SDRAM DDR5 6000 CL30-40-40-96 1.35V Dual Channel Deskt,17,4.5,1,,
+g.skill-flare-x5-ddr5-6000-cl36-32gb-(2x16),g-skill-flare-x5-ddr5-6000-cl36-32gb-2x16,G.Skill Flare X5 DDR5-6000 CL36 32GB (2x16),ram,B0BFGB2D2Z,G.Skill Flare X5 Series (AMD Expo) 32GB (2 x 16GB) 288-Pin SDRAM DDR5 6000 CL36-36-36-96 1.35V Dual Channel Desktop Memo,201,4.7,1,,
+samsung-ddr4-3200-16gb-(2x8),samsung-ddr4-3200-16gb-2x8,Samsung DDR4-3200 16GB (2x8),ram,,,0,,0,,후보 없음
+g.skill-ripjaws-v-ddr4-3600-32gb-(2x16),g-skill-ripjaws-v-ddr4-3600-32gb-2x16,G.Skill Ripjaws V DDR4-3600 32GB (2x16),ram,B07Z45XB3G,G.Skill Ripjaws V Series 32GB (2 x 16GB) 288-Pin SDRAM (PC4-28800) DDR4 3600 CL16-19-19-39 1.35V Dual Channel Desktop Me,1596,4.7,4,B081374T3G|B07Z86BMCQ|B08B87BM4K,
+nvidia-geforce-rtx-4060,nvidia-geforce-rtx-4060,NVIDIA GeForce RTX 4060,gpu,B0C952J7ZK,PNY GeForce RTX™ 4060 8GB Verto Dual Fan Graphics Card DLSS 3,23,4.0,1,,
+nvidia-geforce-rtx-4070-super,nvidia-geforce-rtx-4070-super,NVIDIA GeForce RTX 4070 SUPER,gpu,,,0,,0,,데이터 기간(~2023-09) 밖: 2024-01 출시
+nvidia-geforce-rtx-4070-ti-super,nvidia-geforce-rtx-4070-ti-super,NVIDIA GeForce RTX 4070 Ti SUPER,gpu,,,0,,0,,데이터 기간(~2023-09) 밖: 2024-01 출시
+nvidia-geforce-rtx-5070-ti,nvidia-geforce-rtx-5070-ti,NVIDIA GeForce RTX 5070 Ti,gpu,,,0,,0,,데이터 기간(~2023-09) 밖: 2025-02 출시
+nvidia-geforce-rtx-5080,nvidia-geforce-rtx-5080,NVIDIA GeForce RTX 5080,gpu,,,0,,0,,데이터 기간(~2023-09) 밖: 2025-01 출시
+nvidia-geforce-rtx-5090,nvidia-geforce-rtx-5090,NVIDIA GeForce RTX 5090,gpu,,,0,,0,,데이터 기간(~2023-09) 밖: 2025-01 출시
+amd-radeon-rx-7600,amd-radeon-rx-7600,AMD Radeon RX 7600,gpu,B0C5S9CHMG,"GIGABYTE GV-R76GAMING OC-8GD Radeon RX 7600 Gaming OC 8G Graphics Card, 3X WINDFORCE Fans 8GB 128-bit GDDR6, Video Card",61,4.6,4,B0C59RVD98|B0C59PD6LD|B0C42FYDZK,
+amd-radeon-rx-7800-xt,amd-radeon-rx-7800-xt,AMD Radeon RX 7800 XT,gpu,,,0,,0,,후보 없음
+amd-radeon-rx-9070-xt,amd-radeon-rx-9070-xt,AMD Radeon RX 9070 XT,gpu,,,0,,0,,데이터 기간(~2023-09) 밖: 2025-03 출시
+samsung-990-pro-1tb,samsung-990-pro-1tb,Samsung 990 PRO 1TB,ssd,B0C6N3GWW6,Samsung 990 PRO Series - 1TB PCIe Gen4. X4 NVMe 2.0c - M.2 Internal SSD (MZ-V9P1T0B/AM),785,4.6,1,,
+samsung-990-pro-2tb,samsung-990-pro-2tb,Samsung 990 PRO 2TB,ssd,,,0,,0,,후보 없음
+wd-black-sn770-1tb,wd-black-sn770-1tb,WD Black SN770 1TB,ssd,B0BSKRQF7F,"WD_BLACK 1TB SN770 NVMe Internal Gaming SSD Solid State Drive - Gen4 PCIe, M.2 2280, Up to 5,150 MB/s - WDS100T3X0E",4630,4.8,2,B0BK565KKL,
+crucial-mx500-1tb,crucial-mx500-1tb,Crucial MX500 1TB,ssd,B0BQ5JTZ89,"Crucial MX500 1TB 3D NAND SATA 2.5 Inch Internal SSD, up to 560MB/s - CT1000MX500SSD1",90041,4.8,6,B077SF8KMG|B0784SY515|B08BPJBHP2,
+corsair-rm650e,corsair-rm650e,Corsair RM650e,psu,,,0,,0,,후보 없음
+corsair-rm750e,corsair-rm750e,Corsair RM750e,psu,B0C1KNVR7B,Corsair RM750e Fully Modular Low-Noise ATX Power Supply - Dual EPS12V Connectors - 105°C-Rated Capacitors - 80 Plus Gold,2354,4.8,1,,
+corsair-rm850e,corsair-rm850e,Corsair RM850e,psu,,,0,,0,,후보 없음
+msi-mpg-a1000g-pcie5,msi-mpg-a1000g-pcie5,MSI MPG A1000G PCIE5,psu,B09NTQ8TZJ,MSI MPG A1000G Gaming Power Supply - 80 Plus Gold Certified 1000W - 0% RPM Mode - Fully Modular - 100% Japanese 105°C Ca,133,4.6,1,,
+corsair-sf750,corsair-sf750,Corsair SF750,psu,B0C4ZNVL77,"Corsair SF Series, SF750, 750 Watt, SFX, 80+ Platinum Certified, Fully Modular Power Supply (CP-9020186-NA)",1547,4.7,3,B07KZ9P5GP|B07WW9XW25,
+fractal-design-north,fractal-design-north,Fractal Design North,case,B0BPS3D299,Fractal Design North Chalk White,85,4.7,1,,
+nzxt-h5-flow,nzxt-h5-flow,NZXT H5 Flow,case,B0C5JVXSW6,NZXT H5 Flow Compact ATX Mid-Tower PC Gaming Case – High Airflow Perforated Front Panel – Tempered Glass Side Panel – Ca,223,4.7,1,,
+cooler-master-nr200p-max,cooler-master-nr200p-max,Cooler Master NR200P MAX,case,B0BFH9M9CY,"Cooler Master NR200P MAX SFF Small Form Factor Mini-ITX Case, Custom 280mm AIO, 850W SFX Gold PSU, Triple-slot Vertical ",3250,4.8,1,,
+asus-prime-ap201,asus-prime-ap201,ASUS Prime AP201,case,B0C4B1ZH4G,"ASUS Prime AP201 33-Liter MicroATX Black case with Tool-Free Side Panels and a Quasi-Filter mesh, with Support for 360 m",85,4.5,1,,
+thermalright-peerless-assassin-120-se,thermalright-peerless-assassin-120-se,Thermalright Peerless Assassin 120 SE,cooler,B09YTL3JT5,"Thermalright Peerless Assassin 120 SE CPU Air Cooler, PA120 SE, 6 Heat Pipes CPU Cooler, Dual 120mm TL-C12C PWM Fan, Alu",133,4.6,2,B09SD44SL1,
+noctua-nh-d15,noctua-nh-d15,Noctua NH-D15,cooler,B07Y87YHRH,"Noctua NH-D15 chromax.Black, Dual-Tower CPU Cooler (140mm, Black)",11408,4.8,8,B00JJY25NI|B00L7UZMAK|B01NC06ZYT,
+arctic-liquid-freezer-iii-360,arctic-liquid-freezer-iii-360,Arctic Liquid Freezer III 360,cooler,,,0,,0,,데이터 기간(~2023-09) 밖: 2024-01 출시
+deepcool-ak400,deepcool-ak400,DeepCool AK400,cooler,B09YPXJK7L,DeepCool AK400 ZERO DARK PLUS CPU Air Cooler 220w TDP ALL-Black Heatsink 4 Copper Heat Pipes CPU Cooler with Dual-Fan Ea,1892,4.7,1,,
