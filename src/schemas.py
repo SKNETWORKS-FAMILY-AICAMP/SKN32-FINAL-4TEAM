@@ -98,6 +98,11 @@ class SlotPatchIn(BaseModel):
     value: Any | None = None
 
 
+class SpecFileIn(BaseModel):
+    file_name: str
+    content: str = Field(max_length=1_000_000)
+
+
 # ── 조건 대화 (§D-4-1) ──
 class MessageOut(BaseModel):
     id: str

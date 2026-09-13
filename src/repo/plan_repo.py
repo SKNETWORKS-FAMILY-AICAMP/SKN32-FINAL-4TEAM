@@ -247,6 +247,28 @@ class PlanRepo(Repo):
         )
         return row["id"]
 
+    def set_requirement_totals(self, requirement_id: UUID, *, quantity, unit_code: str,
+                               required: bool, match_spec: dict) -> None:
+        """requirement.quantity/unit_code/required + match_spec 를 한 번에 갱신한다.
+
+        `ensure_requirement`는 match_spec만 다루므로(신규 행은 quantity=1/unit_code='each'/
+        required=true 기본값에 머무른다), 실제 총 필요량을 쓰려면 이 메서드가 필요하다
+        (P2 v3 — 유아 persist_baby_requirements 전용, PC 경로는 기본값을 그대로 쓴다)."""
+        self._exec(
+            "UPDATE planning.requirement SET quantity=%s, unit_code=%s, required=%s, "
+            "match_spec=%s, updated_at=now() WHERE id=%s",
+            (quantity, unit_code, required, Jsonb(match_spec), requirement_id),
+        )
+
+    def active_condition_id(self, revision_id: UUID, condition_key: str) -> UUID | None:
+        """이 리비전의 활성 plan_condition 1행 id — 보유 출처 참조 검증용(P2 v3)."""
+        row = self._one(
+            "SELECT id FROM planning.plan_condition WHERE revision_id=%s AND condition_key=%s "
+            "AND status='active'",
+            (revision_id, condition_key),
+        )
+        return None if row is None else row["id"]
+
     def load_full(self, revision_id: UUID) -> dict:
         revision = self.get_revision(revision_id)
         if revision is None:

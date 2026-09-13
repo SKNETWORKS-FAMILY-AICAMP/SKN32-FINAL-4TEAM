@@ -108,3 +108,9 @@ def result_message(list_id: UUID, body: schemas.ResultMessageIn, principal: Prin
     with get_conn() as conn:
         out = recommendation_service.handle_result_message(conn, list_id, body.text, principal)
     return schemas.ResultMessageOut(**out)
+
+
+@router.post("/{list_id}/spec-file", response_model=schemas.ConditionState)
+def spec_file(list_id: UUID, body: schemas.SpecFileIn, principal: Principal = Depends(optional_principal)) -> schemas.ConditionState:
+    with get_conn() as conn:
+        return schemas.ConditionState(**session_service.attach_spec_file(conn, list_id, body.file_name, body.content, principal))

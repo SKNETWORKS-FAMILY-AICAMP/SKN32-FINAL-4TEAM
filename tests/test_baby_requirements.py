@@ -11,9 +11,10 @@ import psycopg
 import pytest
 import yaml
 
+from src.dto import BabyRequirement
 from src.engine.stage2_requirement import (
     RequirementRuleError, _load_rules, build_baby_requirements,
-    load_baby_rules_snapshot, persist_baby_requirements,
+    load_baby_rules_snapshot, load_persisted_baby_requirements, persist_baby_requirements,
 )
 from src.engine.stage3_0_candidates import get_baby_candidates
 
@@ -69,16 +70,18 @@ def test_ca02_8_month_fixture_owned_stroller_fulfilled_remaining_feeding_stable(
         "owned_items": ["유모차"], "independent_sitting": True, "budget_max": 300000,
     }
     reqs = build_baby_requirements(conditions, _domain_snapshot())
-    by_slot = {r.slot_key: r for r in reqs if r.fulfilled_by_item_id}
+    by_slot = {r.slot_key: r for r in reqs if r.owned}
     assert "stroller" in by_slot
-    assert by_slot["stroller"].fulfilled_by_item_id == "owned:유모차"
+    assert by_slot["stroller"].owned == [{"label": "유모차", "qty": 1.0, "unit_code": "each"}]
+    assert by_slot["stroller"].fulfilled_qty == 1.0
 
     feeding_slots = {r.slot_key for r in reqs if r.slot_key in {"bottle", "formula"}}
     assert feeding_slots == {"bottle", "formula"}
     bottle = next(r for r in reqs if r.slot_key == "bottle")
     assert bottle.mandatory is True
     assert bottle.timing == "now"
-    assert bottle.fulfilled_by_item_id is None  # not owned, must remain a real requirement
+    assert bottle.owned == []  # not owned, must remain a real (unfulfilled) requirement
+    assert bottle.fulfilled_qty == 0.0
 
     # Rerun with an unrelated owned item — feeding slots must stay exactly the same shape.
     conditions2 = dict(conditions, owned_items=["카시트"])
@@ -266,11 +269,12 @@ def test_r4_pack_unit_qty_survives_seed_to_candidate(conn):
 
 @needs_db
 def test_r5_persist_baby_requirements_writes_real_uuids_and_is_idempotent(conn):
-    """The pure function's synthetic 'owned:<label>' marker must be replaced by a
-    real planning.item row + planning.requirement.fulfilled_by_item_id through a
-    separate repository operation (CONTRACTS IMPLEMENTATION 5), not left as a
-    string no DB column could ever store."""
-    from src.services.session_service import create_session, choose_category
+    """The pure function's label-only owned entry must gain a real
+    plan_condition-backed source_condition_id, and the requirement itself a real
+    planning.requirement.id, through a separate repository operation (CONTRACTS
+    IMPLEMENTATION 5) — v3: no planning.item table exists in develop, ownership is
+    represented directly from the revision's own plan_condition row."""
+    from src.services.session_service import create_session, choose_category, handle_answer
     from src.auth.deps import Principal
     from src.repo.plan_repo import PlanRepo
 
@@ -278,7 +282,10 @@ def test_r5_persist_baby_requirements_writes_real_uuids_and_is_idempotent(conn):
     session = create_session(conn, Principal(user_id=None, browser_token=None))
     principal = Principal(user_id=None, browser_token=session["browser_token"])
     choose_category(conn, session["list_id"], "baby", "born", principal)
+    handle_answer(conn, session["list_id"], "q_owned", ["젖병"], principal)
     revision = PlanRepo(conn).get_current_revision(session["list_id"])
+    owned_condition_id = PlanRepo(conn).active_condition_id(revision["id"], "owned_items")
+    assert owned_condition_id is not None
 
     conditions = {
         "revision_id": str(revision["id"]), "mode": "born",
@@ -290,31 +297,166 @@ def test_r5_persist_baby_requirements_writes_real_uuids_and_is_idempotent(conn):
 
     import uuid as uuid_mod
     uuid_mod.UUID(bottle.id)  # real planning.requirement.id, not a synthetic marker
-    assert bottle.fulfilled_by_item_id is not None
-    uuid_mod.UUID(bottle.fulfilled_by_item_id)  # real planning.item.id
-
-    item_row = PlanRepo(conn)._one(
-        "SELECT revision_id, status, qty FROM planning.item WHERE id=%s",
-        (bottle.fulfilled_by_item_id,),
-    )
-    assert item_row is not None
-    assert str(item_row["revision_id"]) == str(revision["id"])
-    assert item_row["status"] == "owned"
+    assert bottle.owned == [{"label": "젖병", "qty": 1.0, "unit_code": "each",
+                             "source_condition_id": str(owned_condition_id)}]
+    assert bottle.fulfilled_qty == 1.0
 
     req_row = PlanRepo(conn)._one(
-        "SELECT fulfilled_by_item_id FROM planning.requirement WHERE id=%s", (bottle.id,))
-    assert str(req_row["fulfilled_by_item_id"]) == bottle.fulfilled_by_item_id
+        "SELECT quantity, unit_code, required, match_spec FROM planning.requirement WHERE id=%s",
+        (bottle.id,))
+    assert float(req_row["quantity"]) == 2.0
+    assert req_row["unit_code"] == "each"
+    assert req_row["required"] is True
+    assert req_row["match_spec"]["baby_requirement"]["fulfilled_qty"] == 1.0
 
-    # Idempotent: re-persisting the same computed requirements must reuse the same rows.
+    # Idempotent: re-persisting the same computed requirements reuses the same
+    # planning.plan_node/requirement row (no duplicate row for the same slot_key) —
+    # `reqs` covers both bottle and formula (need="수유"), so 2 rows total is correct.
+    count_before = PlanRepo(conn)._one(
+        "SELECT count(*) AS n FROM planning.requirement WHERE revision_id=%s", (revision["id"],))["n"]
     persisted_again = persist_baby_requirements(conn, revision["id"], reqs)
     bottle_again = next(r for r in persisted_again if r.slot_key == "bottle")
     assert bottle_again.id == bottle.id
-    assert bottle_again.fulfilled_by_item_id == bottle.fulfilled_by_item_id
-    count = PlanRepo(conn)._one(
-        "SELECT count(*) AS n FROM planning.item WHERE revision_id=%s AND status='owned'",
-        (revision["id"],),
-    )["n"]
-    assert count == 1, "re-persisting must not create a second owned item row"
+    assert bottle_again.owned == bottle.owned
+    count_after = PlanRepo(conn)._one(
+        "SELECT count(*) AS n FROM planning.requirement WHERE revision_id=%s", (revision["id"],))["n"]
+    assert count_after == count_before == len(reqs), (
+        "re-persisting must not create a second requirement row for the same slot")
+
+
+@needs_db
+def test_d2_total_2_owned_1_needs_1_more_to_purchase(conn):
+    """D2: 총2개/보유1개→필요 구매1개."""
+    from src.services.session_service import create_session, choose_category, handle_answer
+    from src.auth.deps import Principal
+    from src.repo.plan_repo import PlanRepo
+
+    session = create_session(conn, Principal(user_id=None, browser_token=None))
+    principal = Principal(user_id=None, browser_token=session["browser_token"])
+    choose_category(conn, session["list_id"], "baby", "born", principal)
+    handle_answer(conn, session["list_id"], "q_owned", ["젖병"], principal)
+    revision = PlanRepo(conn).get_current_revision(session["list_id"])
+
+    conditions = {
+        "revision_id": str(revision["id"]), "mode": "born",
+        "age_stage": {"months": 8, "exact": True}, "needs": ["수유"], "owned_items": ["젖병"],
+    }
+    reqs = build_baby_requirements(conditions, _domain_snapshot())
+    persisted = persist_baby_requirements(conn, revision["id"], reqs)
+    bottle = next(r for r in persisted if r.slot_key == "bottle")
+    assert bottle.required_qty == 2.0
+    assert bottle.fulfilled_qty == 1.0
+    remaining_to_purchase = bottle.required_qty - bottle.fulfilled_qty
+    assert remaining_to_purchase == 1.0
+
+
+@needs_db
+def test_d2_unowning_reverts_to_needing_2_to_purchase(conn):
+    """D2: 보유 해제→구매2개."""
+    from src.services.session_service import create_session, choose_category, handle_answer
+    from src.auth.deps import Principal
+    from src.repo.plan_repo import PlanRepo
+
+    session = create_session(conn, Principal(user_id=None, browser_token=None))
+    principal = Principal(user_id=None, browser_token=session["browser_token"])
+    choose_category(conn, session["list_id"], "baby", "born", principal)
+    handle_answer(conn, session["list_id"], "q_owned", ["젖병"], principal)
+    revision = PlanRepo(conn).get_current_revision(session["list_id"])
+
+    owned_conditions = {
+        "revision_id": str(revision["id"]), "mode": "born",
+        "age_stage": {"months": 8, "exact": True}, "needs": ["수유"], "owned_items": ["젖병"],
+    }
+    persist_baby_requirements(conn, revision["id"],
+                              build_baby_requirements(owned_conditions, _domain_snapshot()))
+
+    # User clears owned_items — re-answer with the "없음" (none) option.
+    handle_answer(conn, session["list_id"], "q_owned", ["없음"], principal)
+    unowned_conditions = {**owned_conditions, "owned_items": []}
+    reqs2 = build_baby_requirements(unowned_conditions, _domain_snapshot())
+    persisted2 = persist_baby_requirements(conn, revision["id"], reqs2)
+    bottle2 = next(r for r in persisted2 if r.slot_key == "bottle")
+    assert bottle2.owned == []
+    assert bottle2.fulfilled_qty == 0.0
+    assert bottle2.required_qty - bottle2.fulfilled_qty == 2.0
+
+    # Reload must also reflect the cleared ownership, not a stale cached row.
+    reloaded = next(r for r in load_persisted_baby_requirements(conn, revision["id"])
+                    if r.slot_key == "bottle")
+    assert reloaded.owned == []
+    assert reloaded.fulfilled_qty == 0.0
+
+
+@needs_db
+def test_d2_rejects_negative_and_non_finite_required_qty(conn):
+    from src.services.session_service import create_session, choose_category
+    from src.auth.deps import Principal
+    from src.repo.plan_repo import PlanRepo
+
+    session = create_session(conn, Principal(user_id=None, browser_token=None))
+    principal = Principal(user_id=None, browser_token=session["browser_token"])
+    choose_category(conn, session["list_id"], "baby", "born", principal)
+    revision = PlanRepo(conn).get_current_revision(session["list_id"])
+
+    bad = BabyRequirement(id="x", revision_id=str(revision["id"]), slot_key="bottle",
+                          required_qty=-1.0)
+    with pytest.raises(ValueError):
+        persist_baby_requirements(conn, revision["id"], [bad])
+
+    bad_inf = BabyRequirement(id="x", revision_id=str(revision["id"]), slot_key="bottle",
+                              required_qty=float("nan"))
+    with pytest.raises(ValueError):
+        persist_baby_requirements(conn, revision["id"], [bad_inf])
+
+
+@needs_db
+def test_d2_rejects_owned_unit_mismatch(conn):
+    from src.services.session_service import create_session, choose_category, handle_answer
+    from src.auth.deps import Principal
+    from src.repo.plan_repo import PlanRepo
+
+    session = create_session(conn, Principal(user_id=None, browser_token=None))
+    principal = Principal(user_id=None, browser_token=session["browser_token"])
+    choose_category(conn, session["list_id"], "baby", "born", principal)
+    handle_answer(conn, session["list_id"], "q_owned", ["젖병"], principal)
+    revision = PlanRepo(conn).get_current_revision(session["list_id"])
+
+    mismatched = BabyRequirement(
+        id="x", revision_id=str(revision["id"]), slot_key="bottle", unit_code="each",
+        required_qty=2.0, owned=[{"label": "젖병", "qty": 1.0, "unit_code": "pack"}],
+    )
+    with pytest.raises(ValueError):
+        persist_baby_requirements(conn, revision["id"], [mismatched])
+
+
+@needs_db
+def test_d2_rejects_owned_entry_from_a_different_revision(conn):
+    """D2: 교차 revision 조건 거부."""
+    from src.services.session_service import create_session, choose_category, handle_answer
+    from src.auth.deps import Principal
+    from src.repo.plan_repo import PlanRepo
+
+    session_a = create_session(conn, Principal(user_id=None, browser_token=None))
+    principal_a = Principal(user_id=None, browser_token=session_a["browser_token"])
+    choose_category(conn, session_a["list_id"], "baby", "born", principal_a)
+    handle_answer(conn, session_a["list_id"], "q_owned", ["젖병"], principal_a)
+    revision_a = PlanRepo(conn).get_current_revision(session_a["list_id"])
+    other_condition_id = PlanRepo(conn).active_condition_id(revision_a["id"], "owned_items")
+
+    session_b = create_session(conn, Principal(user_id=None, browser_token=None))
+    principal_b = Principal(user_id=None, browser_token=session_b["browser_token"])
+    choose_category(conn, session_b["list_id"], "baby", "born", principal_b)
+    handle_answer(conn, session_b["list_id"], "q_owned", ["젖병"], principal_b)
+    revision_b = PlanRepo(conn).get_current_revision(session_b["list_id"])
+
+    forged = BabyRequirement(
+        id="x", revision_id=str(revision_b["id"]), slot_key="bottle", unit_code="each",
+        required_qty=2.0,
+        owned=[{"label": "젖병", "qty": 1.0, "unit_code": "each",
+               "source_condition_id": str(other_condition_id)}],
+    )
+    with pytest.raises(ValueError):
+        persist_baby_requirements(conn, revision_b["id"], [forged])
 
 
 def test_r6_pinned_rule_snapshot_is_immune_to_a_later_live_file_change(monkeypatch):

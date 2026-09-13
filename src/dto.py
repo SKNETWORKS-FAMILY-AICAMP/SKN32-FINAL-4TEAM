@@ -180,9 +180,15 @@ class BabyRequirement(BaseModel):
     mandatory: bool = True
     timing: Literal["now", "soon", "later"] = "now"
     constraints: dict[str, Any] = Field(default_factory=dict)
-    fulfilled_by_item_id: str | None = None
-    # None: legacy pure owned piece; explicit quantity: persisted total requirement.
-    fulfilled_qty: float | None = None
+    # v3 (develop `da79839` schema): planning.item never existed there and must not
+    # reappear — ownership is represented directly from the revision's own
+    # plan_condition rows, never a separate DB "item" id. Each entry:
+    # {source_condition_id, label, qty, unit_code}; source_condition_id is a real
+    # planning.plan_condition.id in the SAME revision (see
+    # DEVELOP_DB_TRANSITION.md "Domain, requirements, ownership").
+    owned: list[dict[str, Any]] = Field(default_factory=list)
+    # Sum of owned[].qty capped at required_qty — always explicit, never a sentinel.
+    fulfilled_qty: float = 0
 
 
 class BabyCandidate(BaseModel):

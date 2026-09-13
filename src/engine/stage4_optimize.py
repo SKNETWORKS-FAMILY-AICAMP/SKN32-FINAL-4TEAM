@@ -143,13 +143,14 @@ def optimize_baby(
     optional-now items only spend what mandatory-now leaves in the budget; soon/later
     requirements are reported separately and never touch the "now" budget.
     """
-    # A requirement P2 already split into an owned piece (fulfilled_by_item_id set,
-    # required_qty == the owned amount for that piece) is owned outright — it must
+    # A requirement P2 already resolved ownership for (r.owned non-empty, coming
+    # from persist_baby_requirements — each entry carries a real plan_condition
+    # source_condition_id, v3/DEVELOP_DB_TRANSITION.md) is owned outright — it must
     # not also compete for owned_items matching or a purchase slot (ALGORITHM step 2:
     # "A physical owned quantity is allocated at most once").
     if len({r.id for r in requirements}) != len(requirements):
         raise ValueError("duplicate_requirement_id")
-    pre_owned = {r.id for r in requirements if r.fulfilled_by_item_id}
+    pre_owned = {r.id for r in requirements if r.owned}
     matchable = [r for r in requirements if r.id not in pre_owned]
     owned_applied = _match_owned(matchable, owned_items)
 
@@ -157,15 +158,33 @@ def optimize_baby(
     remaining: list[tuple[BabyRequirement, float]] = []
 
     for r in requirements:
-        owned_qty = (r.required_qty if r.fulfilled_qty is None else r.fulfilled_qty) if r.id in pre_owned else owned_applied.get(r.id, 0.0)
-        if not math.isfinite(owned_qty) or not 0 <= owned_qty <= r.required_qty:
-            raise ValueError("invalid_fulfilled_qty")
-        if owned_qty > 1e-9:
-            items.append(BasketItem(
-                item_id=r.fulfilled_by_item_id or str(uuid4()), requirement_id=r.id, group_key=r.group_key,
-                status="owned", selected=False, qty=owned_qty, unit_code=r.unit_code,
-                unit_qty=1, timing=r.timing, validation={"source": "owned_coverage"},
-            ))
+        if r.id in pre_owned:
+            owned_qty = r.fulfilled_qty
+            if not math.isfinite(owned_qty) or not 0 <= owned_qty <= r.required_qty:
+                raise ValueError("invalid_fulfilled_qty")
+            # No planning.item table in develop — each owned entry is presented by a
+            # derived marker over the requirement + its real plan_condition source,
+            # never a separate DB row (multiple owned entries each get their own line).
+            for entry in r.owned:
+                entry_qty = entry.get("qty", 0)
+                if entry_qty <= 1e-9:
+                    continue
+                marker = f"owned:{r.id}:{entry.get('source_condition_id', 'unknown')}"
+                items.append(BasketItem(
+                    item_id=marker, requirement_id=r.id, group_key=r.group_key,
+                    status="owned", selected=False, qty=entry_qty, unit_code=r.unit_code,
+                    unit_qty=1, timing=r.timing, validation={"source": "owned_coverage"},
+                ))
+        else:
+            owned_qty = owned_applied.get(r.id, 0.0)
+            if not math.isfinite(owned_qty) or not 0 <= owned_qty <= r.required_qty:
+                raise ValueError("invalid_fulfilled_qty")
+            if owned_qty > 1e-9:
+                items.append(BasketItem(
+                    item_id=str(uuid4()), requirement_id=r.id, group_key=r.group_key,
+                    status="owned", selected=False, qty=owned_qty, unit_code=r.unit_code,
+                    unit_qty=1, timing=r.timing, validation={"source": "owned_coverage"},
+                ))
         left = r.required_qty - owned_qty
         if left > 1e-9:
             remaining.append((r, left))

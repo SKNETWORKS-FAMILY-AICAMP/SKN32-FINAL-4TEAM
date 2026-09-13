@@ -39,7 +39,11 @@ def test_chip_metadata_survives_official_normalization(conn):
 
 
 def test_partial_owned_survives_storage_and_recalculation(conn):
-    _,_,rev=session(conn)
+    lid,who,rev=session(conn)
+    # v3: owned refs point at a real plan_condition row (DEVELOP_DB_TRANSITION.md) —
+    # persist_baby_requirements needs an actual persisted owned_items condition, not
+    # just the value passed to build_baby_requirements.
+    ss.handle_answer(conn,lid,'q_owned',['젖병'],who)
     cond={'revision_id':str(rev['id']),'mode':'born','age_stage':{'months':8,'exact':True},'needs':['수유'],'owned_items':['젖병']}
     pure=build_baby_requirements(cond,{'reference_date':'2026-09-13','baby_rules_snapshot':load_baby_rules_snapshot()})
     raw=[r for r in pure if r.slot_key=='bottle']
@@ -60,10 +64,12 @@ def test_partial_owned_survives_storage_and_recalculation(conn):
     assert good.feasible and good.totals['selected_price']==10
     assert sum(i.qty for i in good.items if i.status=='to_purchase')==1
     assert recalculate_basket(good.items,load_persisted_baby_requirements(conn,rev['id']),100,[check]).feasible
-    no_owned=[r.model_copy(update={'fulfilled_by_item_id':None,'fulfilled_qty':0})]
+    no_owned=[r.model_copy(update={'owned':[],'fulfilled_qty':0})]
     changed=persist_baby_requirements(conn,rev['id'],no_owned)
-    assert changed[0].fulfilled_by_item_id is None
-    assert conn.execute('SELECT fulfilled_by_item_id FROM planning.requirement WHERE id=%s',(r.id,)).fetchone()[0] is None
+    assert changed[0].owned==[]
+    assert changed[0].fulfilled_qty==0
+    stored=conn.execute("SELECT match_spec->'baby_requirement'->'owned' FROM planning.requirement WHERE id=%s",(r.id,)).fetchone()[0]
+    assert stored==[]
 
 
 @pytest.mark.parametrize('slot',['car_seat','high_chair','bottle','diaper'])

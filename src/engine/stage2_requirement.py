@@ -5,14 +5,15 @@
 컴퓨터: game_requirements + perf_tier 사다리 + PSU 헤드룸 공식 + link_rules 기록.
 유아: 월령 → age_fit_table → 필요 카테고리·시점.
 
-build_baby_requirements(conditions, domain_snapshot) 은 [2]의 유아 경로 — P0 v3
-planning.requirement(slot_key/group_key/fulfilled_by_item_id) 경계에 맞춘 순수
-함수다. config/baby_requirement_rules.yaml (버전 있는 데이터, 코드 아님) 을 읽어
-정규화된 conditions 를 list[BabyRequirement] 로 변환한다. DB에 아무것도 쓰지
-않는다. persist_baby_requirements() 가 이 결과를 실제 planning.requirement/
-planning.item 행(진짜 UUID)으로 옮기는 별도 저장소 연산이다(§CONTRACTS
-IMPLEMENTATION 5 — "Persist owned rows ... through a separate repository
-operation; pure rule function emits plan changes").
+build_baby_requirements(conditions, domain_snapshot) 은 [2]의 유아 경로 — develop
+`da79839` 정렬(P0 v3) planning.plan_node+requirement 경계에 맞춘 순수 함수다.
+config/baby_requirement_rules.yaml (버전 있는 데이터, 코드 아님) 을 읽어 정규화된
+conditions 를 list[BabyRequirement] 로 변환한다. DB에 아무것도 쓰지 않는다.
+persist_baby_requirements() 가 이 결과를 실제 planning.plan_node/requirement
+행(진짜 UUID)으로 옮기는 별도 저장소 연산이다(§CONTRACTS IMPLEMENTATION 5 —
+"Persist owned rows ... through a separate repository operation; pure rule
+function emits plan changes"). planning.item 은 develop 에 없다 — 보유 출처는
+plan_condition UUID로만 표시한다(DEVELOP_DB_TRANSITION.md).
 
 conditions 는 P1 `src.services.session_service.normalize_baby_conditions()` 의
 출력(NormalizedConditions) 그대로를 기대한다 — 특히 월령은 최상위 age_months 가
@@ -25,10 +26,11 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import uuid
 from functools import lru_cache
 from pathlib import Path
-from uuid import NAMESPACE_URL, uuid5
+from uuid import NAMESPACE_URL, UUID, uuid5
 
 import yaml
 
@@ -114,7 +116,7 @@ def _timing_for_prenatal(reference_date: str, due_date: str | None) -> str:
 
 
 def build_baby_requirements(conditions: dict, domain_snapshot: dict) -> list["BabyRequirement"]:
-    """정규화된 조건 + 도메인 스냅샷 → 안정적으로 정렬된 BabyRequirement 목록.
+    """정규화된 조건 + 도메인 스냅샷 → 안정적으로 정렬된 BabyRequirement 목록(슬롯당 1개).
 
     conditions 는 `normalize_baby_conditions()` 의 NormalizedConditions 형태를
     기대한다: category='baby', mode, age_stage={"months":int,"exact":bool}(born)
@@ -127,6 +129,12 @@ def build_baby_requirements(conditions: dict, domain_snapshot: dict) -> list["Ba
     있으면 그 얼린 규칙 내용을 쓴다(R6) — 없으면 현재 파일을 그대로 읽되
     결과의 매 constraints 에 rule_set_pinned=False 로 표시해 "이 결과는 실행
     시점의 파일에 묶여 있다"는 사실을 감춘 채 호출자가 오해하지 않게 한다.
+
+    v3(develop `da79839` 정렬): 순수 함수라 DB를 모른다 — 보유 여부는 라벨
+    수준(`owned=[{"label":...,"qty":...,"unit_code":...}]`)까지만 계산하고,
+    실제 plan_condition UUID 연결은 persist_baby_requirements()(DB 연산)가
+    채운다. 더 이상 "보유 조각 + 잔여 조각" 두 개로 쪼개지 않는다 — 슬롯당
+    항상 정확히 하나의 BabyRequirement(총 required_qty + fulfilled_qty)다.
     """
     pinned_snapshot = domain_snapshot.get("baby_rules_snapshot")
     if pinned_snapshot is not None:
@@ -193,31 +201,19 @@ def build_baby_requirements(conditions: dict, domain_snapshot: dict) -> list["Ba
         owned_label = next((label for label, slot in owned_slot_map.items()
                             if slot == slot_key and label in owned), None)
 
+        owned_entries: list[dict] = []
+        fulfilled_qty = 0.0
         if owned_label and required_qty > 0:
-            fulfilled_id = f"owned:{owned_label}"
             owned_qty = min(1.0, required_qty)
-            out.append(BabyRequirement(
-                id=_req_id(revision_id, rule["rule_key"], ":owned"),
-                revision_id=revision_id, slot_key=slot_key, group_key=slot_key,
-                required_qty=owned_qty, unit_code=rule["unit_code"], mandatory=rule["mandatory"],
-                timing=timing, constraints={**constraints, "owned": True},
-                fulfilled_by_item_id=fulfilled_id,
-            ))
-            remaining = required_qty - owned_qty
-            if remaining > 0:
-                out.append(BabyRequirement(
-                    id=_req_id(revision_id, rule["rule_key"], ":remaining"),
-                    revision_id=revision_id, slot_key=slot_key, group_key=slot_key,
-                    required_qty=remaining, unit_code=rule["unit_code"], mandatory=rule["mandatory"],
-                    timing=timing, constraints=constraints, fulfilled_by_item_id=None,
-                ))
-        else:
-            out.append(BabyRequirement(
-                id=_req_id(revision_id, rule["rule_key"]),
-                revision_id=revision_id, slot_key=slot_key, group_key=slot_key,
-                required_qty=required_qty, unit_code=rule["unit_code"], mandatory=rule["mandatory"],
-                timing=timing, constraints=constraints, fulfilled_by_item_id=None,
-            ))
+            owned_entries = [{"label": owned_label, "qty": owned_qty, "unit_code": rule["unit_code"]}]
+            fulfilled_qty = owned_qty
+
+        out.append(BabyRequirement(
+            id=_req_id(revision_id, rule["rule_key"]),
+            revision_id=revision_id, slot_key=slot_key, group_key=slot_key,
+            required_qty=required_qty, unit_code=rule["unit_code"], mandatory=rule["mandatory"],
+            timing=timing, constraints=constraints, owned=owned_entries, fulfilled_qty=fulfilled_qty,
+        ))
 
     out.sort(key=lambda r: (_TIMING_RANK.get(r.timing, 9), 0 if r.mandatory else 1, r.slot_key))
     return out
@@ -225,107 +221,84 @@ def build_baby_requirements(conditions: dict, domain_snapshot: dict) -> list["Ba
 
 def persist_baby_requirements(conn, revision_id, requirements: list[BabyRequirement]
                               ) -> list[BabyRequirement]:
-    """build_baby_requirements() 의 순수 결과를 실제 planning.requirement/planning.item
-    행(진짜 UUID)으로 옮기는 별도 저장소 연산(§CONTRACTS IMPLEMENTATION 5, R5 수정).
+    """build_baby_requirements() 의 순수 결과를 실제 planning.plan_node/requirement
+    행(진짜 UUID)으로 옮기는 별도 저장소 연산(§CONTRACTS IMPLEMENTATION 5;
+    DEVELOP_DB_TRANSITION.md "Domain, requirements, ownership" — v3).
 
-    `owned:<라벨>` 같은 합성 마커는 여기서 끝난다 — 반환되는 BabyRequirement.id 와
-    fulfilled_by_item_id 는 항상 실제 planning.requirement.id / planning.item.id 다.
-    planning.requirement 는 (revision_id, slot_key) 당 한 행이므로(PlanRepo.ensure_requirement),
-    같은 slot_key 로 나뉜 조각(예: 보유 몫 + 남은 몫)은 총량/fulfilled_qty를 가진 하나의 DTO와 행으로 합쳐 저장하고
-    match_spec 에 조각별 상세를 남긴다 — 이중 계산 없음. 재호출해도 기존 owned
-    item 행을 재사용한다(멱등, rule_key 로 찾음).
+    develop 스키마에는 planning.item 이 없다 — 보유 출처는 이 리비전의 실제
+    plan_condition(owned_items) 행 UUID로만 표시하고 별도 "보유 item" 행을
+    새로 만들지 않는다. 보유 표시 ID는 `owned:<requirement UUID>:<condition
+    UUID>` 로 파생하며 DB FK가 아니다(BasketItem.item_id 용, stage4_optimize).
+
+    슬롯마다 ensure_node(template_key=slot_key) 뒤 ensure_requirement 로
+    requirement 1개를 보장하고 quantity/unit_code/required + match_spec을
+    한 번에 갱신한다. 같은 revision_id/slot_key 재호출은 같은 실제 UUID를
+    재사용한다(멱등). 조건에서 보유를 빼고 다시 부르면 owned=[]/fulfilled_qty=0
+    으로 실제 행도 같이 갱신된다(보유 해제 반영).
     """
     from src.repo.plan_repo import PlanRepo
 
     repo = PlanRepo(conn)
-    by_slot: dict[str, list[BabyRequirement]] = {}
-    for r in requirements:
-        by_slot.setdefault(r.slot_key, []).append(r)
+    if len({r.id for r in requirements}) != len(requirements):
+        raise ValueError("duplicate_requirement_id")
+
+    owned_condition_id: UUID | None = None
+    if any(r.owned for r in requirements):
+        owned_condition_id = repo.active_condition_id(revision_id, "owned_items")
+        if owned_condition_id is None:
+            raise ValueError("owned_items_condition_not_found_for_revision")
 
     out: list[BabyRequirement] = []
-    for slot_key, pieces in by_slot.items():
-        if len({p.unit_code for p in pieces}) != 1 or len({p.timing for p in pieces}) != 1:
-            raise ValueError("incompatible_requirement_pieces")
-        group_key = pieces[0].group_key or slot_key
-        mandatory = any(p.mandatory for p in pieces)
-        timing = min((p.timing for p in pieces), key=lambda t: _TIMING_RANK.get(t, 9))
-        unit_code = pieces[0].unit_code
-        match_spec = {
-            "unit_code": unit_code,
-            "pieces": [
-                {"required_qty": p.required_qty, "mandatory": p.mandatory, "timing": p.timing,
-                 "constraints": p.constraints, "owned": bool(p.fulfilled_by_item_id)}
-                for p in pieces
-            ],
-        }
-        requirement_id = repo.ensure_requirement(revision_id, slot_key, match_spec,
-                                                 group_key=group_key)
+    for r in requirements:
+        if not math.isfinite(r.required_qty) or r.required_qty < 0:
+            raise ValueError(f"invalid_required_qty:{r.slot_key}")
 
-        fulfilled_by_item_id = None
-        for p in pieces:
-            if p.fulfilled_by_item_id and p.fulfilled_by_item_id.startswith("owned:"):
-                label = p.fulfilled_by_item_id.split(":", 1)[1]
-                rule_key = p.constraints.get("rule_key", slot_key)
-                item_id = _find_or_create_owned_item(
-                    repo, revision_id, label=label, slot_key=slot_key, rule_key=rule_key,
-                    qty=p.required_qty, unit_code=p.unit_code)
-                fulfilled_by_item_id = str(item_id)
-            elif p.fulfilled_by_item_id:
-                existing = repo._one(
-                    "SELECT id FROM planning.item WHERE id=%s AND revision_id=%s AND status='owned'",
-                    (p.fulfilled_by_item_id, revision_id),
-                )
-                if existing is None:
-                    raise ValueError("invalid_owned_item_reference")
-                fulfilled_by_item_id = str(existing["id"])
-        total_qty = sum(p.required_qty for p in pieces)
-        owned_qty = sum(p.required_qty if p.fulfilled_qty is None else p.fulfilled_qty for p in pieces if p.fulfilled_by_item_id)
-        # One persistent requirement per slot, with total demand and explicit owned coverage.
-        consolidated = pieces[0].model_copy(update={
+        owned_with_source = []
+        fulfilled_qty = 0.0
+        for entry in r.owned:
+            qty = entry.get("qty", 0)
+            unit_code = entry.get("unit_code", r.unit_code)
+            if not math.isfinite(qty) or qty < 0:
+                raise ValueError(f"invalid_owned_qty:{r.slot_key}")
+            if unit_code != r.unit_code:
+                raise ValueError(f"owned_unit_mismatch:{r.slot_key}")
+            source_condition_id = entry.get("source_condition_id")
+            if source_condition_id is not None and str(source_condition_id) != str(owned_condition_id):
+                # Either stale (superseded) or from a different revision — never trusted.
+                raise ValueError(f"cross_revision_condition_rejected:{r.slot_key}")
+            owned_with_source.append({**entry, "unit_code": unit_code,
+                                      "source_condition_id": str(owned_condition_id)})
+            fulfilled_qty += qty
+        fulfilled_qty = min(fulfilled_qty, r.required_qty)
+
+        node_id = repo.ensure_node(revision_id, r.slot_key, r.slot_key)
+        requirement_id = repo.ensure_requirement(revision_id, node_id, {})
+        persisted = r.model_copy(update={
             "id": str(requirement_id), "revision_id": str(revision_id),
-            "required_qty": total_qty, "mandatory": mandatory, "timing": timing,
-            "fulfilled_by_item_id": fulfilled_by_item_id, "fulfilled_qty": owned_qty,
+            "owned": owned_with_source, "fulfilled_qty": fulfilled_qty,
         })
-        from psycopg.types.json import Jsonb
-        match_spec["baby_requirement"] = consolidated.model_dump(mode="json")
-        repo._exec(
-            """UPDATE planning.requirement SET fulfilled_by_item_id=%s, quantity=%s,
-               unit_code=%s, required=%s, match_spec=%s WHERE id=%s""",
-            (fulfilled_by_item_id, total_qty, unit_code, mandatory, Jsonb(match_spec), requirement_id),
+        match_spec = {"schema_version": 3, "baby_requirement": persisted.model_dump(mode="json")}
+        repo.set_requirement_totals(
+            requirement_id, quantity=r.required_qty, unit_code=r.unit_code,
+            required=r.mandatory, match_spec=match_spec,
         )
-        out.append(consolidated)
+        out.append(persisted)
     return out
 
 
 def load_persisted_baby_requirements(conn, revision_id) -> list[BabyRequirement]:
-    """Reload the same consolidated boundary, including exact owned coverage."""
+    """Reload the same v3 boundary, including exact owned coverage — ordered by the
+    owning plan_node's position/template_key (planning.requirement itself has
+    neither column; slot_key/position live on plan_node, joined here)."""
     from src.repo.plan_repo import PlanRepo
     rows = PlanRepo(conn)._all(
-        "SELECT match_spec FROM planning.requirement WHERE revision_id=%s AND status='active' ORDER BY position,slot_key",
+        "SELECT req.match_spec FROM planning.requirement req "
+        "JOIN planning.plan_node n ON n.id = req.node_id "
+        "WHERE req.revision_id=%s AND req.status='active' ORDER BY n.position, n.template_key",
         (revision_id,),
     )
     return [BabyRequirement.model_validate(row["match_spec"]["baby_requirement"])
-            for row in rows if "baby_requirement" in row["match_spec"]]
-
-
-def _find_or_create_owned_item(repo, revision_id, *, label: str, slot_key: str, rule_key: str,
-                               qty: float, unit_code: str):
-    existing = repo._one(
-        """SELECT id FROM planning.item
-        WHERE revision_id=%s AND status='owned' AND item_spec->>'source_rule_key'=%s""",
-        (revision_id, rule_key),
-    )
-    if existing is not None:
-        return existing["id"]
-    from psycopg.types.json import Jsonb
-
-    row = repo._one(
-        """INSERT INTO planning.item (revision_id, status, qty, unit_code, item_spec)
-        VALUES (%s, 'owned', %s, %s, %s) RETURNING id""",
-        (revision_id, qty, unit_code,
-         Jsonb({"label": label, "slot_key": slot_key, "source_rule_key": rule_key})),
-    )
-    return row["id"]
+            for row in rows if "baby_requirement" in (row["match_spec"] or {})]
 
 
 # TODO: 실제 룩업 테이블로 교체 (data/game_requirements.csv, balance_profiles 등)

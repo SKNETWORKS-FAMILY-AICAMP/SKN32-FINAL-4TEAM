@@ -12,7 +12,7 @@ from uuid import UUID
 from src.auth.deps import Principal
 from src.categories import available_categories, load_category
 from src.engine import slot_rules
-from src.errors import Conflict, NotFound, ValidationFailed
+from src.errors import Conflict, FileTooLarge, NotFound, ValidationFailed
 from src.repo.plan_repo import PlanRepo
 from src.repo.user_repo import ConversationRepo
 
@@ -264,7 +264,9 @@ def _state(conn, list_id: UUID, principal: Principal) -> dict:
         "fields": _build_fields(cat_def, values),
         "next_question": _next_question(cat_def, values),
         "can_recommend": not compute_missing(cat_def, values),
-        "accepts_spec_file": False,  # TODO: 사양 파일 업로드 — §D-4-1 "결정 필요", 미구현
+        # develop §D-4-1: computer 카테고리의 upgrade 모드에서만 사양 파일 첨부를 받는다.
+        # baby 는 항상 false — ACTIVE DB CONTRACT D1이 이 값을 건드리지 않고 보존하도록 명시한다.
+        "accepts_spec_file": category == "computer" and values.get("mode") == "upgrade",
         "revision_id": str(revision["id"]), "lock_version": revision["lock_version"],
     }
 
@@ -516,7 +518,7 @@ def _parse_spec_file(content: str) -> dict:
 
 def attach_spec_file(conn, list_id: UUID, file_name: str, content: str, principal: Principal) -> dict:
     repo = PlanRepo(conn)
-    current = _owned(repo, list_id, principal)
+    current = load_owned_draft(conn, list_id, principal)
     ext = file_name.rsplit(".", 1)[-1].lower() if "." in file_name else ""
     if ext not in _ALLOWED_SPEC_EXTENSIONS:
         raise ValidationFailed("지원하지 않는 파일 형식입니다.", field="file_name", code="unsupported_file")
@@ -527,14 +529,3 @@ def attach_spec_file(conn, list_id: UUID, file_name: str, content: str, principa
     if specs:
         repo.upsert_condition(current["id"], "current_specs", {"value": specs}, "extracted")
     return _state(conn, list_id, principal)
-
-
-def _owned(repo: PlanRepo, list_id: UUID, principal: Principal) -> dict:
-    revision = repo.get_current_revision(list_id)
-    if revision is None:
-        raise NotFound("목록을 찾을 수 없습니다.")
-    user_ok = principal.user_id is not None and revision["user_id"] == principal.user_id
-    guest_ok = principal.browser_token is not None and revision["guest_session_hash"] == _token_hash(principal.browser_token)
-    if not (user_ok or guest_ok):
-        raise NotFound("목록을 찾을 수 없습니다.")
-    return revision
