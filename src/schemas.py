@@ -5,6 +5,7 @@
 """
 from __future__ import annotations
 
+from datetime import date
 from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -192,19 +193,37 @@ class RecommendResultOut(BaseModel):
 
 
 # ── list confirm (S5-a) / report (S5-b) ──
-class ConfirmIn(BaseModel):
+class ListRenameIn(BaseModel):
+    name: str = Field(min_length=1, max_length=60)
+
+
+class ListSummaryOut(BaseModel):
+    list_id: str
     name: str
-    planned_purchase_at: Optional[str] = None
-    target_amount: Optional[int] = None
+    category: str | None = None
+    stage: str
+    updated_at: str
+
+
+class ConfirmIn(BaseModel):
+    name: str = Field(min_length=1, max_length=60)
+    planned_purchase_at: date | None = None
+    target_amount: int | None = Field(default=None, ge=0)
+    memo: str = Field(default="", max_length=1000)
 
 
 class ReportOut(BaseModel):
     list_id: str
     name: str
-    items: list[dict]
+    category: str | None = None
+    owner_display_name: str | None = None
+    planned_purchase_at: str | None = None
+    target_amount: int | None = None
+    memo: str = ""
     total: int
-    buy_links: list[dict]
-    price_watch: Optional[dict] = None
+    confirmed_at: str | None = None
+    items: list[dict] = Field(default_factory=list)
+    buy_links: list[dict] = Field(default_factory=list)
 
 
 # ── reviews (A7) ──
