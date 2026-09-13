@@ -52,10 +52,6 @@ def ctx():
     finally:
         if context.created_ids:
             connection.execute(
-                "DELETE FROM identity.user_preference WHERE user_id = ANY(%s::uuid[])",
-                (context.created_ids,),
-            )
-            connection.execute(
                 "DELETE FROM identity.app_user WHERE id = ANY(%s::uuid[])",
                 (context.created_ids,),
             )

@@ -67,7 +67,6 @@ class UserRepo(Repo):
             (user_id, email_normalized, f"local:{user_id}", display_name, password_hash,
              terms_version, terms_agreed_at, privacy_agreed_at, marketing_agreed_at),
         )
-        self._exec("INSERT INTO identity.user_preference (user_id) VALUES (%s)", (row["id"],))
         return row
 
     def get_for_login(self, email_normalized: str) -> dict | None:
@@ -140,12 +139,8 @@ class UserRepo(Repo):
             "email_normalized = 'deleted+' || id::text || '@deleted.invalid', "
             "display_name='탈퇴한 사용자', password_hash=NULL, password_updated_at=now(), "
             "email_verified_at=NULL, marketing_agreed_at=NULL, "
-            "failed_login_count=0, locked_until=NULL "
+            "failed_login_count=0, locked_until=NULL, "
+            "ui_settings='{}'::jsonb, notification_settings='{}'::jsonb "
             "WHERE id=%s AND status='active'",
-            (user_id,),
-        )
-        self._exec(
-            "UPDATE identity.user_preference SET ui_settings='{}'::jsonb, "
-            "notification_settings='{}'::jsonb WHERE user_id=%s",
             (user_id,),
         )
