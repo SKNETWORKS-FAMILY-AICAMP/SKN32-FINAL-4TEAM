@@ -25,6 +25,15 @@ _SOURCE_NAME = "데모 합성 카탈로그"
 def main() -> int:
     with get_conn() as conn:
         repo = ProductRepo(conn)
+        source = repo._one(
+            "SELECT id FROM evidence.source WHERE name = %s", (_SOURCE_NAME,)
+        )
+        if source is None:
+            source = repo._one(
+                "INSERT INTO evidence.source (name, source_type) VALUES (%s, 'derived') RETURNING id",
+                (_SOURCE_NAME,),
+            )
+        source_id = source["id"]
         merchant_id = repo.upsert_merchant("demo", "demo-seller", "데모 판매처")
 
         n = 0
@@ -45,8 +54,7 @@ def main() -> int:
             )
             offer_id = repo.upsert_offer(variant_id, merchant_id, pk, f"https://example.com/buy/{pk}")
             repo.add_observation(
-                offer_id, source_name=_SOURCE_NAME, source_type="derived",
-                observed_at=datetime.now(timezone.utc),
+                offer_id, source_id, observed_at=datetime.now(timezone.utc),
                 price=price, stock_status="available", quality_status="valid",
             )
             n += 1

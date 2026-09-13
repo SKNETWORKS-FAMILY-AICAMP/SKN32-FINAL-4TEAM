@@ -63,7 +63,7 @@ _USER_COLUMNS = (
     "id, email_normalized, auth_subject, display_name, status, created_at, updated_at, "
     "password_hash, password_updated_at, failed_login_count, locked_until, last_login_at, "
     "terms_version, terms_agreed_at, privacy_agreed_at, marketing_agreed_at, deleted_at, "
-    "email_verified_at, auth_version"
+    "email_verified_at"
 )
 
 
@@ -137,14 +137,14 @@ class UserRepo(Repo):
                 (user_id,),
             )
 
-    def update_password(self, user_id: UUID, password_hash: str) -> int:
-        """비밀번호 교체 + auth_version 증가(발급 세대 전진) → 반환값이 새 세대."""
-        row = self._one(
-            "UPDATE identity.app_user SET password_hash=%s, password_updated_at=now(), "
-            "auth_version=auth_version+1 WHERE id=%s RETURNING auth_version",
+    def update_password(self, user_id: UUID, password_hash: str) -> None:
+        """비밀번호 교체 — password_updated_at 을 갱신해 그 이전에 발급된 토큰을
+        무효화한다(iat < password_updated_at.timestamp(), P0 v3 develop 정렬,
+        auth_version 컬럼 없음)."""
+        self._exec(
+            "UPDATE identity.app_user SET password_hash=%s, password_updated_at=now() WHERE id=%s",
             (password_hash, user_id),
         )
-        return row["auth_version"]
 
     def update_profile(
         self, user_id: UUID, *, display_name: str | None, email_normalized: str | None,
@@ -168,19 +168,17 @@ class UserRepo(Repo):
             tuple(params),
         )
 
-    def withdraw(self, user_id: UUID, *, anonymized_email: str, anonymized_name: str) -> int:
+    def withdraw(self, user_id: UUID, *, anonymized_email: str, anonymized_name: str) -> None:
         """탈퇴: 상태/시각을 기록하고 비밀번호·동의·마케팅을 지운다. 이력 참조(FK RESTRICT
-        걸린 plan/conversation 등)는 남긴다 — CONTRACTS "연쇄 삭제 금지". auth_version 을
-        올려 남아 있던 토큰을 즉시 무효화한다."""
-        row = self._one(
+        걸린 plan/conversation 등)는 남긴다 — CONTRACTS "연쇄 삭제 금지". status='deleted'
+        전환 자체가 `_authenticate`에서 남아 있던 토큰을 즉시 무효화한다."""
+        self._exec(
             """UPDATE identity.app_user SET
                  status='deleted', deleted_at=now(),
                  email_normalized=%s, display_name=%s,
                  password_hash=NULL, failed_login_count=0, locked_until=NULL,
                  terms_version=NULL, terms_agreed_at=NULL, privacy_agreed_at=NULL,
-                 marketing_agreed_at=NULL, email_verified_at=NULL,
-                 auth_version=auth_version+1
-               WHERE id=%s RETURNING auth_version""",
+                 marketing_agreed_at=NULL, email_verified_at=NULL
+               WHERE id=%s""",
             (anonymized_email, anonymized_name, user_id),
         )
-        return row["auth_version"]

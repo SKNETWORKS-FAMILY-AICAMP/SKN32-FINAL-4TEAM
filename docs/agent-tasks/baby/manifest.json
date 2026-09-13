@@ -1,30 +1,51 @@
 {
   "schema_version": 1,
   "kind": "agent_implementation_work_orders",
-  "baseline_commit": "d96ccd2",
-  "status": "updated_work_orders_for_commit_delta",
+  "baseline_commit": "da798393850c03866374b05c01eed568fbc84f71",
+  "status": "develop_alignment_documented_implementation_pending",
   "excluded_authority": "개발_역할_분담.md",
   "tasks": [
     {
       "id": "P0",
       "file": "P0_schema_contracts.md",
-      "title": "축소 DB·공통 계약·기존 코드 호환",
+      "title": "develop DB·공통 계약·저장소 전환",
       "depends_on": [],
-      "status": "partial_rework_required",
+      "status": "develop_alignment_required",
       "entry_gate": "ready_after_dependencies",
       "contract": "CONTRACTS.md",
       "report": "reports/P0.md",
       "integration_depends_on": [],
-      "contract_version": 2,
+      "contract_version": 3,
       "rework_required": true,
-      "baseline_audit": "reports/sync-2026-09-13.md",
-      "execution_policy": "fresh_database_no_legacy_data_migration",
-      "acceptance_policy": "replacement_SR01_SR09_in_P0_work_order",
-      "latest_implementation_record": "reports/P0.md#2026-09-13-v4",
-      "verified_acceptance_cases": ["SR01", "SR02", "SR03", "SR04", "SR05", "SR06", "SR07", "SR08", "SR09"],
-      "verification_note": "v4 closed the SR07 domain-snapshot binding and the SR08 JSON/scope enforcement gaps that v3 did not list as remaining. Behavioral regressions now live in tests/test_schema_reduction_db.py (29 cases). Status stays partial until the CONTRACTS.md owner reviews reports/P0.md against the SR01-SR09 table.",
-      "downstream_blockers": ["baby recommendation rules (P2/P5)", "review authoring logic (P8)"],
-      "commit_delta": "30af559..d96ccd2"
+      "execution_policy": "fresh_develop_database_no_legacy_data_migration",
+      "historical_record": {
+        "status": "partial_rework_required",
+        "verified_acceptance_cases": [
+          "SR01",
+          "SR02",
+          "SR03",
+          "SR04",
+          "SR05",
+          "SR06",
+          "SR07",
+          "SR08",
+          "SR09"
+        ],
+        "verification_note": "v4 closed the SR07 domain-snapshot binding and the SR08 JSON/scope enforcement gaps that v3 did not list as remaining. Behavioral regressions now live in tests/test_schema_reduction_db.py (29 cases). Status stays partial until the CONTRACTS.md owner reviews reports/P0.md against the SR01-SR09 table.",
+        "baseline_audit": "reports/sync-2026-09-13.md",
+        "latest_implementation_record": "reports/P0.md#2026-09-13-v4",
+        "acceptance_policy": "replacement_SR01_SR09_in_P0_work_order",
+        "downstream_blockers": [
+          "baby recommendation rules (P2/P5)",
+          "review authoring logic (P8)"
+        ],
+        "commit_delta": "30af559..d96ccd2"
+      },
+      "baseline_audit": "DEVELOP_DB_TRANSITION.md",
+      "acceptance_policy": "ACTIVE_DB_CONTRACT_D0_in_work_order",
+      "verified_acceptance_cases": [],
+      "verification_note": "Documentation updated only; no develop-alignment acceptance case newly verified.",
+      "rework_scope": "see individual ACTIVE DB CONTRACT; reuse unaffected implementation and test evidence"
     },
     {
       "id": "P1",
@@ -33,15 +54,23 @@
       "depends_on": [
         "P0"
       ],
-      "status": "partial_upstream",
+      "status": "develop_alignment_required",
       "entry_gate": "ready_after_dependencies",
       "contract": "CONTRACTS.md",
       "report": "reports/P1.md",
       "integration_depends_on": [],
-      "contract_version": 2,
+      "contract_version": 3,
       "rework_required": true,
-      "baseline_audit": "reports/sync-2026-09-13.md",
-      "commit_delta": "30af559..d96ccd2"
+      "historical_record": {
+        "status": "partial_upstream",
+        "baseline_audit": "reports/sync-2026-09-13.md",
+        "commit_delta": "30af559..d96ccd2"
+      },
+      "baseline_audit": "DEVELOP_DB_TRANSITION.md",
+      "acceptance_policy": "ACTIVE_DB_CONTRACT_D1_in_work_order",
+      "verified_acceptance_cases": [],
+      "verification_note": "Documentation updated only; no develop-alignment acceptance case newly verified.",
+      "rework_scope": "see individual ACTIVE DB CONTRACT; reuse unaffected implementation and test evidence"
     },
     {
       "id": "P2",
@@ -50,14 +79,22 @@
       "depends_on": [
         "P0"
       ],
-      "status": "partial_shared_catalog",
+      "status": "develop_alignment_required",
       "entry_gate": "ready_after_dependencies",
       "contract": "CONTRACTS.md",
       "report": "reports/P2.md",
       "integration_depends_on": [],
-      "contract_version": 2,
+      "contract_version": 3,
       "rework_required": true,
-      "baseline_audit": "reports/sync-2026-09-13.md"
+      "historical_record": {
+        "status": "partial_shared_catalog",
+        "baseline_audit": "reports/sync-2026-09-13.md"
+      },
+      "baseline_audit": "DEVELOP_DB_TRANSITION.md",
+      "acceptance_policy": "ACTIVE_DB_CONTRACT_D2_in_work_order",
+      "verified_acceptance_cases": [],
+      "verification_note": "Documentation updated only; no develop-alignment acceptance case newly verified.",
+      "rework_scope": "see individual ACTIVE DB CONTRACT; reuse unaffected implementation and test evidence"
     },
     {
       "id": "P3",
@@ -67,16 +104,34 @@
         "P0",
         "P2"
       ],
-      "status": "partial_implemented_awaiting_p5_wiring",
+      "status": "develop_alignment_required",
       "entry_gate": "ready_after_dependencies",
       "contract": "CONTRACTS.md",
       "report": "reports/P3.md",
       "integration_depends_on": [],
-      "contract_version": 2,
+      "contract_version": 3,
       "rework_required": true,
-      "baseline_audit": "reports/sync-2026-09-13.md",
-      "verified_acceptance_cases": ["VE01", "VE02", "VE03", "VE04", "VE05", "VE06", "VE07", "VE08"],
-      "verification_note": "verify_baby_candidate/explain_baby_candidate/persist_candidate_check/resolve_public_evidence exist and are exercised against real PostgreSQL/pgvector with real evidence rows (tests/test_baby_verification.py, 18 tests). Manual-backed rule inventory covers only the one real manual this environment has (stroller); other categories are an explicit reviewed not-applicable decision authored by this task, not an external safety review. Not yet called from any HTTP/execute_recommendation path (P5's edit surface). Status stays partial until the CONTRACTS.md owner reviews reports/P3.md."
+      "historical_record": {
+        "status": "partial_implemented_awaiting_p5_wiring",
+        "verified_acceptance_cases": [
+          "VE01",
+          "VE02",
+          "VE03",
+          "VE04",
+          "VE05",
+          "VE06",
+          "VE07",
+          "VE08"
+        ],
+        "verification_note": "verify_baby_candidate/explain_baby_candidate/persist_candidate_check/resolve_public_evidence exist and are exercised against real PostgreSQL/pgvector with real evidence rows (tests/test_baby_verification.py, 18 tests). Manual-backed rule inventory covers only the one real manual this environment has (stroller); other categories are an explicit reviewed not-applicable decision authored by this task, not an external safety review. Not yet called from any HTTP/execute_recommendation path (P5's edit surface). Status stays partial until the CONTRACTS.md owner reviews reports/P3.md.",
+        "baseline_audit": "reports/sync-2026-09-13.md"
+      },
+      "baseline_audit": "DEVELOP_DB_TRANSITION.md",
+      "acceptance_policy": "ACTIVE_DB_CONTRACT_D3_in_work_order",
+      "verified_acceptance_cases": [],
+      "verification_note": "Documentation updated only; no develop-alignment acceptance case newly verified.",
+      "rework_scope": "see individual ACTIVE DB CONTRACT; reuse unaffected implementation and test evidence",
+      "external_gate": "D3-02 requires an actual external search backend and integration evidence"
     },
     {
       "id": "P4",
@@ -87,15 +142,23 @@
         "P2",
         "P3"
       ],
-      "status": "pending",
+      "status": "develop_alignment_required",
       "entry_gate": "ready_after_dependencies",
       "contract": "CONTRACTS.md",
       "report": "reports/P4.md",
       "integration_depends_on": [],
-      "contract_version": 2,
-      "rework_required": false,
-      "baseline_audit": "reports/sync-2026-09-13.md",
-      "commit_delta": "30af559..d96ccd2"
+      "contract_version": 3,
+      "rework_required": true,
+      "historical_record": {
+        "status": "pending",
+        "baseline_audit": "reports/sync-2026-09-13.md",
+        "commit_delta": "30af559..d96ccd2"
+      },
+      "baseline_audit": "DEVELOP_DB_TRANSITION.md",
+      "acceptance_policy": "ACTIVE_DB_CONTRACT_D4_in_work_order",
+      "verified_acceptance_cases": [],
+      "verification_note": "Documentation updated only; no develop-alignment acceptance case newly verified.",
+      "rework_scope": "see individual ACTIVE DB CONTRACT; reuse unaffected implementation and test evidence"
     },
     {
       "id": "P5",
@@ -107,15 +170,23 @@
         "P3",
         "P4"
       ],
-      "status": "partial_pc_only",
+      "status": "develop_alignment_required",
       "entry_gate": "ready_after_dependencies",
       "contract": "CONTRACTS.md",
       "report": "reports/P5.md",
       "integration_depends_on": [],
-      "contract_version": 2,
+      "contract_version": 3,
       "rework_required": true,
-      "baseline_audit": "reports/sync-2026-09-13.md",
-      "commit_delta": "30af559..d96ccd2"
+      "historical_record": {
+        "status": "partial_pc_only",
+        "baseline_audit": "reports/sync-2026-09-13.md",
+        "commit_delta": "30af559..d96ccd2"
+      },
+      "baseline_audit": "DEVELOP_DB_TRANSITION.md",
+      "acceptance_policy": "ACTIVE_DB_CONTRACT_D5_in_work_order",
+      "verified_acceptance_cases": [],
+      "verification_note": "Documentation updated only; no develop-alignment acceptance case newly verified.",
+      "rework_scope": "see individual ACTIVE DB CONTRACT; reuse unaffected implementation and test evidence"
     },
     {
       "id": "P6",
@@ -124,14 +195,22 @@
       "depends_on": [
         "P1"
       ],
-      "status": "pending",
+      "status": "develop_alignment_required",
       "entry_gate": "ready_after_dependencies",
       "contract": "CONTRACTS.md",
       "report": "reports/P6.md",
       "integration_depends_on": [],
-      "contract_version": 2,
-      "rework_required": false,
-      "baseline_audit": "reports/sync-2026-09-13.md"
+      "contract_version": 3,
+      "rework_required": true,
+      "historical_record": {
+        "status": "pending",
+        "baseline_audit": "reports/sync-2026-09-13.md"
+      },
+      "baseline_audit": "DEVELOP_DB_TRANSITION.md",
+      "acceptance_policy": "ACTIVE_DB_CONTRACT_D6_in_work_order",
+      "verified_acceptance_cases": [],
+      "verification_note": "Documentation updated only; no develop-alignment acceptance case newly verified.",
+      "rework_scope": "see individual ACTIVE DB CONTRACT; reuse unaffected implementation and test evidence"
     },
     {
       "id": "P7",
@@ -141,15 +220,23 @@
         "P5",
         "P6"
       ],
-      "status": "partial_upstream_integration_required",
+      "status": "develop_alignment_required",
       "entry_gate": "ready_after_dependencies",
       "contract": "CONTRACTS.md",
       "report": "reports/P7.md",
       "integration_depends_on": [],
-      "contract_version": 2,
+      "contract_version": 3,
       "rework_required": true,
-      "baseline_audit": "reports/sync-2026-09-13.md",
-      "commit_delta": "30af559..d96ccd2"
+      "historical_record": {
+        "status": "partial_upstream_integration_required",
+        "baseline_audit": "reports/sync-2026-09-13.md",
+        "commit_delta": "30af559..d96ccd2"
+      },
+      "baseline_audit": "DEVELOP_DB_TRANSITION.md",
+      "acceptance_policy": "ACTIVE_DB_CONTRACT_D7_in_work_order",
+      "verified_acceptance_cases": [],
+      "verification_note": "Documentation updated only; no develop-alignment acceptance case newly verified.",
+      "rework_scope": "see individual ACTIVE DB CONTRACT; reuse unaffected implementation and test evidence"
     },
     {
       "id": "P8",
@@ -159,7 +246,7 @@
         "P0",
         "P6"
       ],
-      "status": "partial_pc_review_only",
+      "status": "develop_alignment_required",
       "entry_gate": "ready_after_dependencies",
       "contract": "CONTRACTS.md",
       "report": "reports/P8.md",
@@ -167,46 +254,70 @@
         "P5",
         "P7"
       ],
-      "contract_version": 2,
+      "contract_version": 3,
       "rework_required": true,
-      "baseline_audit": "reports/sync-2026-09-13.md",
-      "commit_delta": "30af559..d96ccd2"
+      "historical_record": {
+        "status": "partial_pc_review_only",
+        "baseline_audit": "reports/sync-2026-09-13.md",
+        "commit_delta": "30af559..d96ccd2"
+      },
+      "baseline_audit": "DEVELOP_DB_TRANSITION.md",
+      "acceptance_policy": "ACTIVE_DB_CONTRACT_D8_in_work_order",
+      "verified_acceptance_cases": [],
+      "verification_note": "Documentation updated only; no develop-alignment acceptance case newly verified.",
+      "rework_scope": "see individual ACTIVE DB CONTRACT; reuse unaffected implementation and test evidence"
     },
     {
       "id": "P9",
       "file": "P9_operational_validation.md",
-      "title": "운영 검증·자료 처리 확장·RAG 전환 게이트",
+      "title": "운영 검증·develop DB·외부 검색 전환",
       "depends_on": [
         "P0",
         "P3",
         "P5",
         "P7"
       ],
-      "status": "conditional",
+      "status": "develop_alignment_required",
       "entry_gate": "O1_ready_after_dependencies; O2-O5_explicit_activation",
       "contract": "CONTRACTS.md",
       "report": "reports/P9.md",
       "integration_depends_on": [],
-      "contract_version": 2,
-      "rework_required": false,
-      "baseline_audit": "reports/sync-2026-09-13.md",
-      "commit_delta": "30af559..d96ccd2"
+      "contract_version": 3,
+      "rework_required": true,
+      "historical_record": {
+        "status": "conditional",
+        "baseline_audit": "reports/sync-2026-09-13.md",
+        "commit_delta": "30af559..d96ccd2"
+      },
+      "baseline_audit": "DEVELOP_DB_TRANSITION.md",
+      "acceptance_policy": "ACTIVE_DB_CONTRACT_D9_in_work_order",
+      "verified_acceptance_cases": [],
+      "verification_note": "Documentation updated only; no develop-alignment acceptance case newly verified.",
+      "rework_scope": "see individual ACTIVE DB CONTRACT; reuse unaffected implementation and test evidence"
     }
   ],
-  "contract_version": 2,
-  "sync_audit": "reports/sync-2026-09-13.md",
-  "previous_baseline_commit": "30af559",
+  "contract_version": 3,
+  "sync_audit": "DEVELOP_DB_TRANSITION.md",
+  "previous_baseline_commit": "d96ccd2",
   "commit_delta_scope": [
     "P0",
     "P1",
+    "P2",
+    "P3",
     "P4",
     "P5",
+    "P6",
     "P7",
     "P8",
     "P9"
   ],
   "integration_blockers": [
-    "src/routers/lists.py unresolved merge conflict",
-    "list_service legacy SQL incompatible with reduced DB"
-  ]
+    "current baby storage targets full reduction rather than develop retained tables",
+    "PostgreSQL rag removal requires external search adapter; backend unverified",
+    "develop target fresh install and affected HTTP persistence paths not yet validated"
+  ],
+  "target_db_branch": "develop",
+  "inspected_source_commit": "421b7eab5825c5932990861db044cfdd8bd9d94e",
+  "transition_contract": "DEVELOP_DB_TRANSITION.md",
+  "schema_contract": "schema-v1.md"
 }

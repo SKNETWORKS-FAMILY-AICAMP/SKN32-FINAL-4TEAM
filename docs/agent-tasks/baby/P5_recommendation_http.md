@@ -1,13 +1,32 @@
 ---
 task_id: "P5"
-status: "partial_pc_only"
+status: "develop_alignment_required"
 entry_gate: "ready_after_dependencies"
 depends_on: ["P1", "P2", "P3", "P4"]
-contract_version: 2
+contract_version: 3
 report_path: "docs/agent-tasks/baby/reports/P5.md"
 ---
 
 # P5 — 추천 실행·저장·결과·후보 편집 API
+
+## ACTIVE DB CONTRACT — develop `da79839` / v3 (2026-09-13)
+
+이 절과 [develop 전환 계약](DEVELOP_DB_TRANSITION.md), [목표 스키마](schema-v1.md)가 현재 실행 지시다. 이 문서 아래 기존 지시 중 충돌하는 DB 매핑·pgvector 유지·완전 축소 SR 승인 조건은 폐기한다. DB와 무관한 업무 규칙·API·수용 사례는 유지한다. 과거 보고서의 통과 결과는 당시 코드의 증거이며 develop 호환 완료를 뜻하지 않는다. 현재 작업 트리는 `rag`이므로 develop SQL이 이미 병합되어 있다고 가정하지 않는다. `개발 역할 분담`은 적용하지 않는다.
+
+### P5 DELTA — 추천 실행·후보 편집 저장 전환
+
+- **상태:** 기존 P5 보고서의 유아 실행 실적은 이전 DB 기준. develop DB와 P1~P4 계약으로 통합 재검증한다.
+- **EDIT:** `src/services/recommendation_service.py`, `src/repo/engine_repo.py`, `src/routers/session.py`, `src/schemas.py`, 결과 화면 adapter, `tests/test_baby_recommendation_http.py`.
+- **IMPLEMENT:** start_run은 revision.domain_version_id와 잠근 조건/규칙 snapshot을 저장한다. 202+BackgroundTasks→저장 결과 조회 흐름을 유지한다. 슬롯은 requirement→plan_node에서 읽는다. 후보 상태는 recommendation_candidate.selected/qty/timing에 저장하며 result(엔진 판정)와 selected(사용자 담기)를 혼용하지 않는다.
+- **IMPLEMENT:** 유아 구매 행의 HTTP item_id는 requirement UUID로 안정화하고 adapter가 현재 run의 선택 candidate를 찾게 한다. 후보 교체는 같은 requirement의 candidate를 선택 상태로 전환하고 기존 선택을 해제한다. PC의 candidate 기반 item_id는 기존대로 보존한다. owned 행은 파생 ID로 반환하되 상품 교체/구매 편집 대상에서 제외하고 보유 조건 수정으로 안내한다. DB item 행을 새로 만들지 않는다.
+- **IMPLEMENT:** 편집 트랜잭션에서 revision을 잠그고 If-Match/소유권/current run/requirement/candidate/관측값 범위를 검사→P3 확인→P4 재계산→candidate 상태와 lock_version 갱신. 동시 교체 시 슬롯당 구매 후보가 하나만 남도록 직렬화한다. 조건이 바뀐 실행의 완료는 stale 처리한다. 결과 새로고침은 DB 상태를 재구성한다.
+- **IMPLEMENT:** provider 미설정/자료 없음은 reason/checks의 명시적 종료 상태로 반환하고 unknown 필수품을 자동 담지 않는다. PC 리뷰 순위·설명과 develop 결과 상호작용 API를 보존한다.
+- **ACCEPTANCE D5:** 실제 DB/HTTP에서 생성→조건→202→완료 또는 이유 있는 비충족→편집→재조회; quantity/timing/selected 지속; 후보 교체에도 baby item_id 유지; 교차 run/목록 편집 거부; 동시 편집409; 실패 rollback; PC 결과 상호작용 회귀. P3-D3-02 미통과이면 검증 포함 유아 정상 추천 완료는 승인하지 않는다.
+- **HANDOFF:** 요청/응답·저장 candidate 상태·run 버전·D5 결과를 `reports/P5.md`에 기록한다.
+
+## PREVIOUS WORK ORDER — non-conflicting business rules only
+
+이하의 날짜별 상태·구 DB 구현 실적은 과거 기록이다. 현재 상태는 위 절과 manifest를 사용한다. 아래 지시에서 완전 축소 SQL 실행, pgvector 보존, planning.item 복원, domain_version/plan_node/purchase_line 삭제, 근거 객체 저장, shared/notification 스키마 삭제를 요구하는 부분은 실행하지 않는다.
 
 ## CURRENT BASELINE / SYNC DELTA (2026-09-13)
 

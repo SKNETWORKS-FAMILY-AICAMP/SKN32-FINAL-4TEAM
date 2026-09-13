@@ -193,10 +193,19 @@ def seed_catalog(conn, records: list[dict], *, dataset_version: str, corpus: str
 
             observed_at = datetime.fromisoformat(r["offer"]["observed_at"].replace("Z", "+00:00"))
             quality_status = "valid" if r["offer"]["price"] is not None else "failed"
+            source_name = f"seed_baby_catalog:{dataset_version}"
+            # evidence.source.source_type CHECK only allows manufacturer/public_registry/
+            # merchant/external_review/first_party/derived — synthetic demo pricing is
+            # not observed from any real source, so 'derived' fits both corpora.
+            source_type = "derived"
+            source = repo._one("SELECT id FROM evidence.source WHERE name = %s", (source_name,))
+            if source is None:
+                source = repo._one(
+                    "INSERT INTO evidence.source (name, source_type) VALUES (%s, %s) RETURNING id",
+                    (source_name, source_type),
+                )
             _, created = repo.add_observation_if_changed(
-                offer_id,
-                source_name=f"seed_baby_catalog:{dataset_version}",
-                source_type="synthetic_demo" if corpus == "synthetic" else "derived",
+                offer_id, source_id=source["id"],
                 observed_at=observed_at, price=r["offer"]["price"], currency=r["offer"]["currency"],
                 stock_status=r["offer"]["stock_status"], quality_status=quality_status,
             )

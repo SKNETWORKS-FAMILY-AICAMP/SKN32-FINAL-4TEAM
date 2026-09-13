@@ -1,13 +1,30 @@
 ---
 task_id: "P8"
-status: "partial_pc_review_only"
+status: "develop_alignment_required"
 entry_gate: "ready_after_dependencies"
 depends_on: ["P0", "P6"]
-contract_version: 2
+contract_version: 3
 report_path: "docs/agent-tasks/baby/reports/P8.md"
 ---
 
 # P8 — 유아 후기·파일 기반 정제·요약/통계·행동 기록
+
+## ACTIVE DB CONTRACT — develop `da79839` / v3 (2026-09-13)
+
+이 절과 [develop 전환 계약](DEVELOP_DB_TRANSITION.md), [목표 스키마](schema-v1.md)가 현재 실행 지시다. 이 문서 아래 기존 지시 중 충돌하는 DB 매핑·pgvector 유지·완전 축소 SR 승인 조건은 폐기한다. DB와 무관한 업무 규칙·API·수용 사례는 유지한다. 과거 보고서의 통과 결과는 당시 코드의 증거이며 develop 호환 완료를 뜻하지 않는다. 현재 작업 트리는 `rag`이므로 develop SQL이 이미 병합되어 있다고 가정하지 않는다. `개발 역할 분담`은 적용하지 않는다.
+
+### P8 DELTA — 후기 버전·출처 구조 보존
+
+- **상태/재사용:** 파일 정제·PC 리뷰 요약/관측 분석은 DB 설계와 무관한 부분을 재사용한다. P0/P6 후 유아 저장/조회 adapter를 구현하고 P5/P7 이벤트 통합은 마지막에 검증한다.
+- **EDIT:** `src/repo/review_repo.py`, `src/services/{review,feedback}_service.py`, 리뷰 적재/요약 fixture.
+- **IMPLEMENT:** community.review는 작성자/대상/현재 버전만 관리하고 본문·평점·검수·게시 시각은 review_revision에 저장한다. domain_version_id는 해당 유아 규칙 버전으로 참조한다. 통합 review_component를 새로 요구하거나 PC build/version/component 테이블을 삭제하지 않는다. 유아 사용 문맥은 review_revision.usage_context를 활용한다.
+- **IMPLEMENT:** evidence.source와 review_subject/summary/aggregate/member를 유지한다. author_ref/review_posted_at의 develop 메타데이터를 유지하고 PC 집계와 유아 집계를 domain/version/subject로 분리한다. 현재 승인된 revision만 공개·집계한다. dataset SQL은 복원하지 않고 파일로 정제 데이터를 관리한다. feedback_event는 실제 run/revision/candidate 범위를 검사하고 현재 develop 컬럼에 저장한다.
+- **ACCEPTANCE D8:** 후기 작성→수정 버전→승인 게시→요약/집계→철회 후 비공개; 다른 사용자의 수정 거부; PC/유아 집계 분리; 추천/편집/확정 행동 기록 연결; 기존 PC 요약 API 유지. 기존 정제 알고리즘의 변화 없는 테스트는 반복하지 않는다.
+- **HANDOFF:** 관계 저장 예시·HTTP 확인 방법·D8 결과를 `reports/P8.md`에 기록한다.
+
+## PREVIOUS WORK ORDER — non-conflicting business rules only
+
+이하의 날짜별 상태·구 DB 구현 실적은 과거 기록이다. 현재 상태는 위 절과 manifest를 사용한다. 아래 지시에서 완전 축소 SQL 실행, pgvector 보존, planning.item 복원, domain_version/plan_node/purchase_line 삭제, 근거 객체 저장, shared/notification 스키마 삭제를 요구하는 부분은 실행하지 않는다.
 
 ## CURRENT BASELINE / SYNC DELTA (2026-09-13)
 

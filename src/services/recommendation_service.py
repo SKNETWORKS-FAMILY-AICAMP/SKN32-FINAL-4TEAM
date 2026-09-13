@@ -70,7 +70,7 @@ def start_recommendation(conn, revision_id: UUID, *, strategy: str = "default") 
 
     if category == "computer":
         run_id = erepo.start_run(
-            revision_id, revision["domain_id"],
+            revision_id, revision["domain_version_id"],
             input_snapshot={"values": values, "strategy": strategy},
             input_hash=hashlib.sha256(json.dumps(values, sort_keys=True, ensure_ascii=False, default=str).encode()).hexdigest(),
             draft_lock_version=revision["lock_version"],
@@ -78,22 +78,14 @@ def start_recommendation(conn, revision_id: UUID, *, strategy: str = "default") 
         )
         return {"run_id": str(run_id), "status": "running"}
 
-    # ── baby ──
-    from src.engine.stage2_requirement import build_baby_requirements, persist_baby_requirements
-    conditions = session_service.normalize_baby_conditions(values)
-    conditions["revision_id"] = str(revision_id)
-    domain_snapshot = _baby_domain_snapshot()
-    pure_requirements = build_baby_requirements(conditions, domain_snapshot)
-    requirements = persist_baby_requirements(conn, revision_id, pure_requirements)
-    run_id = erepo.start_run(
-        revision_id, revision["domain_id"],
-        input_snapshot={"values": values, "strategy": strategy, "conditions": conditions,
-                        "requirement_ids": [r.id for r in requirements]},
-        input_hash=hashlib.sha256(json.dumps(values, sort_keys=True, ensure_ascii=False, default=str).encode()).hexdigest(),
-        draft_lock_version=revision["lock_version"],
-        engine_versions={"pipeline": "baby-v1"},
+    # ── baby ── P0 v3 develop 정렬: planning.item 이 없고 requirement 는 node 기반이라
+    # (schema-v1.md, DEVELOP_DB_TRANSITION.md), stage2_requirement.persist_baby_requirements
+    # 등 P2 엔진은 아직 이 스키마에 맞춰 다시 짜이지 않았다. 여기서 막지 않으면 존재하지
+    # 않는 테이블에 대한 SQL 오류가 그대로 502/트레이스로 샌다 — 대신 표준 501 봉투로
+    # 명확히 알린다(P0의 EDIT SURFACE는 P2 엔진 파일을 포함하지 않는다).
+    raise NotImplementedError(
+        "유아 추천은 develop 스키마 정렬(P0 v3) 이후 P2 저장소 적용을 기다리고 있습니다."
     )
-    return {"run_id": str(run_id), "status": "running"}
 
 
 def _baby_domain_snapshot() -> dict:
@@ -134,7 +126,8 @@ def execute_recommendation(revision_id: UUID, run_id: UUID) -> None:
 
             req_id_by_slot = {}
             for slot in spec.targets:
-                req_id_by_slot[slot] = prepo.ensure_requirement(revision_id, slot, spec.targets[slot])
+                node_id = prepo.ensure_node(revision_id, slot, slot)
+                req_id_by_slot[slot] = prepo.ensure_requirement(revision_id, node_id, spec.targets[slot])
 
             by_slot = load_candidates_by_slot()
             hf = stage3a_hardfilter.run(spec, by_slot, noop)
@@ -535,19 +528,25 @@ def get_stored_result(conn, revision_id: UUID) -> dict | None:
                 },
                 "price": price, "price_source": "synthetic",
                 "price_observed_at": row["observed_at"].isoformat() if row["observed_at"] else None,
-                "qty": 1, "selected": True, "timing": "now", "budget_share": None,
+                "qty": row["qty"], "selected": row["selected"], "timing": row["timing"], "budget_share": None,
                 "review": None,
                 "reason": {"status": "ready", "text": row["reason"]} if row["reason"] else {"status": "pending", "text": None},
                 "checks": {"status": "pending", "text": None},
                 "alternatives_count": 0,
             })
-        selected_price = sum(i["price"] for i in items)
+        # develop DEVELOP_DB_TRANSITION.md: "now" 청구 대상만 total, soon/later 는 별도.
+        charged = [i for i in items if i["selected"] and i["timing"] == "now"]
+        selected_price = sum(i["price"] * i["qty"] for i in charged)
+        selected_units = sum(i["qty"] for i in charged)
         for item in items:
-            item["budget_share"] = round(item["price"] / selected_price, 3) if selected_price else None
+            item["budget_share"] = (
+                round((item["price"] * item["qty"]) / selected_price, 3)
+                if selected_price and item in charged else None
+            )
         budget_max = values.get("budget_max")
         result["items"] = items
         result["totals"] = {
-            "selected_price": selected_price, "selected_units": len(items),
+            "selected_price": selected_price, "selected_units": selected_units,
             "budget_remaining": (budget_max - selected_price) if budget_max else None,
             "over_budget": bool(budget_max and selected_price > budget_max),
         }
@@ -580,43 +579,41 @@ def get_owned_result(conn, list_id: UUID, principal) -> dict:
     return stored
 
 
-def _require_baby_item(conn, list_id: UUID, item_id: UUID, principal) -> tuple[dict, "PlanRepo", dict]:
-    from src.repo.plan_repo import PlanRepo
+def _require_candidate_item(conn, list_id: UUID, item_id: UUID, principal) -> tuple[dict, "EngineRepo", dict]:
+    """item_id == engine.recommendation_candidate.id (develop `0013_result_item_interaction.sql`
+    이 원래 의도한 모양 — 별도 planning.item 없이 후보 행 자체를 편집한다, P0 v3)."""
+    from src.repo.engine_repo import EngineRepo
     from src.services import session_service
 
     revision = session_service.load_owned_draft(conn, list_id, principal)
-    prepo = PlanRepo(conn)
-    row = prepo.get_item(item_id, revision["id"])
+    erepo = EngineRepo(conn)
+    row = erepo.get_candidate(item_id)
     if row is None:
         raise NotFound("항목을 찾을 수 없습니다.")
-    return revision, prepo, row
+    run = erepo.get_run(row["run_id"])
+    if run is None or str(run["revision_id"]) != str(revision["id"]):
+        raise NotFound("항목을 찾을 수 없습니다.")
+    return revision, erepo, row
 
 
 def get_alternatives(conn, list_id: UUID, item_id: UUID, principal) -> dict:
-    """GET .../items/{item_id}/alternatives — 이 항목의 requirement 에 실제로 검증된 다른 후보만."""
-    from src.repo.engine_repo import EngineRepo
-
-    revision, prepo, row = _require_baby_item(conn, list_id, item_id, principal)
-    spec = row.get("item_spec") or {}
-    requirement_id, run_id_raw = spec.get("requirement_id"), spec.get("run_id")
-    if requirement_id is None or run_id_raw is None:
-        return {"items": []}
-    erepo = EngineRepo(conn)
-    current_candidate_id = spec.get("candidate_id")
-    current_price = spec.get("unit_price")
+    """GET .../items/{item_id}/alternatives — 이 항목과 같은 requirement 의 다른 후보만."""
+    revision, erepo, cand = _require_candidate_item(conn, list_id, item_id, principal)
+    rows = erepo.get_candidates_by_requirement(cand["run_id"], cand["requirement_id"])
+    current_price = next((int(r["price"]) for r in rows if r["id"] == cand["id"] and r["price"] is not None), None)
     out = []
-    for r in erepo.get_candidates_by_requirement(UUID(run_id_raw), UUID(requirement_id)):
-        elig = erepo.get_candidate_eligibility(UUID(run_id_raw), r["id"])
+    for r in rows:
+        elig = erepo.get_candidate_eligibility(cand["run_id"], r["id"])
         price = int(r["price"]) if r["price"] is not None else None
         out.append({
-            "candidate_id": str(r["id"]), "current": str(r["id"]) == current_candidate_id,
+            "candidate_id": str(r["id"]), "current": r["id"] == cand["id"],
             "product": {
                 "product_key": r["product_key"], "variant_id": str(r["variant_id"]),
                 "name": r["product_name"], "brand": r["brand"] or "", "spec_summary": None,
                 "image_url": r["image_url"], "purchase_url": r["purchase_url"],
             },
             "price": price,
-            "price_delta": (price - int(current_price)) if price is not None and current_price is not None else None,
+            "price_delta": (price - current_price) if price is not None and current_price is not None else None,
             "review": None, "selection_allowed": elig["selection_allowed"],
         })
     return {"items": out}
@@ -624,49 +621,31 @@ def get_alternatives(conn, list_id: UUID, item_id: UUID, principal) -> dict:
 
 def swap_candidate(conn, list_id: UUID, item_id: UUID, candidate_id: str, principal, *,
                    if_match: int | None) -> dict:
-    """POST .../items/{item_id}/swap — 클라이언트가 보낸 가격/검증을 신뢰하지 않고 DB에서 다시 읽는다."""
-    from src.repo.engine_repo import EngineRepo
+    """POST .../items/{item_id}/swap — item_id(행 자체)는 고정, 다른 후보의 상품으로 바꿔치기한다
+    (develop `EngineRepo.update_candidate_variant`)."""
+    from src.repo.plan_repo import PlanRepo
     from src.services import feedback_service
 
-    revision, prepo, row = _require_baby_item(conn, list_id, item_id, principal)
+    revision, erepo, cand = _require_candidate_item(conn, list_id, item_id, principal)
     if if_match is None:
         raise ValidationFailed("If-Match(lock_version)이 필요합니다.", field="lock_version")
     if if_match != revision["lock_version"]:
         raise Conflict("조건이 변경되어 최신 상태가 아닙니다. 최신 결과를 다시 불러오세요.", code="stale_version")
 
-    spec = row.get("item_spec") or {}
-    requirement_id, run_id_raw = spec.get("requirement_id"), spec.get("run_id")
-    if requirement_id is None or run_id_raw is None:
-        raise ValidationFailed("이 항목은 교체할 수 없습니다.", field="item_id")
-
-    erepo = EngineRepo(conn)
-    cand = erepo.get_candidate(UUID(candidate_id))
-    if cand is None or str(cand["run_id"]) != run_id_raw or str(cand["requirement_id"]) != requirement_id:
+    target = erepo.get_candidate(UUID(candidate_id))
+    if (target is None or str(target["run_id"]) != str(cand["run_id"])
+            or str(target["requirement_id"]) != str(cand["requirement_id"])):
         raise ValidationFailed("이 항목의 후보가 아닙니다.", field="candidate_id", code="candidate_out_of_scope")
-    elig = erepo.get_candidate_eligibility(UUID(run_id_raw), UUID(candidate_id))
+    elig = erepo.get_candidate_eligibility(cand["run_id"], target["id"])
     if not elig["selection_allowed"]:
         raise ValidationFailed("안전성이 확인되지 않은 후보는 선택할 수 없습니다.",
                               field="candidate_id", code="selection_not_allowed")
 
-    obs_row = None
-    if cand["offer_observation_id"] is not None:
-        obs_row = prepo._one("SELECT offer_id, price FROM catalog.offer_observation WHERE id=%s",
-                             (cand["offer_observation_id"],))
-    new_spec = dict(spec)
-    new_spec.update({
-        "candidate_id": candidate_id,
-        "unit_price": int(obs_row["price"]) if obs_row and obs_row["price"] is not None else None,
-        "eligibility": elig["eligibility"],
-    })
-    prepo.upsert_basket_item(
-        revision["id"], item_id=item_id, variant_id=cand["variant_id"],
-        offer_id=(obs_row["offer_id"] if obs_row else None), offer_observation_id=cand["offer_observation_id"],
-        status=row["status"], qty=row["qty"], unit_code=row["unit_code"], unit_qty=row["unit_qty"],
-        timing=row["timing"], selected=row["selected"], item_spec=new_spec,
-    )
-    new_version = prepo.bump_lock_version(revision["id"])
+    erepo.update_candidate_variant(item_id, variant_id=target["variant_id"],
+                                   offer_observation_id=target["offer_observation_id"])
+    new_version = PlanRepo(conn).bump_lock_version(revision["id"])
     feedback_service.emit_replaced(
-        conn, plan_id=revision["plan_id"], revision_id=revision["id"], run_id=UUID(run_id_raw),
+        conn, plan_id=revision["plan_id"], revision_id=revision["id"], run_id=cand["run_id"],
         item_id=item_id, version=new_version,
     )
     return get_stored_result(conn, revision["id"])
@@ -675,30 +654,23 @@ def swap_candidate(conn, list_id: UUID, item_id: UUID, candidate_id: str, princi
 def update_item(conn, list_id: UUID, item_id: UUID, changes: dict, principal, *,
                 if_match: int | None) -> dict:
     """PATCH .../items/{item_id} — selected/qty/timing만 바꾼다. price/total/evidence는 절대 입력받지 않는다."""
+    from src.repo.plan_repo import PlanRepo
     from src.services import feedback_service
 
-    revision, prepo, row = _require_baby_item(conn, list_id, item_id, principal)
+    revision, erepo, cand = _require_candidate_item(conn, list_id, item_id, principal)
     if if_match is None:
         raise ValidationFailed("If-Match(lock_version)이 필요합니다.", field="lock_version")
     if if_match != revision["lock_version"]:
         raise Conflict("조건이 변경되어 최신 상태가 아닙니다. 최신 결과를 다시 불러오세요.", code="stale_version")
 
-    was_selected = row["selected"]
+    was_selected = cand["selected"]
     selected = changes.get("selected", was_selected)
-    qty = changes.get("qty", row["qty"])
-    timing = changes.get("timing", row["timing"])
-    prepo.upsert_basket_item(
-        revision["id"], item_id=item_id, variant_id=row["variant_id"], offer_id=row["offer_id"],
-        offer_observation_id=row["offer_observation_id"], status=row["status"], qty=qty,
-        unit_code=row["unit_code"], unit_qty=row["unit_qty"], timing=timing, selected=selected,
-        item_spec=row.get("item_spec") or {},
-    )
-    new_version = prepo.bump_lock_version(revision["id"])
-    spec = row.get("item_spec") or {}
-    if was_selected and not selected and spec.get("run_id"):
+    erepo.update_candidate_state(item_id, selected=selected, qty=changes.get("qty"), timing=changes.get("timing"))
+    new_version = PlanRepo(conn).bump_lock_version(revision["id"])
+    if was_selected and not selected:
         feedback_service.emit_removed(
             conn, plan_id=revision["plan_id"], revision_id=revision["id"],
-            run_id=UUID(spec["run_id"]), item_id=item_id, version=new_version,
+            run_id=cand["run_id"], item_id=item_id, version=new_version,
         )
     return get_stored_result(conn, revision["id"])
 

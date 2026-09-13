@@ -1,13 +1,30 @@
 ---
 task_id: "P9"
-status: "conditional"
+status: "develop_alignment_required"
 entry_gate: "O1_ready_after_dependencies; O2-O5_explicit_activation"
 depends_on: ["P0", "P3", "P5", "P7"]
-contract_version: 2
+contract_version: 3
 report_path: "docs/agent-tasks/baby/reports/P9.md"
 ---
 
 # P9 — 운영 검증·자료 처리 확장·RAG 전환 게이트
+
+## ACTIVE DB CONTRACT — develop `da79839` / v3 (2026-09-13)
+
+이 절과 [develop 전환 계약](DEVELOP_DB_TRANSITION.md), [목표 스키마](schema-v1.md)가 현재 실행 지시다. 이 문서 아래 기존 지시 중 충돌하는 DB 매핑·pgvector 유지·완전 축소 SR 승인 조건은 폐기한다. DB와 무관한 업무 규칙·API·수용 사례는 유지한다. 과거 보고서의 통과 결과는 당시 코드의 증거이며 develop 호환 완료를 뜻하지 않는다. 현재 작업 트리는 `rag`이므로 develop SQL이 이미 병합되어 있다고 가정하지 않는다. `개발 역할 분담`은 적용하지 않는다.
+
+### P9 DELTA — 새 설치·운영 전환 검증
+
+- **상태:** 현재 pgvector 유지 O1 기준은 폐기한다. P0/P3/P5/P7 산출물로 develop DB와 외부 검색 경계를 확인한다. 부하·연구 데이터 확장 등 기존 조건부 업무는 활성화 조건을 유지한다.
+- **EDIT:** 설치/적재 CLI, 운영 점검 스크립트, DB fixture, 운영 문서 및 환경 예제. 미설정 provider가 앱 import나 PC 실행을 막지 않게 한다.
+- **IMPLEMENT:** 전용 빈 DB에서 develop 체인+후속 승인 SQL→PC/baby 시드→P1~P7 사용자 흐름을 검증한다. rag 테이블이 없어도 정상적인 오류/unknown 응답으로 종료되어야 한다. 외부 검색 health/publish/search/revoke와 DB 근거의 철회·접근 재검사를 별도 점검한다. 검색 provider·자료 버전·해시를 운영 결과에 기록한다.
+- **IMPLEMENT:** 기존 서비스 truefit은 직전 보고서상 완전 축소 구조다. 실행 전 실제 파일 이력/스키마를 읽어 확인하고, 혼합 setup_all을 실행하지 않는다. 대상 DB와 폐기 가능성이 확정된 경우에만 별도 초기화 절차를 실행한다. 우선 전용 develop DB로 리허설하고 검증 후 연결 전환 및 이전 연결 복구 절차를 기록한다. 과거 초기화 허용을 미래 모든 DB 삭제 허용으로 확장하지 않는다.
+- **ACCEPTANCE D9:** 설치/재실행/PC 회귀/유아 조건→결과→확정·리포트, 외부 검색 장애/철회, 잘못된 권한/동시 편집, 재시작 후 저장 결과 복원. 실제 외부 backend 미정이면 그 검증은 blocked로 표시하고 전체 서비스 운영 준비 완료를 선언하지 않는다.
+- **VERIFY/HANDOFF:** 기존 보고서에서 변경 없는 코드+같은 환경의 결과를 참조하고, 새 DB/검색/저장 경로 및 과거 실패 지점만 재검증한다. `reports/P9.md`에 reused_evidence와 new_tests, 서비스 적용 여부를 분리해 기록한다. 전체 테스트 반복 실행을 형식적 승인 조건으로 만들지 않는다.
+
+## PREVIOUS WORK ORDER — non-conflicting business rules only
+
+이하의 날짜별 상태·구 DB 구현 실적은 과거 기록이다. 현재 상태는 위 절과 manifest를 사용한다. 아래 지시에서 완전 축소 SQL 실행, pgvector 보존, planning.item 복원, domain_version/plan_node/purchase_line 삭제, 근거 객체 저장, shared/notification 스키마 삭제를 요구하는 부분은 실행하지 않는다.
 
 ## CURRENT BASELINE / SYNC DELTA (2026-09-13)
 

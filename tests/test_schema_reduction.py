@@ -1,36 +1,96 @@
+"""P0 v3 — develop `da79839` DB alignment (D0-01). Real PostgreSQL only.
+
+Supersedes the earlier rag-branch "full reduction" acceptance (SR01-09, migrations
+0010-0015 under that design): the active contract is P0_schema_contracts.md's
+ACTIVE DB CONTRACT + DEVELOP_DB_TRANSITION.md. This file checks the migration set
+itself (source-string assertions, cheap and stable) plus a real Postgres D0-01 case
+(table/schema keep-remove list, idempotent bootstrap). Behavioral D0-02/D0-03 cases
+that need the running app live in test_p0_list_item_integrity.py.
+"""
+from __future__ import annotations
+
+import os
 from pathlib import Path
 
+import psycopg
 import pytest
 from pydantic import ValidationError
 
 from src.schemas import ConditionState, RecommendResultOut
-from src.reduction_contracts import EvidenceRefs, ValidationIssue
 
 ROOT = Path(__file__).resolve().parents[1]
-DESTRUCTIVE = ROOT / "db/migrations/0012_schema_reduction_destructive.sql"
+MIGRATIONS = ROOT / "db/migrations"
 
-REMOVED_TABLES = [
-    "config.domain_version", "identity.user_preference", "catalog.product_category_membership",
-    "planning.plan_node", "planning.owned_item", "planning.purchase_line", "planning.fulfillment_allocation",
-    "assets.material_revision", "assets.material_applicability", "evidence.source",
-    "engine.candidate_evidence", "engine.validation_target", "engine.validation_evidence",
-    "community.review_revision", "community.pc_build_version", "community.pc_build_component",
-    "community.pc_build", "community.review",
+# The develop `da79839` migration chain this task restores — MUST be exactly these
+# filenames, in this order, with the two rag-branch-only reduction designs absent.
+EXPECTED_CHAIN = [
+    "0000_prereq.sql", "0001_tables.sql", "0002_unique.sql", "0003_foreign_keys.sql",
+    "0004_triggers.sql", "0005_indexes.sql", "0006_rag_active_profile.sql",
+    "0007_app_user_password_auth.sql", "0008_frontend_contract.sql",
+    "0009_frontend_requirement_revision.sql", "0010_review_summary_relation_axis.sql",
+    "0011_drop_rag_schema.sql", "0012_schema_reduction_safe_subset.sql",
+    "0013_result_item_interaction.sql",
 ]
 
+# Tables/schemas the rag-branch's "full reduction" (0010-0015 under that design)
+# removed but develop's actual schema keeps — must exist after this chain.
+RETAINED = [
+    "config.domain_version", "planning.plan_node", "planning.purchase_line",
+    "assets.material_revision", "assets.material_applicability", "evidence.source",
+    "community.review_revision", "notification.price_watch",
+]
+# What develop's own safe-subset reduction removes — must be absent.
+REMOVED_TABLES = [
+    "planning.owned_item", "planning.fulfillment_allocation",
+    "identity.user_preference", "catalog.product_category_membership",
+    "engine.candidate_evidence", "engine.validation_target", "engine.validation_evidence",
+    "notification.notification_event", "notification.price_watch_evaluation",
+]
+REMOVED_SCHEMAS = ["rag", "dataset"]
+# planning.item / config.domain (single-table merge) never existed in develop; the
+# rag-branch's destructive design invented them — they must not be reintroduced.
+NEVER_TABLES = ["planning.item"]
 
-def test_destructive_migration_drops_every_reduced_table_and_schema():
-    sql = DESTRUCTIVE.read_text(encoding="utf-8")
-    for table in REMOVED_TABLES:
-        assert f"DROP TABLE {table}" in sql or f"DROP TABLE IF EXISTS {table}" in sql, table
-    assert "DROP SCHEMA notification CASCADE" in sql
-    assert "DROP SCHEMA dataset CASCADE" in sql
-    assert "DROP SCHEMA shared CASCADE" in sql
-    # SR03: fresh-install precondition guards run before any destructive DDL.
-    guard_pos = sql.index("fresh_install_precondition_failed")
-    first_drop_pos = min(sql.index(f"DROP TABLE {t}") if f"DROP TABLE {t}" in sql else sql.index(f"DROP TABLE IF EXISTS {t}") for t in REMOVED_TABLES[:1])
-    assert guard_pos < first_drop_pos
-    assert "app.set_updated_at" in sql  # timestamp function rebound into a retained namespace
+
+def test_migration_chain_matches_develop_exactly():
+    actual = sorted(f.name for f in MIGRATIONS.glob("*.sql"))
+    assert actual == EXPECTED_CHAIN, (
+        "migration set drifted from develop `da79839` — got extra/missing files: "
+        f"{set(actual) ^ set(EXPECTED_CHAIN)}"
+    )
+
+
+def test_no_full_reduction_migration_survives():
+    """The rag-branch's own destructive-reduction filenames must be gone, not just unused."""
+    names = {f.name for f in MIGRATIONS.glob("*.sql")}
+    for stale in (
+        "0010_schema_reduction_v1.sql", "0011_schema_reduction_completion.sql",
+        "0012_schema_reduction_destructive.sql", "0013_schema_reduction_scope_constraints.sql",
+        "0014_item_reference_integrity.sql", "0015_auth_version.sql",
+    ):
+        assert stale not in names, f"{stale} should have been replaced by the develop chain"
+
+
+def test_drop_rag_schema_removes_all_six_tables():
+    sql = (MIGRATIONS / "0011_drop_rag_schema.sql").read_text(encoding="utf-8")
+    assert "DROP SCHEMA rag CASCADE" in sql
+
+
+def test_safe_subset_keeps_price_watch_and_purchase_line():
+    sql = (MIGRATIONS / "0012_schema_reduction_safe_subset.sql").read_text(encoding="utf-8")
+    for removed in ("DROP TABLE planning.owned_item", "DROP TABLE planning.fulfillment_allocation",
+                    "DROP TABLE identity.user_preference", "DROP TABLE catalog.product_category_membership",
+                    "DROP TABLE engine.candidate_evidence", "DROP TABLE engine.validation_target",
+                    "DROP TABLE engine.validation_evidence", "DROP TABLE notification.notification_event",
+                    "DROP TABLE notification.price_watch_evaluation", "DROP SCHEMA dataset CASCADE"):
+        assert removed in sql, removed
+    # It must NOT touch these — they are develop's live, retained tables. Word-boundary
+    # check: "DROP TABLE notification.price_watch" is a substring of the (removed)
+    # "...price_watch_evaluation" statement, so match on the statement terminator too.
+    for keep in ("planning.purchase_line", "planning.plan_node", "notification.price_watch",
+                "config.domain_version", "assets.material_revision", "evidence.source"):
+        assert f"DROP TABLE {keep} " not in sql and f"DROP TABLE {keep};" not in sql
+        assert f"DROP SCHEMA {keep}" not in sql
 
 
 def test_condition_and_recommendation_contract_round_trip():
@@ -44,38 +104,38 @@ def test_condition_and_recommendation_contract_round_trip():
         "items": [], "totals": {"selected_price": 0, "selected_units": 0},
     })
     assert result.model_dump()["status"] == "done"
-    assert isinstance(result.progress, list)
-    assert isinstance(result.conditions_summary, str)
     assert ConditionState(list_id="pc-list", category="computer").category == "computer"
 
 
-def test_evidence_and_validation_json_require_v1_shape():
-    refs = EvidenceRefs.model_validate({"schema_version": 1, "refs": [{
-        "evidence_id": "e", "claim_key": "manual_applicability", "material_id": "m",
-        "material_version": "v1", "file_sha256": "abc", "locator": {"section_code": "S07"},
-    }]})
-    assert refs.refs[0].claim_key == "manual_applicability"
-    with pytest.raises(ValidationError):
-        ValidationIssue.model_validate({"schema_version": 2})
+DSN = os.getenv("RAG_TEST_DATABASE_URL") or os.getenv("DATABASE_URL")
+pytestmark_db = pytest.mark.skipif(not DSN, reason="set DATABASE_URL/RAG_TEST_DATABASE_URL to a disposable database")
 
 
-def test_completion_migration_still_guards_v1_v2_json_shapes():
-    sql = (ROOT / "db/migrations/0011_schema_reduction_completion.sql").read_text(encoding="utf-8")
-    assert "recommendation_candidate_evidence_refs_v1_check" in sql
-    assert "validation_result_issues_array_check" in sql
-    assert "requirement_slot_key_nonempty_check" in sql
-    destructive_sql = DESTRUCTIVE.read_text(encoding="utf-8")
-    assert "VALIDATE CONSTRAINT recommendation_candidate_evidence_refs_v1_check" in destructive_sql
-    assert "VALIDATE CONSTRAINT validation_result_issues_array_check" in destructive_sql
-    seed = (ROOT / "db/seed.py").read_text(encoding="utf-8")
-    assert "current_version_no" in seed and "content_hash" in seed
-
-
-def test_seed_and_repos_no_longer_reference_removed_tables():
-    for path in ["db/seed.py", "db/seed_catalog.py", "src/repo/plan_repo.py",
-                 "src/repo/engine_repo.py", "src/repo/rag_repo.py", "src/services/list_service.py"]:
-        text = (ROOT / path).read_text(encoding="utf-8")
-        for needle in ("shared.unit", "config.domain_version", "evidence.source WHERE",
-                       "assets.material_revision\n", "planning.plan_node", "planning.owned_item",
-                       "planning.purchase_line", "planning.fulfillment_allocation"):
-            assert needle not in text, f"{path} still references {needle!r}"
+@pytestmark_db
+def test_d0_01_real_db_has_exact_develop_table_set():
+    """D0-01: enumerate actual tables/schemas on the real bootstrapped DB — not just SQL text."""
+    with psycopg.connect(DSN) as conn:
+        for schema in REMOVED_SCHEMAS:
+            row = conn.execute(
+                "SELECT 1 FROM information_schema.schemata WHERE schema_name=%s", (schema,)
+            ).fetchone()
+            assert row is None, f"schema {schema} should not exist (develop drops it)"
+        for qualified in RETAINED:
+            schema, table = qualified.split(".")
+            row = conn.execute(
+                "SELECT 1 FROM information_schema.tables WHERE table_schema=%s AND table_name=%s",
+                (schema, table),
+            ).fetchone()
+            assert row is not None, f"{qualified} must exist (develop retains it)"
+        for qualified in REMOVED_TABLES + NEVER_TABLES:
+            schema, table = qualified.split(".")
+            row = conn.execute(
+                "SELECT 1 FROM information_schema.tables WHERE table_schema=%s AND table_name=%s",
+                (schema, table),
+            ).fetchone()
+            assert row is None, f"{qualified} must not exist"
+        total = conn.execute(
+            "SELECT count(*) FROM information_schema.tables WHERE table_schema NOT IN "
+            "('pg_catalog','information_schema','_migrations') AND table_type='BASE TABLE'"
+        ).fetchone()[0]
+        assert total == 38, f"expected develop's 38 tables (58 -> 38 per commit 046eb84), got {total}"

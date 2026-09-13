@@ -1,132 +1,39 @@
-# Baby schema v1 — P0 v4 (scope/JSON enforcement complete)
+# Baby target schema — develop alignment v3
 
-Execution policy: `fresh_database_no_legacy_data_migration` (see [P0 work order](P0_schema_contracts.md)). This
-supersedes the prior v1/v2 staging reports below the divider — those describe the intermediate
-0010/0011 staging migrations, which are still applied (forward-only) but are no longer the final
-schema. `db/migrations/0012_schema_reduction_destructive.sql` completes the reduction: obsolete
-structures are dropped, replacement columns are made `NOT NULL`/validated, and 0011's `NOT VALID`
-constraints are validated. `db/migrations/0013_schema_reduction_scope_constraints.sql` (v4) closes
-the last two SR gaps the v3 report left open: the domain snapshot now always carries the rules of
-the category that was actually chosen (SR07), and the v1 JSON contracts, revision scope and
-evidence run scope are enforced by the database rather than only by convention (SR08).
+파일명은 기존 링크 호환을 위해 유지한다. **목표 기준은 develop `da79839`이며 아래 매핑은 구현할 계약이다. 현재 rag/서비스 DB가 이미 이 형태라는 선언이 아니다.** 이전35테이블·pgvector 유지·item 통합 설계는 폐기한다. 상세 JSON·동시성·SQL 전환은 [전환 계약](DEVELOP_DB_TRANSITION.md)을 따른다.
 
-## What 0013 adds (v4)
+| 기능 | develop 목표 저장 위치 | 유아 코드 변경 |
+|---|---|---|
+| 도메인 규칙 | config.domain + domain_version | revision/run의 domain_version_id 사용; 정의/해시는 버전에서 읽음 |
+| 세션/조건 | identity.conversation/message, planning.plan/plan_revision/plan_condition | 조건·게스트 소유권 유지; 조건 변경 lock_version |
+| 슬롯/필요량 | planning.plan_node + requirement | template_key→DTO.slot_key; node_id 필수; quantity/unit_code/required와 match_spec.baby_requirement v3 |
+| 보유량 | plan_condition 원본 + requirement.match_spec v3 | planning.item/owned_item/fulfilled_by_item_id 없음; fulfilled_qty와 조건 출처로 계산 |
+| 추천/검증 | engine.recommendation_run/candidate/validation_result | domain_version_id, candidate.selected/qty/timing, 근거/issue JSON 배열 |
+| 확정 구매 | planning.purchase_line | pack_count/line_amount/snapshot; 보유품 제외; 관측값 범위 검사 |
+| 확정 보고의 조건/보유/합계 | completed run.input_snapshot.baby_confirmation | P7에서 한 번 고정; 이전 입력 키 보존; 과거 리포트는 snapshot만 읽음 |
+| 상품 분류/단위 | catalog.product.category_id; 각 unit_code 컬럼 | membership/shared.unit 제거; 코드 단위 사전으로 검증 |
+| 설명서 | assets.file_object/product_material/material_revision/material_applicability | 통합 product_material 컬럼 가정 제거; 게시 revision·권한·상품 범위 검사 |
+| 출처/근거 | evidence.source + evidence.evidence | source_id 유지; 외부 검색 hit adapter 필요; 조회 때 유효성 재검사 |
+| 후기 | community.review/review_revision 및 기존 pc_build 계열 | review_revision에 본문/평점/검수; 통합 review_component 가정 제거 |
+| 요약/집계 | evidence.review_subject/summary/aggregate/member | domain_version별 분리; author_ref/review_posted_at 유지 |
+| 계정 설정 | identity.app_user.ui_settings/notification_settings | user_preference 제거; develop iat 인증 방식으로 연결 |
+| 기존 가격 알림 | notification.price_watch | 기존 develop 동작/참조 보존; 유아 발송 기능 신규 구현을 의미하지 않음 |
+| 행동 기록 | engine.feedback_event | run/revision/candidate 범위 검사 유지 |
+| RAG 청크/벡터/적재·검색 이력 | 외부 검색 provider | PostgreSQL rag 없음; 실제 backend 통합은 P3-D3-02 게이트 |
+| 연구/정제 데이터 | 파일 | dataset 스키마 복원 금지 |
+| 수정 시각 트리거 | shared.set_updated_at() | shared 스키마는 유지, unit 테이블만 제거 |
 
-| Gate | Enforcement |
-|---|---|
-| SR07 category binding | `PlanRepo.bind_domain(revision_id, code)`, called by `session_service.choose_category`, re-points `plan_revision.domain_id`/`domain_snapshot` at the **chosen** category's published domain. Before v4 the revision kept whatever `create_session` happened to pick (`ORDER BY updated_at DESC`), so a baby session snapshotted computer's rules — or the RAG evaluation fixture's empty definition and all-zero hash. `create_session` now restricts its placeholder pick to codes that have a `config/categories/*.yaml` file, deterministically. |
-| SR07 snapshot content | `plan_revision_domain_snapshot_v1_check` / `recommendation_run_domain_snapshot_v1_check` (`app.domain_snapshot_v1_valid`) reject an empty `definition`, an empty/all-zero `content_hash`, or a non-object `attribute_schema`. `domain_published_definition_check` stops an `active` domain from existing without a real definition. |
-| SR08 snapshot immutability | `freeze_domain_snapshot` triggers. `engine.recommendation_run.domain_snapshot` is immutable outright; `planning.plan_revision.domain_snapshot` may change only while the revision is `draft` **and** no run references it — i.e. exactly the category-choice window. |
-| SR08 ref item contract | `recommendation_candidate_evidence_refs_items_check` (`app.evidence_refs_v1_valid`) requires every element of `refs` to carry non-empty `evidence_id`, `claim_key`, `material_id`, `material_version`, `file_sha256` and an object `locator`, and rejects duplicate `(evidence_id, claim_key)` pairs. `validation_result_issues_items_check` applies the same item rules to `issues[].evidence_refs` and additionally requires `schema_version=1`, non-empty `rule_key`/`rule_version`, `status IN (pass,fail,unknown)` and an object `target`. |
-| SR08 revision scope | `engine.recommendation_candidate.revision_id` (new, `NOT NULL`, set by the `candidate_revision_from_run` trigger from the run — the application cannot set or change it) plus two composite FKs: `rec_candidate_run_revision_fk → recommendation_run(id, revision_id)` and `rec_candidate_requirement_revision_fk → planning.requirement(id, revision_id)`. A candidate can no longer point at another revision's requirement. |
-| SR08 evidence run scope | `candidate_evidence_scope` trigger: every `evidence_id` in `refs` must exist, and a `kind='material'` evidence must come from a `rag.retrieval_run` whose `recommendation_run_id` is this candidate's run. Structurally invalid refs are left to the CHECK so the error names the real violation. |
-| SR08 seed publication | `db/seed.upsert_domain` raises `PublishedDomainDemotion` when asked to move an already-published domain to `draft`/`disabled` or to publish an empty definition. Both category domains are now seeded `active` — that row is the published condition-conversation rule set the runtime copies. Baby's unfinished recommendation engine (`status: stub` in `baby.yaml`) stays a separate gate and remains 501 until P5. |
-| Evidence metadata | `EngineRepo.link_candidate_evidence`/`link_validation_evidence` now resolve `material_id`, `material_version`, `file_sha256` and `locator` from `evidence.evidence` → `rag.retrieval_hit` → `rag.document_chunk` → `rag.ingestion_job` and de-duplicate on `(evidence_id, claim_key)`. Previously they wrote `{evidence_id, claim_key}` only and appended blindly. |
-| RAG evaluation fixture | `scripts/rag_manual.create_test_run` creates `rag-evaluation-baby` as `status='disabled'` with a real definition/hash and real snapshots, so it satisfies the snapshot contract and can never be picked as a runtime category. |
+## P0 schema assertions
 
-## Verified result (real disposable PostgreSQL/pgvector, not a mock)
+최종 DB에서 domain_version, plan_node, purchase_line, material_revision, material_applicability, evidence.source, review_revision, price_watch가 존재해야 한다. rag/dataset 스키마와 planning.item/owned_item/fulfillment_allocation, identity.user_preference, shared.unit, catalog.product_category_membership, engine.candidate_evidence/validation_target/validation_evidence, notification.notification_event/price_watch_evaluation은 없어야 한다. 컬럼·FK·CHECK·트리거·JSON 기본값도 검사한다. develop의 설명상38테이블은 참고값이며 실제 수와 migration ledger를 보고서에 기록한다.
 
-- `uv run python db/setup_all.py` against an empty disposable DB applies `0000`–`0013`, then seeds
-  domain rows and the 51-part computer catalog. A second run is a no-op on migrations and does not
-  duplicate seed identities (idempotent).
-- Table count: **35** (12→8 schemas: `notification`, `dataset`, `shared` fully removed;
-  `config`=1, `identity`=3, `catalog`=7, `planning`=5, `assets`=2, `rag`=6 retained per contract,
-  `community`=2, `evidence`=5, `engine`=4).
-- `uv run python -m pytest -q` (SQL tests enabled, `DATABASE_URL`/`RAG_TEST_DATABASE_URL` pointed at
-  the disposable DB): **100 passed, 3 subtests passed, 0 skipped, 0 failed** (71 before v4 + 29 new
-  behavioral cases in `tests/test_schema_reduction_db.py`).
-- `uv run python scripts/rag_manual.py evaluate --provider local-test --new-test-run` on the reduced
-  schema: **21/21** synthetic manual cases pass (`generated/rag/reduced_schema_evaluation_v4.json`).
-- Real HTTP walk (uvicorn against the disposable DB): guest `POST /session` → `POST .../category`
-  (computer) → `POST .../answer` (purpose) → `POST .../message` (budget) → `POST .../answer`
-  (priority) → `POST .../recommend` (202 `{run_id,status:running}`, real `BackgroundTasks`) →
-  `GET .../result` → `status:"done"`, **8 items**, `totals.selected_price=1,493,000`.
-  Row inspection on that run: bound domain `computer`, `domain_snapshot->>'content_hash'` equals
-  `config.domain.content_hash`, `domain_snapshot->'definition'` equals the domain definition
-  (2,923 bytes, not `{}`), run snapshot matches the same hash, **8** requirements with a non-null
-  `slot_key` and **0** null, **8** candidates all carrying `revision_id` = the session's revision
-  and **0** out of scope. The same walk with `category=baby` binds the **baby** domain and hashes;
-  its `POST /recommend` returns **501**, expected until P5/P2 land real rules.
-- SR03 fresh-install precondition, proven destructively: applying `0000`–`0011` on a disposable DB,
-  inserting a `config.domain` row that bypasses the 0010 backfill (simulating an un-migrated legacy
-  install), then running `0012` via `db/migrate.py up` fails atomically with
-  `fresh_install_precondition_failed: config.domain has rows not mirrored from domain_version; run
-  0010 backfill first` — table count stays at 60 (pre-0012 shape) and `0012` is not recorded in
-  `_migrations.schema_migrations`. The chain then applies cleanly again on a fresh disposable DB.
+JSON은 FK를 자동 제공하지 않는다. run/requirement/revision 관계, 상품·관측값·출처 범위, 보유 조건의 소유권, 선택 수량·단위, 근거 철회를 P0 공통 저장소 및 업무 트랜잭션에서 검증한다. 필요 제약은 유지 테이블에만 후속 추가한다. 구0013/0014의 검증 의도를 버리지 않되 삭제된 테이블/컬럼 제약 자체를 복원하지 않는다.
 
-## Physical column mapping (target = current schema after 0012)
+## 실측 결과 (이 파일이 아니라 reports/P0.md "2026-09-13 v3" 절이 근거)
 
-| Contract concept | Physical location |
-|---|---|
-| domain current definition | `config.domain.current_version_no/definition/attribute_schema/content_hash` (single row per domain; `config.domain_version` table removed). Per-revision/run snapshots are frozen at creation time in `planning.plan_revision.domain_snapshot` and `engine.recommendation_run.domain_snapshot` — later domain edits never mutate an existing snapshot. |
-| user preferences | `identity.app_user.ui_settings`, `preference_export` (notification-only settings excluded from the live path; `identity.user_preference` removed). |
-| unit / dimensional metadata | `catalog.product_variant.unit_code/unit_qty/pack_quantity`, `planning.item.unit_code/unit_qty`, `planning.requirement.unit_code`, `catalog.offer_observation` — plain text/columns, no FK to `shared.unit` (schema `shared` removed; `app.set_updated_at()` replaces `shared.set_updated_at()` for every surviving trigger). |
-| category | `catalog.product.category_id` → `catalog.product_category(id)` (real FK; `catalog.product_category_membership` removed). |
-| requirement slots | `planning.requirement.slot_key/group_key/position/fulfilled_by_item_id`; `planning.plan_node` removed, `requirement.node_id` dropped. `PlanRepo.ensure_requirement(revision_id, slot_key, match_spec)` manages rows directly by slot key. |
-| owned/purchase lines | `planning.item(status IN owned/to_purchase/purchased, qty, unit_code, unit_qty, timing, selected, price_observation, item_spec)`; `planning.owned_item`/`purchase_line`/`fulfillment_allocation` removed. |
-| material current version | `assets.product_material(file_object_id, version, source_url, language, retrieved_at, material_status, status, applicability jsonb[], active_ingestion_id, source_name, source_type)` — single current row, no revision history table. `assets.material_revision`/`material_applicability` removed. `rag.ingestion_job.material_id/material_version` link RAG ingestion directly to the material (its own `revision_id` column, which pointed at `material_revision`, is removed). |
-| evidence source | `evidence.evidence.source_name/source_type/source_base_url/source_rating_scale` (no `source_id` FK; `evidence.source` removed). `catalog.offer_observation.source_name/source_type` and `evidence.review_summary.source_name/source_type` denormalized the same way. |
-| candidate references | `engine.recommendation_candidate.evidence_refs` — `{schema_version:1,refs:[{evidence_id,claim_key,material_id,material_version,file_sha256,locator,retrieval_run_id?}]}`; envelope + per-item keys + `(evidence_id, claim_key)` uniqueness all `CHECK`-validated (0011 + 0013), evidence existence/run scope enforced by trigger. `engine.candidate_evidence` removed; `EngineRepo.link_candidate_evidence` updates the jsonb column directly and de-duplicates. |
-| candidate revision scope | `engine.recommendation_candidate.revision_id` — derived from the run by trigger, `NOT NULL`, composite-FK'd to both `recommendation_run(id, revision_id)` and `planning.requirement(id, revision_id)`. |
-| validation targets/evidence | `engine.validation_result.issues` — typed array (`ValidationIssue` shape); array type, per-issue `schema_version`/`rule_key`/`rule_version`/`status`/`target` and nested `evidence_refs` item rules all `CHECK`-validated (0011 + 0013). `engine.validation_target`/`validation_evidence` removed; `EngineRepo.link_validation_target`/`link_validation_evidence` update `issues[0].target`/`issues[0].evidence_refs` directly (same call signature as before, minus `purchase_line_id`). |
-| community review / PC build | Two target tables: **`community.review`** (`record_type` `review`\|`build`; `domain`, `author_user_id`, `subject_id`, `title`, `body`, `rating`, `axis_scores`, `usage_context`, `attributes` jsonb, `visibility`, `status`, `moderation_status`, `published_at`, `source_plan_revision_id`) and **`community.review_component`** (`review_id`, `slot_key`, `position`, `variant_id`, `quantity`, `component_snapshot`) — folds `pc_build`+`pc_build_version` (as `record_type='build'`, generic attributes jsonb) and `review`+`review_revision` (as `record_type='review'`) into one row each; `pc_build_component` renamed to `review_component`. `evidence.review_subject.build_version_id` and `evidence.review_summary.review_id` now point at `community.review(id)`. |
-| notification, dataset | Schemas fully dropped (`DROP SCHEMA notification CASCADE`, `DROP SCHEMA dataset CASCADE`); `src/repo/notification_repo.py`, `src/repo/dataset_repo.py`, `src/services/notification_service.py`, `src/workers/notification_worker.py` deleted (nothing imported them). `catalog.offer_observation`/`review_aggregate` (operational price/review observations) and `engine.feedback_event` are retained. |
-| mapping table | `config.schema_reduction_mapping` dropped in `0012` — unused once the fresh-database policy replaced old-row mapping/preservation gates. |
-
-## Supported P0 repository signatures
-
-- `PlanRepo.published_domain(code) -> dict | None` (the only runtime path to published rules),
-  `PlanRepo.bind_domain(revision_id, code) -> UUID` (category choice re-binds domain + snapshot;
-  raises `Conflict` once the revision is no longer `draft`).
-- `db.seed.upsert_domain(cur, code, name, status, definition) -> "created"|"unchanged"|"updated"`,
-  raising `db.seed.PublishedDomainDemotion` on a demotion or an empty published definition.
-- `src.categories.available_categories() -> list[str]` — codes that have a definition file.
-- `PlanRepo.new_revision(plan_id, domain_id, name_snapshot)`, `PlanRepo.ensure_requirement(revision_id, slot_key, match_spec, *, group_key=None, position=0)`, `PlanRepo.load_full(revision_id)`.
-- `EngineRepo.start_run(revision_id, domain_id, *, input_snapshot, input_hash, draft_lock_version, engine_versions)` (writes `domain_snapshot` from `config.domain` inside the same statement); `link_candidate_evidence`, `link_validation_target(*, requirement_id=None, candidate_id=None, item_id=None)`, `link_validation_evidence` all update jsonb columns, no join tables.
-- `RagRepo.publish_manual/search/record_hits/resolve_evidence/revoke_material/process_job` — same public signatures as before; internals now read/write `assets.product_material` directly instead of joining `material_revision`/`material_applicability`, and `evidence.evidence.source_name/source_type` instead of joining `evidence.source`.
-- `ProductRepo.add_observation(offer_id, *, source_name, source_type, observed_at, price, stock_status, quality_status, pricing_terms=None)` — `source_id` positional arg removed.
-- HTTP types unchanged: `src.schemas.ConditionState`, `RecommendAcceptedOut`, `RecommendResultOut`, `ItemOut`; JSON storage types `src.reduction_contracts.EvidenceRefs`/`ValidationIssue`.
-
-## Behavioral test coverage for SR01–SR08
-
-`tests/test_schema_reduction.py` keeps the migration-file assertions; `tests/test_schema_reduction_db.py`
-(new, 29 cases, gated on `RAG_TEST_DATABASE_URL`) executes the gates against a real database:
-SR01 live table enumeration + trigger namespace + no pending migration; SR02 re-seed idempotence,
-demotion refusal, published-definition CHECK; SR03 creates its own uuid-named rehearsal database,
-applies `0000`–`0011`, plants an un-backfilled legacy row, and asserts `0012` fails with
-`fresh_install_precondition_failed` leaving the table count and migration ledger untouched (then
-drops only that database); SR07 per-category binding over the real service path, run snapshot match,
-non-category domains unreachable, `slot_key` contract; SR08 malformed/duplicate refs and issues,
-cross-revision requirement, derived `revision_id`, snapshot survival across a rule change, empty
-snapshot rejection, full evidence metadata + dedup on real ingested evidence, cross-run evidence and
-unknown evidence rejection.
-
-## Known remaining gaps (explicitly not claimed complete)
-
-- Baby recommendation pipeline itself (rule application, catalog rows) is P2/P5 scope; `run_from_scenario`/`start_recommendation` still raise `NotImplementedError` for `category != "computer"`.
-- `community.review`/`review_component` and `src/repo/review_repo.py` are structurally migrated but the review-authoring/aggregation business logic remains `NotImplementedError` (P8 scope) — this task only proves the schema merge is safe and the stubs compile against it.
-- `src/repo/material_repo.py` (`MaterialRepo`, `SourceRepo`, `EvidenceRepo`) stays unused `NotImplementedError` scaffolding; nothing imports it, so it is dead code carried forward, not a live SQL path.
-
----
-
-## Historical (pre-destructive) staging record — superseded by the section above
-
-`0010_schema_reduction_v1.sql` / `0011_schema_reduction_completion.sql` were forward-only staging
-migrations that added replacement columns and backfilled them while the legacy tables (created by
-`0001_tables.sql`) were still present and readable. That staged/dual-write state is what the
-2026-09-13 v1/v2 reports below describe. `0012_schema_reduction_destructive.sql` (this task) is what
-actually drops the legacy structures once the fresh-database policy removed the old-row
-preservation/mapping gate that previously blocked it. Do not read the paragraphs below as the
-current schema — see the physical mapping table above instead.
-
-`0010_schema_reduction_v1.sql` is a forward-only staging migration. RAG remains PostgreSQL/pgvector (six RAG tables), per the controlling contract.
-
-Migration guards reject multiple category memberships and multi-item fulfilment before any destructive operation. A reviewed mapping record belonged in `config.schema_reduction_mapping`, which is now removed — the fresh-database policy replaced that gate.
-
-## Current limitations (as of the destructive migration)
-
-See [sync audit](reports/sync-2026-09-13.md) for the pre-0012 history. As of v4: actual table count is 35 (not 58, not 60); `notification`/`dataset`/`shared` schemas and every table listed in `P0_schema_contracts.md`'s removal table are gone; both seeded domains are `active` with a real definition and hash; PC `requirement.slot_key` values are populated by real writes (verified via the HTTP walk above), not left null; and the revision/run domain snapshot is now proven to match the chosen category's published rules rather than an arbitrary active domain.
-
-## 0014 item reference integrity (2026-09-13)
-
-planning.item now references plan_revision and product_variant. Composite FKs bind (offer_id, variant_id) to catalog.offer and (offer_observation_id, offer_id) to catalog.offer_observation; dependent IDs require their parent IDs. requirement.(fulfilled_by_item_id, revision_id) references item.(id, revision_id), preventing missing/cross-revision fulfillment and parent-key changes that break existing references. All constraints validate existing rows; no silent deletion. See [fix report](reports/P0-fixes-2026-09-13.md).
+이 파일의 위 단정문은 전부 실제 디스포저블 PostgreSQL에서 재확인됐다 — 정확한 명령·출력·남은
+과제는 [`reports/P0.md`](reports/P0.md)의 "2026-09-13 v3 — develop `da79839` DB 정렬" 절을
+근거로 본다. 요약: 테이블 38개, 위 단정 전부 통과, 전체 테스트 213 passed/12 explained-failed
+(P2 유아 저장 경로, 이 문서 범위 밖)/30 skipped(P3 외부 검색 27 + 선택적 의존성 2 + 1), 실 HTTP로
+PC 세션→추천→편집→확정→리포트 재현 완료. 이 문서 자체를 "완료 증거"로 인용하지 말 것 — 물리
+계약 정의일 뿐이다.

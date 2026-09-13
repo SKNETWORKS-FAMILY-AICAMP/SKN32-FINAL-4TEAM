@@ -1,13 +1,34 @@
 ---
 task_id: "P3"
-status: "pending_baby_integration"
+status: "develop_alignment_required"
 entry_gate: "ready_after_dependencies"
 depends_on: ["P0", "P2"]
-contract_version: 2
+contract_version: 3
 report_path: "docs/agent-tasks/baby/reports/P3.md"
 ---
 
 # P3 — 후보 안전 조건·설명서 검증·근거 연결
+
+## ACTIVE DB CONTRACT — develop `da79839` / v3 (2026-09-13)
+
+이 절과 [develop 전환 계약](DEVELOP_DB_TRANSITION.md), [목표 스키마](schema-v1.md)가 현재 실행 지시다. 이 문서 아래 기존 지시 중 충돌하는 DB 매핑·pgvector 유지·완전 축소 SR 승인 조건은 폐기한다. DB와 무관한 업무 규칙·API·수용 사례는 유지한다. 과거 보고서의 통과 결과는 당시 코드의 증거이며 develop 호환 완료를 뜻하지 않는다. 현재 작업 트리는 `rag`이므로 develop SQL이 이미 병합되어 있다고 가정하지 않는다. `개발 역할 분담`은 적용하지 않는다.
+
+### P3 DELTA — RAG 제거 후 검증·근거 연결
+
+- **상태:** 가장 큰 전환 대상. 과거 pgvector 21/21 및 P3 DB 통과는 새 설계의 검색 완료 증거가 아니다. P0/P2의 저장 매핑을 먼저 사용한다.
+- **EDIT:** `src/rag/{service,verification,ingestion,evidence_search,contracts}.py`, `src/repo/{rag,material,engine}_repo.py`, `src/engine/stage3c_verify.py`, 검색 설정/CLI 및 `tests/test_baby_verification.py`, `tests/test_rag*.py`.
+- **IMPLEMENT:** `rag.*` SQL 실행을 서비스·적재·평가 진입점에서 제거한다. 신규 검색 provider Protocol은 `publish(document)->external_document_id`, `search(query,filters)->hits`, `resolve(hit_id)->hit|None`, `revoke(document_id)`를 제공한다. hit에는 provider/외부 hit ID/material_revision_id/product_id/variant_id/file_sha256/locator/text/corpus가 필요하다. 청크·벡터·검색 로그는 외부 provider 책임이고 PostgreSQL에는 선택된 결론과 출처만 쓴다. backend 미설정 시 명시적 unavailable을 반환하고 필수 검증은 unknown/selection_allowed=false로 마친다. 고정 성공값이나 기존 pgvector로의 암묵적 fallback은 금지한다.
+- **IMPLEMENT:** 실제 backend 제품·접속 설정은 현재 코드에서 확인되지 않았다. 우선 provider 경계·미설정 경로·메타데이터 검증을 구현할 수 있다. 실제 외부 backend 선택/설정과 publish→search→resolve→revoke 통합 증거가 확보되기 전 D3-02와 P3 전체 완료는 blocked로 남긴다. 인터페이스 목 테스트로 그 게이트를 대신하지 않는다.
+- **IMPLEMENT:** material은 product_material→material_revision→file_object 및 material_applicability로 확인한다. 삭제된 rag FK가 남긴 `active_ingestion_id`를 게시 여부로 신뢰하지 않는다. source_id를 통해 evidence.source를 조회한다. 조회 때 원문 revision의 published/권한/상품·옵션 적용/해시/철회 여부를 다시 검사한다.
+- **IMPLEMENT:** evidence.kind=material 행의 retrieval_hit_id는 develop에 남은 UUID 컬럼과 CHECK를 준수한다. 공급자의 임의 문자열 ID를 UUID로 강제 변환하지 않는다. 앱이 발행한 UUID를 이 필드에 쓰고 facts에 provider/external_hit_id/material_revision_id/file_sha256을 보존한다. 실제 검색 hit가 없으면 material 근거를 생성하지 않는다. 외부 URL 사실은 external_fact의 별도 CHECK를 따른다. citation_snapshot에는 원문 위치와 당시 출처를 저장한다.
+- **IMPLEMENT:** candidate.evidence_refs에는 v3 배열을, validation_result.issues에는 target(candidate_id,requirement_id) 포함 배열을 쓴다. JSON 저장 전에 run→revision→requirement 및 제품 범위를 재검사한다. 검증과 설명 근거를 분리하고 미확인 인증·설명서 규칙은 unknown으로 유지한다.
+- **ACCEPTANCE D3-01:** rag 스키마가 없는 DB에서도 앱/PC/유아 오류 처리 정상; provider 미설정/타임아웃은 unknown 및 선택 금지; JSON 배열 저장/재조회, 다른 run/상품 근거 거부; 철회 후 원문 비공개.
+- **ACCEPTANCE D3-02:** 실제 외부 backend에 자료 게시·검색·원문 위치 일치·제품/옵션 범위 제한·철회·재시작 후 복원까지 확인. synthetic 설명서 실적과 실제 상품의 검증 범위를 구분한다.
+- **HANDOFF:** `reports/P3.md`에 D3-01과 D3-02를 별도로 기록한다. P5는 미설정 상태를 표시할 수 있지만 이것을 검증 가능한 추천 완료로 보고하지 않는다.
+
+## PREVIOUS WORK ORDER — non-conflicting business rules only
+
+이하의 날짜별 상태·구 DB 구현 실적은 과거 기록이다. 현재 상태는 위 절과 manifest를 사용한다. 아래 지시에서 완전 축소 SQL 실행, pgvector 보존, planning.item 복원, domain_version/plan_node/purchase_line 삭제, 근거 객체 저장, shared/notification 스키마 삭제를 요구하는 부분은 실행하지 않는다.
 
 ## REVIEW FIXES — 2026-09-13
 

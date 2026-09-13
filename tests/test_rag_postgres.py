@@ -23,9 +23,28 @@ from src.repo.rag_repo import RagRepo
 ROOT = Path(__file__).resolve().parents[1]
 BUNDLE = ROOT / "generated/synthetic_manuals/stroller_example"
 DSN = os.getenv("RAG_TEST_DATABASE_URL")
+
+
+def _rag_schema_present() -> bool:
+    if not DSN:
+        return False
+    try:
+        with psycopg.connect(DSN, connect_timeout=5) as probe:
+            row = probe.execute(
+                "SELECT 1 FROM information_schema.schemata WHERE schema_name='rag'"
+            ).fetchone()
+            return row is not None
+    except psycopg.OperationalError:
+        return False
+
+
+# P0 v3 (develop `da79839` alignment): `0011_drop_rag_schema.sql` removes the `rag`
+# schema this suite drives end-to-end — RAG moves to an external search provider
+# whose boundary/adapter is P3-D3-01/D3-02, not yet implemented. Skip cleanly instead
+# of erroring on every case once the schema is actually gone from the target DB.
 pytestmark = pytest.mark.skipif(
-    not DSN,
-    reason="set RAG_TEST_DATABASE_URL to a disposable migrated pgvector database",
+    not _rag_schema_present(),
+    reason="rag schema removed (P0 v3 develop alignment); P3 external search adapter pending",
 )
 
 

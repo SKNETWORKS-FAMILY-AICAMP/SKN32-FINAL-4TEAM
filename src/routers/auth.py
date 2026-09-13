@@ -28,6 +28,18 @@ def _client_key(request: Request) -> str:
     return request.client.host if request.client else "unknown"
 
 
+@router.post("/request-code")
+def request_code(body: schemas.RequestCodeIn) -> dict:
+    auth_service.request_login_code(body.email)
+    return {"ok": True}
+
+
+@router.post("/verify", response_model=schemas.TokenOut, include_in_schema=False)
+def verify(body: schemas.VerifyCodeIn) -> schemas.TokenOut:
+    """코드 검증 → JWT + browser_token 병합."""
+    raise NotImplementedError
+
+
 @router.post("/signup", response_model=schemas.UserEnvelopeOut, status_code=201)
 def signup(body: schemas.SignupIn, response: Response, principal: Principal = Depends(optional_principal)) -> schemas.UserEnvelopeOut:
     with get_conn() as conn:
@@ -60,8 +72,8 @@ def me(user_id=Depends(current_user)) -> schemas.UserEnvelopeOut:
 
 @router.post("/logout", status_code=204)
 def logout(response: Response) -> None:
-    """이 브라우저의 인증 쿠키만 지운다. 서버 쪽 전 세션 무효화(all-session auth_version
-    증가)는 하지 않는다 — 비밀번호 변경/탈퇴만 auth_version 을 올린다(P6 RULES #9).
+    """이 브라우저의 인증 쿠키만 지운다. 서버 쪽 전 세션 무효화는 하지 않는다 —
+    비밀번호 변경/탈퇴만 password_updated_at/status 갱신으로 다른 토큰을 무효화한다(P6 RULES #9).
     다른 기기에 남은 쿠키는 자연 만료(remember 여부에 따라 최대 JWT_TTL_DAYS 또는
     12시간) 전까지는 서명·계정 상태 검증을 통과하는 한 계속 유효하다 — 이 로그아웃이
     그것까지 막는다고 주장하지 않는다."""

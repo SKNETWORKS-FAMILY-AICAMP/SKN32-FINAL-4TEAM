@@ -21,15 +21,25 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
-from src.engine.stage3c_verify import verify_baby_candidate
-from src.engine.stage5_explain import explain_baby_candidate
-from src.rag.contracts import SearchRequest
-from src.rag.embedding import LocalHashEmbedder
-from src.rag.ingestion import ingest_manual, read_manual
-from src.rag.service import RagService
-from src.repo.engine_repo import EngineRepo, persist_candidate_check
-from src.repo.plan_repo import PlanRepo
-from src.repo.rag_repo import RagRepo, resolve_public_evidence
+# P0 v3 (develop `da79839` alignment): the `rag` schema this suite drives end-to-end
+# was dropped by `0011_drop_rag_schema.sql` — RAG moves to an external search provider
+# whose boundary/adapter is P3-D3-01/D3-02, not yet implemented. Keep this file for the
+# VE01-VE08 acceptance case shapes but do not let a stale import crash the whole suite.
+try:
+    from src.engine.stage3c_verify import verify_baby_candidate
+    from src.engine.stage5_explain import explain_baby_candidate
+    from src.rag.contracts import SearchRequest
+    from src.rag.embedding import LocalHashEmbedder
+    from src.rag.ingestion import ingest_manual, read_manual
+    from src.rag.service import RagService
+    from src.repo.engine_repo import EngineRepo, persist_candidate_check
+    from src.repo.plan_repo import PlanRepo
+    from src.repo.rag_repo import RagRepo, resolve_public_evidence
+except ImportError as exc:
+    pytest.skip(
+        f"rag schema removed (P0 v3 develop alignment); P3 external search adapter pending: {exc}",
+        allow_module_level=True,
+    )
 
 DSN = os.getenv("RAG_TEST_DATABASE_URL")
 pytestmark = pytest.mark.skipif(

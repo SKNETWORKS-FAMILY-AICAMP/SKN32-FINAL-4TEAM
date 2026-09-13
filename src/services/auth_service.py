@@ -78,14 +78,14 @@ def serialize_user(row: dict) -> dict:
     }
 
 
-def _issue_cookie_token(user_id: UUID, email: str, auth_version: int, *, remember: bool) -> tuple[str, int | None]:
+def _issue_cookie_token(user_id: UUID, email: str, *, remember: bool) -> tuple[str, int | None]:
     """(token, cookie_max_age_seconds). max_age=None → 브라우저 세션 쿠키(remember=false)."""
     if remember:
         ttl = JWT_TTL_DAYS * 86_400
-        token = jwt.issue(user_id, email, auth_version=auth_version, ttl_seconds=ttl)
+        token = jwt.issue(user_id, email, ttl_seconds=ttl)
         return token, ttl
     ttl = JWT_SESSION_TTL_HOURS * 3600
-    token = jwt.issue(user_id, email, auth_version=auth_version, ttl_seconds=ttl)
+    token = jwt.issue(user_id, email, ttl_seconds=ttl)
     return token, None
 
 
@@ -129,7 +129,7 @@ def signup(conn, *, email: str, password: str, display_name: str, terms_agreed: 
     except psycopg.errors.UniqueViolation:
         raise Conflict("이미 가입된 이메일입니다.", field="email", code="email_taken") from None
 
-    token, max_age = _issue_cookie_token(row["id"], row["email_normalized"], row["auth_version"], remember=remember)
+    token, max_age = _issue_cookie_token(row["id"], row["email_normalized"], remember=remember)
     return {"user": serialize_user(row), "token": token, "max_age": max_age}
 
 
@@ -165,7 +165,7 @@ def login(conn, *, email: str, password: str, remember: bool, guest_token: str |
     _merge_guest(conn, row["id"], guest_token)
 
     fresh = repo.get_by_id(row["id"])
-    token, max_age = _issue_cookie_token(fresh["id"], fresh["email_normalized"], fresh["auth_version"], remember=remember)
+    token, max_age = _issue_cookie_token(fresh["id"], fresh["email_normalized"], remember=remember)
     return {"user": serialize_user(fresh), "token": token, "max_age": max_age}
 
 
@@ -212,8 +212,8 @@ def change_password(conn, user_id: UUID, *, current_password: str, new_password:
         raise Unauthorized("현재 비밀번호가 올바르지 않습니다.", code="invalid_password")
     _validate_password(new_password)
 
-    new_auth_version = repo.update_password(user_id, hash_password(new_password))
-    token, max_age = _issue_cookie_token(user_id, row["email_normalized"], new_auth_version, remember=True)
+    repo.update_password(user_id, hash_password(new_password))
+    token, max_age = _issue_cookie_token(user_id, row["email_normalized"], remember=True)
     return {"token": token, "max_age": max_age}
 
 

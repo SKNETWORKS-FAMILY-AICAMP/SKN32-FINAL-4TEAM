@@ -104,7 +104,7 @@ class ProductRepo(Repo):
         )
         return None if row is None else row["id"]
 
-    def add_observation_if_changed(self, offer_id: UUID, *, source_name: str, source_type: str,
+    def add_observation_if_changed(self, offer_id: UUID, *, source_id: UUID,
                                    observed_at, price, currency: str, stock_status: str,
                                    quality_status: str, pricing_terms: dict | None = None
                                    ) -> tuple[UUID, bool]:
@@ -126,10 +126,10 @@ class ProductRepo(Repo):
             return latest["id"], False
         row = self._one(
             """INSERT INTO catalog.offer_observation
-              (offer_id, source_name, source_type, observed_at, price, currency, stock_status,
+              (offer_id, source_id, observed_at, price, currency, stock_status,
                quality_status, pricing_terms)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id""",
-            (offer_id, source_name, source_type, observed_at, price, currency, stock_status,
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id""",
+            (offer_id, source_id, observed_at, price, currency, stock_status,
              quality_status, Jsonb(pricing_terms or {})),
         )
         return row["id"], True
@@ -202,15 +202,15 @@ class ProductRepo(Repo):
         )
         return row["id"]
 
-    def add_observation(self, offer_id: UUID, *, source_name: str, source_type: str, observed_at,
+    def add_observation(self, offer_id: UUID, source_id: UUID, *, observed_at,
                         price, stock_status: str, quality_status: str,
                         pricing_terms: dict | None = None) -> UUID:
-        """과거 행 불변. valid 면 price 필수. evidence.source 병합 이후 출처는 직접 저장(§P0)."""
+        """과거 행 불변. valid 면 price 필수."""
         row = self._one(
             """INSERT INTO catalog.offer_observation
-              (offer_id, source_name, source_type, observed_at, price, stock_status, quality_status, pricing_terms)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id""",
-            (offer_id, source_name, source_type, observed_at, price, stock_status, quality_status,
+              (offer_id, source_id, observed_at, price, stock_status, quality_status, pricing_terms)
+            VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id""",
+            (offer_id, source_id, observed_at, price, stock_status, quality_status,
              Jsonb(pricing_terms or {})),
         )
         return row["id"]
@@ -249,8 +249,9 @@ class ProductRepo(Repo):
         """슬롯별 최신 유효가 후보 (variant.attributes.slot 기준). [3-0] DB 경로가 사용."""
         rows = self._all(
             """
-            SELECT v.id AS variant_id, p.id AS product_id, p.name, p.brand, p.attributes,
-                   obs.id AS offer_observation_id, obs.price
+            SELECT v.id AS variant_id, p.id AS product_id, p.model AS product_key,
+                   p.name, p.brand, p.attributes, p.image_url,
+                   o.purchase_url, obs.id AS offer_observation_id, obs.price
             FROM catalog.product_variant v
             JOIN catalog.product p ON p.id = v.product_id
             JOIN catalog.offer o ON o.variant_id = v.id AND o.status = 'active'

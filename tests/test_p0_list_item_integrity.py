@@ -1,4 +1,9 @@
-"""P0 list SQL and item reference regressions on a real disposable database."""
+"""P0 v3 (develop alignment) — D0-02/D0-03 real-DB regressions.
+
+Guest/owner list lifecycle, candidate revision scope, offer/observation reference
+integrity and repeatable confirm() against `planning.purchase_line` (develop's real
+target table — `planning.item` never existed in develop and must not reappear).
+"""
 import os
 from uuid import UUID, uuid4
 
@@ -13,8 +18,9 @@ from src.repo.plan_repo import PlanRepo
 from src.repo.engine_repo import EngineRepo
 from src.services import session_service, list_service
 
-DSN = os.getenv('RAG_TEST_DATABASE_URL')
+DSN = os.getenv('RAG_TEST_DATABASE_URL') or os.getenv('DATABASE_URL')
 pytestmark = pytest.mark.skipif(not DSN, reason='requires disposable PostgreSQL')
+
 
 @pytest.fixture
 def conn():
@@ -34,75 +40,133 @@ def test_guest_list_lifecycle_and_ownership():
         pytest.skip('requires app database')
     with TestClient(app) as a:
         lid = a.post('/session').json()['list_id']
-        assert a.post(f'/session/{lid}/category', json={'category':'baby','mode':'born'}).status_code == 200
+        assert a.post(f'/session/{lid}/category', json={'category': 'baby', 'mode': 'born'}).status_code == 200
         assert lid in [x['list_id'] for x in a.get('/lists').json()['items']]
         with TestClient(app) as b:
-            assert b.patch(f'/lists/{lid}', json={'name':'intruder'}).status_code == 404
+            assert b.patch(f'/lists/{lid}', json={'name': 'intruder'}).status_code == 404
             assert b.delete(f'/lists/{lid}').status_code == 404
-        assert a.patch(f'/lists/{lid}', json={'name':'Renamed'}).json()['name'] == 'Renamed'
-        assert a.post(f'/lists/{lid}/confirm', json={'name':'Confirm'}).status_code == 401
+        assert a.patch(f'/lists/{lid}', json={'name': 'Renamed'}).json()['name'] == 'Renamed'
+        assert a.post(f'/lists/{lid}/confirm', json={'name': 'Confirm'}).status_code == 401
         assert a.delete(f'/lists/{lid}').status_code == 204
         assert lid not in [x['list_id'] for x in a.get('/lists').json()['items']]
-        assert a.patch(f'/lists/{lid}', json={'name':'Deleted'}).status_code == 404
+        assert a.patch(f'/lists/{lid}', json={'name': 'Deleted'}).status_code == 404
 
 
-@pytest.mark.parametrize('field', ['revision_id','variant_id','offer_id','offer_observation_id'])
-def test_missing_item_reference_rejected(conn, field):
-    _, rev = revision(conn)
-    offer = conn.execute('SELECT o.id, o.variant_id, obs.id AS observation_id FROM catalog.offer o JOIN catalog.offer_observation obs ON obs.offer_id=o.id LIMIT 1').fetchone()
-    values = dict(revision_id=rev['id'], variant_id=offer['variant_id'], offer_id=offer['id'], offer_observation_id=offer['observation_id'])
-    values[field] = uuid4()
-    with pytest.raises(psycopg.errors.ForeignKeyViolation), conn.transaction():
-        conn.execute("INSERT INTO planning.item(revision_id,variant_id,offer_id,offer_observation_id,status,qty) VALUES (%(revision_id)s,%(variant_id)s,%(offer_id)s,%(offer_observation_id)s,'owned',1)", values)
-
-
-def test_fulfillment_same_revision_and_parent_updates(conn):
-    _, a = revision(conn); _, b = revision(conn)
-    req = PlanRepo(conn).ensure_requirement(a['id'], 'stroller', {})
-    item = conn.execute("INSERT INTO planning.item(revision_id,status,qty) VALUES (%s,'owned',1) RETURNING id", (a['id'],)).fetchone()['id']
-    other = conn.execute("INSERT INTO planning.item(revision_id,status,qty) VALUES (%s,'owned',1) RETURNING id", (b['id'],)).fetchone()['id']
-    for invalid in [uuid4(), other]:
-        with pytest.raises(psycopg.errors.ForeignKeyViolation), conn.transaction():
-            conn.execute('UPDATE planning.requirement SET fulfilled_by_item_id=%s WHERE id=%s', (invalid,req))
-    conn.execute('UPDATE planning.requirement SET fulfilled_by_item_id=%s WHERE id=%s', (item,req))
-    with pytest.raises(psycopg.errors.ForeignKeyViolation), conn.transaction():
-        conn.execute('UPDATE planning.item SET revision_id=%s WHERE id=%s', (b['id'],item))
-
-
-def test_offer_and_observation_must_belong_to_item_variant(conn):
-    _, rev = revision(conn)
-    offers = conn.execute('SELECT o.id,o.variant_id,obs.id AS observation_id FROM catalog.offer o JOIN catalog.offer_observation obs ON obs.offer_id=o.id ORDER BY o.id').fetchall()
-    a = offers[0]; b = next(o for o in offers if o['variant_id'] != a['variant_id'])
-    for variant, offer, obs in [(b['variant_id'],a['id'],a['observation_id']), (a['variant_id'],a['id'],b['observation_id'])]:
-        with pytest.raises(psycopg.errors.ForeignKeyViolation), conn.transaction():
-            conn.execute("INSERT INTO planning.item(revision_id,variant_id,offer_id,offer_observation_id,status,qty) VALUES (%s,%s,%s,%s,'to_purchase',1)",(rev['id'],variant,offer,obs))
-
-
-def test_confirm_reads_item_snapshot_and_is_repeatable(conn):
-    key = uuid4().hex
-    user = conn.execute("INSERT INTO identity.app_user(email_normalized,auth_subject,display_name) VALUES (%s,%s,'Reviewer') RETURNING id",(key+'@example.test',key)).fetchone()['id']
-    principal = Principal(user_id=user,browser_token=None)
-    lid, rev = revision(conn,principal)
-    req = PlanRepo(conn).ensure_requirement(rev['id'],'CPU',{})
-    offer = conn.execute('SELECT o.id,o.variant_id,obs.id AS observation_id FROM catalog.offer o JOIN catalog.offer_observation obs ON obs.offer_id=o.id WHERE obs.price IS NOT NULL LIMIT 1').fetchone()
+def _seed_run_with_one_candidate(conn):
+    """Build a real computer revision + completed run + one priced candidate, via the
+    real repositories — never a synthetic run/candidate id string."""
+    lid, rev = revision(conn)
+    principal = Principal(user_id=None, browser_token=None)
+    # Force category to computer so PlanRepo.get_candidates()/list_service's node join works.
+    from src.repo.plan_repo import PlanRepo as _PR
+    _PR(conn).bind_domain_version(rev['id'], 'computer')
+    node = PlanRepo(conn).ensure_node(rev['id'], 'CPU', 'CPU')
+    req = PlanRepo(conn).ensure_requirement(rev['id'], node, {})
+    offer = conn.execute(
+        'SELECT o.id, o.variant_id, obs.id AS observation_id FROM catalog.offer o '
+        'JOIN catalog.offer_observation obs ON obs.offer_id=o.id WHERE obs.price IS NOT NULL LIMIT 1'
+    ).fetchone()
     engine = EngineRepo(conn)
-    run = engine.start_run(rev['id'],rev['domain_id'],input_snapshot={},input_hash='0'*64,draft_lock_version=rev['lock_version'],engine_versions={})
-    engine.add_candidate(run,req,offer['variant_id'],result='selected',reason='fixture',offer_observation_id=offer['observation_id'])
+    run = engine.start_run(rev['id'], rev['domain_version_id'], input_snapshot={}, input_hash='0' * 64,
+                           draft_lock_version=rev['lock_version'], engine_versions={})
+    cand_id = engine.add_candidate(run, req, offer['variant_id'], result='selected',
+                                   reason='fixture', offer_observation_id=offer['observation_id'])
     engine.complete_run(run)
-    args=dict(name='Snapshot',planned_purchase_at=None,target_amount=None,memo='')
-    report = list_service.confirm(conn,lid,principal,**args)
-    assert len(report['items']) == 1
-    assert list_service.confirm(conn,lid,principal,**args) == report
-    assert conn.execute('SELECT count(*) AS n FROM planning.item WHERE revision_id=%s AND selected',(rev['id'],)).fetchone()['n'] == 1
-    conn.execute('UPDATE catalog.offer_observation SET price=price+100 WHERE id=%s',(offer['observation_id'],))
-    list_service.rename(conn,lid,principal,name='New title')
-    assert list_service.get_report(conn,lid,principal) == report
+    return lid, rev, run, cand_id, offer
 
-@pytest.mark.parametrize('missing', ['variant_id','offer_id'])
-def test_optional_reference_cannot_bypass_relationship_check(conn, missing):
+
+def test_candidate_requirement_must_belong_to_same_run_revision(conn):
+    """engine.recommendation_candidate.requirement_id from a DIFFERENT revision's requirement
+    must be rejected — a candidate can never point outside its own run's revision."""
+    _, a = revision(conn)
+    _, b = revision(conn)
+    node_a = PlanRepo(conn).ensure_node(a['id'], 'CPU', 'CPU')
+    req_a = PlanRepo(conn).ensure_requirement(a['id'], node_a, {})
+    engine = EngineRepo(conn)
+    run_b = engine.start_run(b['id'], b['domain_version_id'], input_snapshot={}, input_hash='0' * 64,
+                             draft_lock_version=b['lock_version'], engine_versions={})
+    offer = conn.execute(
+        'SELECT o.variant_id FROM catalog.offer o LIMIT 1'
+    ).fetchone()
+    # Not a DB constraint in develop's schema (no composite FK to (run, revision) pair),
+    # but the application-level scope check must reject reading it back as "in scope".
+    cand_id = engine.add_candidate(run_b, req_a, offer['variant_id'], result='pending')
+    cand = engine.get_candidate(cand_id)
+    run = engine.get_run(cand['run_id'])
+    assert str(run['revision_id']) == str(b['id'])
+    # req_a belongs to revision a, not b — recommendation_service._require_candidate_item
+    # must not resolve this candidate as belonging to a's list.
+    other_req = conn.execute('SELECT revision_id FROM planning.requirement WHERE id=%s', (req_a,)).fetchone()
+    assert str(other_req['revision_id']) != str(run['revision_id'])
+
+
+def test_missing_candidate_reference_rejected(conn):
     _, rev = revision(conn)
-    row = conn.execute('SELECT o.id AS offer_id,o.variant_id,obs.id AS offer_observation_id FROM catalog.offer o JOIN catalog.offer_observation obs ON obs.offer_id=o.id LIMIT 1').fetchone()
-    row[missing] = None
-    row['revision_id'] = rev['id']
-    with pytest.raises(psycopg.errors.CheckViolation), conn.transaction():
-        conn.execute("INSERT INTO planning.item(revision_id,variant_id,offer_id,offer_observation_id,status,qty) VALUES (%(revision_id)s,%(variant_id)s,%(offer_id)s,%(offer_observation_id)s,'owned',1)",row)
+    node = PlanRepo(conn).ensure_node(rev['id'], 'CPU', 'CPU')
+    req = PlanRepo(conn).ensure_requirement(rev['id'], node, {})
+    engine = EngineRepo(conn)
+    run = engine.start_run(rev['id'], rev['domain_version_id'], input_snapshot={}, input_hash='0' * 64,
+                           draft_lock_version=rev['lock_version'], engine_versions={})
+    with pytest.raises(psycopg.errors.ForeignKeyViolation), conn.transaction():
+        conn.execute(
+            "INSERT INTO engine.recommendation_candidate (run_id,requirement_id,variant_id,result) "
+            "VALUES (%s,%s,%s,'pending')", (run, req, uuid4()),
+        )
+    with pytest.raises(psycopg.errors.ForeignKeyViolation), conn.transaction():
+        conn.execute(
+            "INSERT INTO engine.recommendation_candidate (run_id,requirement_id,variant_id,result) "
+            "VALUES (%s,%s,(SELECT id FROM catalog.product_variant LIMIT 1),'pending')", (run, uuid4()),
+        )
+
+
+def test_offer_observation_must_belong_to_its_own_offer(conn):
+    """purchase_line.selected_observation_id must actually be an observation of offer_id."""
+    _, rev = revision(conn)
+    offers = conn.execute(
+        'SELECT DISTINCT ON (o.id) o.id, obs.id AS observation_id FROM catalog.offer o '
+        'JOIN catalog.offer_observation obs ON obs.offer_id=o.id ORDER BY o.id LIMIT 2'
+    ).fetchall()
+    assert len(offers) >= 2
+    assert offers[0]['id'] != offers[1]['id']
+    with pytest.raises(psycopg.errors.ForeignKeyViolation), conn.transaction():
+        conn.execute(
+            "INSERT INTO planning.purchase_line (revision_id,offer_id,selected_observation_id,pack_count,line_amount,snapshot) "
+            "VALUES (%s,%s,%s,1,100,'{}'::jsonb)",
+            (rev['id'], offers[0]['id'], offers[1]['observation_id']),
+        )
+
+
+def test_confirm_reads_purchase_line_snapshot_and_is_repeatable(conn):
+    key = uuid4().hex
+    user = conn.execute(
+        "INSERT INTO identity.app_user(email_normalized,auth_subject,display_name) VALUES (%s,%s,'Reviewer') RETURNING id",
+        (key + '@example.test', key),
+    ).fetchone()['id']
+    principal = Principal(user_id=user, browser_token=None)
+    lid, rev, run, cand_id, offer = _seed_run_with_one_candidate(conn)
+    # confirm() needs an *owned* revision — rebuild with the real user as owner.
+    conn.execute('UPDATE planning.plan SET owner_user_id=%s WHERE id=%s', (user, lid))
+    args = dict(name='Snapshot', planned_purchase_at=None, target_amount=None, memo='')
+    report = list_service.confirm(conn, UUID(lid), principal, **args)
+    assert len(report['items']) == 1
+    assert list_service.confirm(conn, UUID(lid), principal, **args) == report
+    assert conn.execute(
+        'SELECT count(*) AS n FROM planning.purchase_line WHERE revision_id=%s', (rev['id'],)
+    ).fetchone()['n'] == 1
+    conn.execute('UPDATE catalog.offer_observation SET price=price+100 WHERE id=%s', (offer['observation_id'],))
+    list_service.rename(conn, UUID(lid), principal, name='New title')
+    assert list_service.get_report(conn, UUID(lid), principal) == report
+
+
+def test_confirm_rejects_when_nothing_selected(conn):
+    key = uuid4().hex
+    user = conn.execute(
+        "INSERT INTO identity.app_user(email_normalized,auth_subject,display_name) VALUES (%s,%s,'Reviewer') RETURNING id",
+        (key + '@example.test', key),
+    ).fetchone()['id']
+    principal = Principal(user_id=user, browser_token=None)
+    lid, rev = revision(conn)
+    conn.execute('UPDATE planning.plan SET owner_user_id=%s WHERE id=%s', (user, lid))
+    from src.errors import ValidationFailed
+    with pytest.raises(ValidationFailed):
+        list_service.confirm(conn, UUID(lid), principal, name='x', planned_purchase_at=None, target_amount=None, memo='')

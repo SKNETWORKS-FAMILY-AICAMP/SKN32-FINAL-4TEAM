@@ -1,13 +1,34 @@
 ---
 task_id: "P0"
-status: "partial_rework_required"
+status: "develop_alignment_required"
 entry_gate: "ready_after_dependencies"
 depends_on: []
-contract_version: 2
+contract_version: 3
 report_path: "docs/agent-tasks/baby/reports/P0.md"
 ---
 
-# P0 — 축소 DB·공통 계약·기존 코드 호환
+# P0 — develop DB·공통 계약·저장소 전환
+
+## ACTIVE DB CONTRACT — develop `da79839` / v3 (2026-09-13)
+
+이 절과 [develop 전환 계약](DEVELOP_DB_TRANSITION.md), [목표 스키마](schema-v1.md)가 현재 실행 지시다. 이 문서 아래 기존 지시 중 충돌하는 DB 매핑·pgvector 유지·완전 축소 SR 승인 조건은 폐기한다. DB와 무관한 업무 규칙·API·수용 사례는 유지한다. 과거 보고서의 통과 결과는 당시 코드의 증거이며 develop 호환 완료를 뜻하지 않는다. 현재 작업 트리는 `rag`이므로 develop SQL이 이미 병합되어 있다고 가정하지 않는다. `개발 역할 분담`은 적용하지 않는다.
+
+### P0 DELTA — DB 기준선·저장소 전환
+
+- **상태:** develop 적합성 재작업 필요. 기존 P0의 순수 DTO·무결성 검증 사례를 재사용하며, 35개 테이블·planning.item·rag 유지 조건은 완료 기준에서 제거한다.
+- **READ FIRST:** `git show da79839:db/migrations/0011_drop_rag_schema.sql`, `0012_schema_reduction_safe_subset.sql`, `0013_result_item_interaction.sql` (나머지 두 파일도 같은 git show 형식), `db/migrate.py`, `db/setup_all.py`, `db/seed.py`, `src/repo/{plan,engine,product,catalog}_repo.py`, 전환 계약의 SQL 처리표.
+- **EDIT SURFACE:** 위 파일, `src/dto.py`, `src/reduction_contracts.py`, 공통 DB fixture, `tests/test_schema_reduction*.py`, `tests/test_p0_list_item_integrity.py`가 존재하면 해당 파일. 이번 문서 작성이 실제 SQL 삭제 승인은 아니다. 후속 구현에서는 전환 계약대로 실행 체인을 하나로 정리한다.
+- **IMPLEMENT:** develop 마이그레이션의 원본 체인으로 전용 빈 DB를 구축한다. `domain_version_id`로 revision/run을 묶고 `plan_node.template_key`를 DTO.slot_key로 변환한다. `planning.item`과 통합 assets/evidence SQL을 제거하고 유지 테이블 저장소를 복구한다. `shared.unit` INSERT는 코드 단위 사전으로 대체하되 `shared.set_updated_at()`은 유지한다. 기존 PC 추천·확정·가격 알림 SQL을 보존한다.
+- **IMPLEMENT:** JSON 근거를 배열로 쓰고 읽는 공통 serializer를 만든다. run→revision, requirement→node/revision, candidate→run/requirement/variant, 관측값→offer→variant 관계를 쓰기 시 재검사한다. JSON의 UUID는 FK가 아니므로 존재·상품 범위·실행 범위·중복 검증을 저장소 한 경로에 모은다. 전환 후에도 고아 참조나 다른 목록 물품을 받아서는 안 된다. DB 제약이 추가로 필요하면 develop 유지 테이블에 대한 새 후속 SQL로 명시하고 기존 축소 SQL을 재활성화하지 않는다.
+- **ACCEPTANCE D0-01:** 빈 DB 설치와 동일 DB 재실행 성공, 미적용 마이그레이션 없음, schema-v1의 유지/삭제 목록 일치, 전체 파일명·체크섬 기록. 테이블 개수만으로 승인하지 않는다.
+- **ACCEPTANCE D0-02:** PC/유아 각각 세션→카테고리→조건 저장/재조회, 올바른 domain_version 고정. PC 추천202→완료→결과 편집→확정/리포트 및 기존 알림 경로가 유지된다. 유아 추천 업무 완료는 P5에서 검증한다.
+- **ACCEPTANCE D0-03:** 잘못된 revision/requirement/variant/offer/observation, 교차 사용자·교차 run JSON 참조, 잘못된 JSON 타입·중복 참조를 거부하고 실패 트랜잭션에 부분 행이 남지 않는다. shared 트리거 UPDATE와 리뷰 메타데이터 유지도 확인한다.
+- **VERIFY:** `DATABASE_URL`을 명시한 전용 빈 PostgreSQL에서 `uv run python db/setup_all.py`를 두 번 실행한다. 위 사례를 테스트로 구현해 실행한다. 기존 완전 축소 DB fixture를 그대로 쓰지 않는다. 서비스 DB를 자동 초기화하거나 과거 체크섬을 성공값으로 조작하지 않는다.
+- **EXIT:** D0-01~03 결과, 실제 SQL 파일 목록, 관계도·DTO 매핑, 전용 DB 재현 명령을 `reports/P0.md`에 추가하고 manifest의 D0 사례만 새 승인 결과로 기록한다. P3 외부 검색은 P0의 PC/세션 DB 게이트와 분리한다.
+
+## PREVIOUS WORK ORDER — non-conflicting business rules only
+
+이하의 날짜별 상태·구 DB 구현 실적은 과거 기록이다. 현재 상태는 위 절과 manifest를 사용한다. 아래 지시에서 완전 축소 SQL 실행, pgvector 보존, planning.item 복원, domain_version/plan_node/purchase_line 삭제, 근거 객체 저장, shared/notification 스키마 삭제를 요구하는 부분은 실행하지 않는다.
 
 ## RESOLVED REVIEW FINDINGS — 2026-09-13
 

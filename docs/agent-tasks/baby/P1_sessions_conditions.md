@@ -1,13 +1,29 @@
 ---
 task_id: "P1"
-status: "partial_upstream"
+status: "develop_alignment_required"
 entry_gate: "ready_after_dependencies"
 depends_on: ["P0"]
-contract_version: 2
+contract_version: 3
 report_path: "docs/agent-tasks/baby/reports/P1.md"
 ---
 
 # P1 — DB 접속·게스트 세션·조건 수집
+
+## ACTIVE DB CONTRACT — develop `da79839` / v3 (2026-09-13)
+
+이 절과 [develop 전환 계약](DEVELOP_DB_TRANSITION.md), [목표 스키마](schema-v1.md)가 현재 실행 지시다. 이 문서 아래 기존 지시 중 충돌하는 DB 매핑·pgvector 유지·완전 축소 SR 승인 조건은 폐기한다. DB와 무관한 업무 규칙·API·수용 사례는 유지한다. 과거 보고서의 통과 결과는 당시 코드의 증거이며 develop 호환 완료를 뜻하지 않는다. 현재 작업 트리는 `rag`이므로 develop SQL이 이미 병합되어 있다고 가정하지 않는다. `개발 역할 분담`은 적용하지 않는다.
+
+### P1 DELTA — 세션·조건의 도메인 버전 연결
+
+- **상태/재사용:** 월령 exact 보존, 조건 대화·소유권 검증은 재사용. DB 통합만 재검증한다. P0 D0-01~03 산출물을 먼저 확인한다.
+- **EDIT:** `src/services/session_service.py`, `src/repo/plan_repo.py`, 조건 HTTP fixture. develop의 카테고리 전환·대화 재시작·PC 사양 파일 첨부 경로를 보존한다.
+- **IMPLEMENT:** baby 카테고리 선택 시 활성 domain의 실제 domain_version을 찾아 `plan_revision.domain_version_id`에 연결한다. revision은 해당 버전을 유지하고 조건 변경 시 lock_version을 증가시킨다. domain_id/domain_snapshot 신규 컬럼을 요구하는 SQL을 제거한다. 실행용 정의·해시는 domain_version에서 읽어 run.input_snapshot에 복사한다. 보유 조건은 명시적 수량·단위와 함께 정규화하여 P2에 전달하며 UI의 기존 문자열 입력도 호환한다.
+- **ACCEPTANCE D1:** 같은 브라우저 두 목록 접근, baby↔computer 전환 시 목록/버전 분리, exact=false 보존, 조건 수정 후 재조회, 게스트 교차 접근 거부를 develop DB fixture에서 확인한다. PC 사양 업로드와 baby accepts_spec_file=false도 보존한다. 기존 보고서 테스트는 코드/DB 경로가 달라진 사례만 재실행한다.
+- **HANDOFF:** domain_version_id와 정규화 조건 예시, 실제 요청/응답 및 D1 결과를 `reports/P1.md`에 추가한다.
+
+## PREVIOUS WORK ORDER — non-conflicting business rules only
+
+이하의 날짜별 상태·구 DB 구현 실적은 과거 기록이다. 현재 상태는 위 절과 manifest를 사용한다. 아래 지시에서 완전 축소 SQL 실행, pgvector 보존, planning.item 복원, domain_version/plan_node/purchase_line 삭제, 근거 객체 저장, shared/notification 스키마 삭제를 요구하는 부분은 실행하지 않는다.
 
 ## REVIEW FIXES — 2026-09-13
 

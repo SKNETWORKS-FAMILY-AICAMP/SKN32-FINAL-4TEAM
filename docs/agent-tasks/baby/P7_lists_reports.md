@@ -1,13 +1,31 @@
 ---
 task_id: "P7"
-status: "partial_upstream_integration_required"
+status: "develop_alignment_required"
 entry_gate: "ready_after_dependencies"
 depends_on: ["P5", "P6"]
-contract_version: 2
+contract_version: 3
 report_path: "docs/agent-tasks/baby/reports/P7.md"
 ---
 
 # P7 — 목록·확정 스냅샷·리포트·판매처 이동
+
+## ACTIVE DB CONTRACT — develop `da79839` / v3 (2026-09-13)
+
+이 절과 [develop 전환 계약](DEVELOP_DB_TRANSITION.md), [목표 스키마](schema-v1.md)가 현재 실행 지시다. 이 문서 아래 기존 지시 중 충돌하는 DB 매핑·pgvector 유지·완전 축소 SR 승인 조건은 폐기한다. DB와 무관한 업무 규칙·API·수용 사례는 유지한다. 과거 보고서의 통과 결과는 당시 코드의 증거이며 develop 호환 완료를 뜻하지 않는다. 현재 작업 트리는 `rag`이므로 develop SQL이 이미 병합되어 있다고 가정하지 않는다. `개발 역할 분담`은 적용하지 않는다.
+
+### P7 DELTA — 확정·리포트를 purchase_line으로 전환
+
+- **상태:** planning.item 기반 완료 기록은 과거 설계 실적. P5의 후보 편집/재계산과 P6 소유권 계약을 먼저 확인한다.
+- **EDIT:** `src/services/list_service.py`, `src/repo/plan_repo.py`, 목록/리포트 API 및 테스트. develop notification.price_watch 참조를 깨뜨리지 않는다. 유아 알림 발송 신규 기능은 별도 범위다.
+- **IMPLEMENT:** 확정은 revision 잠금+If-Match→현재 run 검사→P3 안전 상태/P4 필수량·예산 재검사→purchase_line 쓰기→revision confirmed 갱신을 한 트랜잭션으로 수행한다. 보유 행은 구매 행에서 제외한다. 선택 구매 후보의 qty를 pack_count에, qty*검증된 단가를 line_amount에 저장한다. 기존 add_purchase_line의 pack_count=1 고정값을 유아 수량을 받는 호환 인자로 확장한다.
+- **IMPLEMENT:** snapshot은 schema-v1의 purchase snapshot 필드를 기록한다. 관측값이 해당 offer와 variant에 속하는지 검사한다. soon/later 구매도 snapshot에 timing을 남기고 now 합계와 별도 집계한다. 재확정은 기존 snapshot을 반환하며 중복 INSERT하지 않는다. purchased는 이번 과업의 별도 DB 상태가 아니며 완료 구매 이력 기능으로 확대하지 않는다.
+- **IMPLEMENT:** 리포트는 purchase_line.snapshot과 확정 당시 조건/보유/합계 snapshot만 사용한다. 현재 상품명·가격·후보를 JOIN해 과거 내용을 덮어쓰지 않는다. 보유·부족량을 포함한 확정 보고 snapshot은 전환 계약의 run.input_snapshot.baby_confirmation에 동일 트랜잭션으로 고정한다.
+- **ACCEPTANCE D7:** 수량2의 line_amount와 pack_count 일치; now/soon/later 별도합; 보유품 무청구; 누락 가격·unknown 필수 안전·다른 offer 관측값 거부; 재확정 중복0; 상품/조건 변경 후 기존 리포트 동일; 교차 사용자 거부; 기존 PC 목록·리포트·price_watch 경로 유지.
+- **HANDOFF:** 실제 purchase_line 및 확정 snapshot/리포트와 D7 결과를 `reports/P7.md`에 추가한다.
+
+## PREVIOUS WORK ORDER — non-conflicting business rules only
+
+이하의 날짜별 상태·구 DB 구현 실적은 과거 기록이다. 현재 상태는 위 절과 manifest를 사용한다. 아래 지시에서 완전 축소 SQL 실행, pgvector 보존, planning.item 복원, domain_version/plan_node/purchase_line 삭제, 근거 객체 저장, shared/notification 스키마 삭제를 요구하는 부분은 실행하지 않는다.
 
 ## RESOLVED REVIEW FINDINGS — 2026-09-13
 

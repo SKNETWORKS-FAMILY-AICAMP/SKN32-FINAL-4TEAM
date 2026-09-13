@@ -6,7 +6,7 @@ P5/P7 이 재사용하는 공유 진입점:
 """
 from __future__ import annotations
 import datetime as _dt
-import hashlib, secrets
+import hashlib, re, secrets
 from typing import TypedDict
 from uuid import UUID
 from src.auth.deps import Principal
@@ -98,13 +98,14 @@ def create_session(conn, principal: Principal) -> dict:
     # 세션 생성 시점에는 카테고리가 아직 없다. 임의의 "가장 최근 active 도메인"을 집으면
     # RAG 평가용 같은 런타임 외 도메인이 섞여 들어오므로, 실제 카테고리 정의 파일이 있는
     # 코드만 후보로 두고 결정적으로 고른다. 실제 규칙은 choose_category 가 다시 묶는다.
-    domain = PlanRepo(conn)._one(
-        "SELECT id FROM config.domain WHERE status = 'active' AND code = ANY(%s) ORDER BY code LIMIT 1",
+    domain_version = PlanRepo(conn)._one(
+        "SELECT dv.id FROM config.domain_version dv JOIN config.domain d ON d.id = dv.domain_id "
+        "WHERE d.status = 'active' AND d.code = ANY(%s) ORDER BY d.code, dv.version_no DESC LIMIT 1",
         (available_categories(),),
     )
-    if domain is None:
+    if domain_version is None:
         raise ValidationFailed("게시된 도메인 버전이 없습니다.")
-    revision = PlanRepo(conn).new_revision(plan, domain["id"], "새 추천")
+    revision = PlanRepo(conn).new_revision(plan, domain_version["id"], "새 추천")
     PlanRepo(conn).set_current_revision(plan, revision)
     return {
         "list_id": str(plan),
@@ -281,10 +282,10 @@ def choose_category(conn, list_id: UUID, category: str, mode: str | None, princi
     mode = mode or cat_def["modes"][0]
     values, prev_category = _current_values(repo, current["id"])
     prev_mode = values.get("mode")
-    # 카테고리가 정해지는 유일한 지점 — 리비전을 그 카테고리의 게시 규칙에 다시 묶는다.
-    # 이후 recommendation_run 도 revision["domain_id"] 를 그대로 쓰므로 여기서 어긋나면
+    # 카테고리가 정해지는 유일한 지점 — 리비전을 그 카테고리의 게시 도메인 버전에 다시 묶는다.
+    # 이후 recommendation_run 도 revision["domain_version_id"] 를 그대로 쓰므로 여기서 어긋나면
     # 실행 스냅샷까지 다른 카테고리 규칙이 된다(P0 SR07).
-    repo.bind_domain(current["id"], category)
+    repo.bind_domain_version(current["id"], category)
     repo.upsert_condition(current["id"], "category", {"value": category}, "explicit")
     repo.upsert_condition(current["id"], "mode", {"value": mode}, "explicit")
     if prev_category is not None and prev_category != category:
@@ -495,3 +496,45 @@ def reset_conditions(conn, list_id: UUID, principal: Principal) -> dict:
         if nq:
             ConversationRepo(conn).add_message(current["conversation_id"], "assistant", nq["text"])
     return _state(conn, list_id, principal)
+
+
+# ── 업그레이드 사양 파일 첨부 (§D-4-1: current_specs · spec_file_name) ──
+_ALLOWED_SPEC_EXTENSIONS = {"txt", "json", "csv", "md", "log", "nfo", "xml"}
+_MAX_SPEC_FILE_BYTES = 1_000_000
+_SPEC_LINE = re.compile(r"(?im)^\s*(cpu|프로세서|gpu|그래픽카드|그래픽|ram|메모리)\s*[:=]\s*(.+?)\s*$")
+_SPEC_KEY_MAP = {"cpu": "CPU", "프로세서": "CPU", "gpu": "GPU", "그래픽카드": "GPU", "그래픽": "GPU",
+                 "ram": "RAM", "메모리": "RAM"}
+
+
+def _parse_spec_file(content: str) -> dict:
+    """'CPU: i5-13600K' 같은 key: value 줄만 규칙 기반으로 뽑는다. 매칭 안 되면 빈 dict."""
+    specs: dict[str, str] = {}
+    for m in _SPEC_LINE.finditer(content):
+        specs[_SPEC_KEY_MAP[m.group(1).lower()]] = m.group(2).strip()
+    return specs
+
+
+def attach_spec_file(conn, list_id: UUID, file_name: str, content: str, principal: Principal) -> dict:
+    repo = PlanRepo(conn)
+    current = _owned(repo, list_id, principal)
+    ext = file_name.rsplit(".", 1)[-1].lower() if "." in file_name else ""
+    if ext not in _ALLOWED_SPEC_EXTENSIONS:
+        raise ValidationFailed("지원하지 않는 파일 형식입니다.", field="file_name", code="unsupported_file")
+    if len(content.encode("utf-8")) > _MAX_SPEC_FILE_BYTES:
+        raise FileTooLarge("파일이 너무 큽니다(1MB 이하).", field="content")
+    specs = _parse_spec_file(content)
+    repo.upsert_condition(current["id"], "spec_file_name", {"value": file_name}, "explicit")
+    if specs:
+        repo.upsert_condition(current["id"], "current_specs", {"value": specs}, "extracted")
+    return _state(conn, list_id, principal)
+
+
+def _owned(repo: PlanRepo, list_id: UUID, principal: Principal) -> dict:
+    revision = repo.get_current_revision(list_id)
+    if revision is None:
+        raise NotFound("목록을 찾을 수 없습니다.")
+    user_ok = principal.user_id is not None and revision["user_id"] == principal.user_id
+    guest_ok = principal.browser_token is not None and revision["guest_session_hash"] == _token_hash(principal.browser_token)
+    if not (user_ok or guest_ok):
+        raise NotFound("목록을 찾을 수 없습니다.")
+    return revision

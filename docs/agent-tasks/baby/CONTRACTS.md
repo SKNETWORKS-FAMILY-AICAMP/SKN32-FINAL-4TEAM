@@ -1,4 +1,26 @@
-# Baby implementation contracts — v2 (2026-09-13 sync; evidence JSON remains v1)
+# Baby implementation contracts — v3 (develop DB alignment)
+
+## Active authority — 2026-09-13
+
+현재 기준은 **develop `da79839`의 DB 설계**다. [DEVELOP_DB_TRANSITION.md](DEVELOP_DB_TRANSITION.md)와 [schema-v1.md](schema-v1.md), 각 Pn의 ACTIVE DB CONTRACT가 이 문서 아래 과거 계약의 충돌 부분을 대체한다. 코드 구현과 DB 적용은 아직 완료하지 않았다. 이번 v3는 내부 저장 계약 변경이며 기존 HTTP URL/응답의 호환 가능한 업무 규칙은 유지한다.
+
+| 기존 지시 중 폐기 대상 | v3 지시 |
+|---|---|
+| pgvector/rag 유지, 별도 검색 전환 미선택 | develop 최종 DB에 rag 없음; 외부 provider 경계 및 실제 연결 게이트는 P3 |
+| domain 통합/domain_id·domain_snapshot | domain_version 유지, revision/run.domain_version_id 및 입력 스냅샷 |
+| requirement.slot_key 물리 컬럼 | plan_node.template_key를 DTO.slot_key로 매핑 |
+| planning.item와 fulfilled_by_item_id 저장/FK | 조건 출처와 match_spec의 보유량; 후보 편집; purchase_line 확정 |
+| evidence_refs wrapper 객체 저장 | 개별 ref의 검증 규칙을 보존한 JSON 배열 저장 |
+| source/material/review 통합 | evidence.source, material_revision/applicability, review_revision 유지 |
+| notification/shared 스키마 제거 | price_watch와 shared.set_updated_at() 유지 |
+| auth_version 필수 | develop iat 기반 무효화; P6 동일 초/탈퇴 회귀 게이트 |
+| 기존 SR01~09/35개 테이블로 P0 승인 | P0-D0-01~03, 목표 관계/필드/행동 검증 |
+
+미변경 업무 계약(정확한 월령, 단위/예산, unknown 선택 금지, 게스트 소유권, 조건 잠금, 비동기202, 자료 철회, 합성 자료 표시)은 아래 정의를 재사용한다. 내부 DTO의 fulfilled_by_item_id, stable item ID, evidence wrapper 및 확정 snapshot 규칙은 전환 계약의 v3로 대체한다. 새로운 에이전트는 ENTRYPOINT에서 전환 계약을 먼저 읽고 과거 실행 명령을 그대로 실행하지 않는다. 과거 RAG 테스트 환경은 새 DB 검증 환경이 아니다. 현재 상태는 manifest, 실제 검증 증거는 날짜별 reports를 따른다.
+
+## Previous contract — unaffected business/API clauses only
+
+이하의 Authority/status, baseline·완료 상태와 DB 환경은 과거 기록이다. 현재 지시와 모순되는 문장은 실행 권한이나 승인 기준으로 사용하지 않는다.
 
 ## Authority / status
 

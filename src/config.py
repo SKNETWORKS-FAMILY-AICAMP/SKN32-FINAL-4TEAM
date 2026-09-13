@@ -84,3 +84,9 @@ REVIEW_RISK_CONTROL_SCOPE: str = "Computer Components|Data Storage"
 # 규칙 기반 "의심 지표 2개+ 리뷰 수". 조작 판정이 아니다 — 리뷰 단위 라벨이 없어 정밀도를 못 잰다.
 # 파일이 자기 방법·한계를 담고 있다(method · limits · baseline). 없으면 이 문장을 내지 않는다.
 REVIEW_SUSPECT_COUNTS: Path = DATA_DIR / "review_suspect_counts.json"
+
+
+def assert_production_secret_safe() -> None:
+    """Validate the secret for the merged application startup hook."""
+    if IS_PRODUCTION and JWT_SECRET == "dev-only-change-me":
+        raise RuntimeError("APP_ENV=production 에서는 JWT_SECRET 환경변수를 반드시 설정해야 합니다.")

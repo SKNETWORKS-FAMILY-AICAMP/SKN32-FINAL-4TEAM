@@ -1,13 +1,31 @@
 ---
 task_id: "P2"
-status: "partial_shared_catalog"
+status: "develop_alignment_required"
 entry_gate: "ready_after_dependencies"
 depends_on: ["P0"]
-contract_version: 2
+contract_version: 3
 report_path: "docs/agent-tasks/baby/reports/P2.md"
 ---
 
 # P2 — 유아 카탈로그·단위·필요 품목 규칙
+
+## ACTIVE DB CONTRACT — develop `da79839` / v3 (2026-09-13)
+
+이 절과 [develop 전환 계약](DEVELOP_DB_TRANSITION.md), [목표 스키마](schema-v1.md)가 현재 실행 지시다. 이 문서 아래 기존 지시 중 충돌하는 DB 매핑·pgvector 유지·완전 축소 SR 승인 조건은 폐기한다. DB와 무관한 업무 규칙·API·수용 사례는 유지한다. 과거 보고서의 통과 결과는 당시 코드의 증거이며 develop 호환 완료를 뜻하지 않는다. 현재 작업 트리는 `rag`이므로 develop SQL이 이미 병합되어 있다고 가정하지 않는다. `개발 역할 분담`은 적용하지 않는다.
+
+### P2 DELTA — 카탈로그·필요량·보유량 저장 전환
+
+- **상태/재사용:** 상품 정규화와 필요 품목 순수 규칙은 재사용. `persist_baby_requirements`와 재조회는 DB 전환 필요. P0의 매핑과 fixture를 사용한다.
+- **EDIT:** `src/engine/stage2_requirement.py`, `src/repo/{plan,catalog,product}_repo.py`, 유아 시드/적재 CLI, `src/dto.py`, `tests/test_baby_catalog.py`, `tests/test_baby_requirements.py`, 관련 DB 회귀.
+- **IMPLEMENT:** 슬롯마다 `ensure_node(revision_id, template_key=slot_key)` 후 `ensure_requirement(revision_id,node_id,match_spec)`를 호출한다. requirement.quantity/unit_code/required에 총 필요량을 기록하고 DTO.slot_key는 node.template_key에서 복구한다. 중복 슬롯 동시 생성은 revision 잠금으로 직렬화한다.
+- **IMPLEMENT:** `planning.item`, `fulfilled_by_item_id` SQL과 `_find_or_create_owned_item`을 제거한다. 보유 출처는 plan_condition UUID로, 보유 충족량은 `match_spec.baby_requirement`의 v3 owned 필드로 저장한다(전환 계약 참조). DTO는 fulfilled_qty를 사용하고 fulfilled_by_item_id를 폐기한다. 같은 슬롯을 보유/구매 조각으로 만들더라도 실제 requirement UUID 하나로 합친다. 조건에서 보유를 제거하면 owned와 fulfilled_qty도 지운다. 다른 revision의 condition UUID는 거부한다.
+- **IMPLEMENT:** 상품은 product.category_id에 단일 분류를 쓰고 단위 사전은 코드로 검증한다. 관측값과 설명서 출처는 evidence.source, material_revision/applicability 관계를 사용한다. seed가 shared.unit·통합 domain·통합 material 컬럼을 만들지 않게 한다.
+- **ACCEPTANCE D2:** 멱등 적재; 총2개/보유1개→필요 구매1개; 저장·재조회·재실행에서도 같은 requirement 및 결과; 보유 해제→구매2개; 단위 불일치/음수·비유한값/교차 revision 조건 거부. 상품/가격 출처와 synthetic 표식을 유지한다.
+- **HANDOFF:** 실제 requirement+node+condition 행과 DTO 왕복, D2 결과를 `reports/P2.md`에 기록한다. 새 스키마에 없는 item FK 테스트는 동일한 교차 소유권·수량 검증 사례로 옮기고 단순 삭제하지 않는다.
+
+## PREVIOUS WORK ORDER — non-conflicting business rules only
+
+이하의 날짜별 상태·구 DB 구현 실적은 과거 기록이다. 현재 상태는 위 절과 manifest를 사용한다. 아래 지시에서 완전 축소 SQL 실행, pgvector 보존, planning.item 복원, domain_version/plan_node/purchase_line 삭제, 근거 객체 저장, shared/notification 스키마 삭제를 요구하는 부분은 실행하지 않는다.
 
 ## REVIEW FIXES — 2026-09-13
 

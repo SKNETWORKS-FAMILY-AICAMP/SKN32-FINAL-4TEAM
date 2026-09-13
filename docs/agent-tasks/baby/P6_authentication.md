@@ -1,13 +1,30 @@
 ---
 task_id: "P6"
-status: "pending"
+status: "develop_alignment_required"
 entry_gate: "ready_after_dependencies"
 depends_on: ["P1"]
-contract_version: 2
+contract_version: 3
 report_path: "docs/agent-tasks/baby/reports/P6.md"
 ---
 
 # P6 — 가입·비밀번호 인증·설정·게스트 인계
+
+## ACTIVE DB CONTRACT — develop `da79839` / v3 (2026-09-13)
+
+이 절과 [develop 전환 계약](DEVELOP_DB_TRANSITION.md), [목표 스키마](schema-v1.md)가 현재 실행 지시다. 이 문서 아래 기존 지시 중 충돌하는 DB 매핑·pgvector 유지·완전 축소 SR 승인 조건은 폐기한다. DB와 무관한 업무 규칙·API·수용 사례는 유지한다. 과거 보고서의 통과 결과는 당시 코드의 증거이며 develop 호환 완료를 뜻하지 않는다. 현재 작업 트리는 `rag`이므로 develop SQL이 이미 병합되어 있다고 가정하지 않는다. `개발 역할 분담`은 적용하지 않는다.
+
+### P6 DELTA — 계정 설정·인증 DB 의존성 정리
+
+- **상태/재사용:** 가입·로그인·게스트 인계의 기존 구현을 재사용하며 DB/토큰 통합 차이만 검증한다. P1의 소유권 경계를 사용한다.
+- **EDIT:** `src/repo/user_repo.py`, `src/services/auth_service.py`, `src/auth/{jwt,deps}.py`, 인증 fixture.
+- **IMPLEMENT:** ui_settings/notification_settings는 identity.app_user에 저장하고 user_preference SQL을 제거한다. develop JWT의 iat와 비밀번호 변경 시각을 사용하는 무효화 경로에 발급·검증·사용자 조회를 일관되게 연결한다. 이 목표에서는 auth_version 컬럼과0015 의존을 제거하되 비밀번호 변경·탈퇴 후 토큰 거절 보장을 제거하지 않는다. 초 단위 iat 경계에서 같은 초 변경 전 토큰을 거절하고 이후 재로그인 토큰은 정상 사용되는 정책을 구현·문서화한다.
+- **IMPLEMENT:** 게스트 인계는 conversation/plan 소유권을 트랜잭션으로 이전한다. planning.item에 대한 소유권 이전 SQL은 제거한다. purchase_line 및 후보는 revision 관계를 따라 접근을 제한한다. develop request-code/verify와 이메일·비밀번호 라우트를 보존한다.
+- **ACCEPTANCE D6:** 설정 저장/재로그인 유지, 비밀번호 변경 전 토큰/탈퇴 계정 거절, 변경 후 재로그인 성공(동일 초 포함), 게스트 인계 멱등 및 타 게스트 목록 탈취 차단, user_preference/auth_version 없는 DB에서 실제 인증 왕복.
+- **HANDOFF:** develop iat 정책 및 D6 결과를 `reports/P6.md`에 기록한다. 기존 P6 보안 테스트 중 저장 방식과 무관한 결과는 재사용한다.
+
+## PREVIOUS WORK ORDER — non-conflicting business rules only
+
+이하의 날짜별 상태·구 DB 구현 실적은 과거 기록이다. 현재 상태는 위 절과 manifest를 사용한다. 아래 지시에서 완전 축소 SQL 실행, pgvector 보존, planning.item 복원, domain_version/plan_node/purchase_line 삭제, 근거 객체 저장, shared/notification 스키마 삭제를 요구하는 부분은 실행하지 않는다.
 
 ## CURRENT BASELINE / SYNC DELTA (2026-09-13)
 

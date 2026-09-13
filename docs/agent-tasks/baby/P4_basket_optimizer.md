@@ -1,13 +1,30 @@
 ---
 task_id: "P4"
-status: "pending"
+status: "develop_alignment_required"
 entry_gate: "ready_after_dependencies"
 depends_on: ["P0", "P2", "P3"]
-contract_version: 2
+contract_version: 3
 report_path: "docs/agent-tasks/baby/reports/P4.md"
 ---
 
 # P4 — 필수품·예산·구매 시점 최적화
+
+## ACTIVE DB CONTRACT — develop `da79839` / v3 (2026-09-13)
+
+이 절과 [develop 전환 계약](DEVELOP_DB_TRANSITION.md), [목표 스키마](schema-v1.md)가 현재 실행 지시다. 이 문서 아래 기존 지시 중 충돌하는 DB 매핑·pgvector 유지·완전 축소 SR 승인 조건은 폐기한다. DB와 무관한 업무 규칙·API·수용 사례는 유지한다. 과거 보고서의 통과 결과는 당시 코드의 증거이며 develop 호환 완료를 뜻하지 않는다. 현재 작업 트리는 `rag`이므로 develop SQL이 이미 병합되어 있다고 가정하지 않는다. `개발 역할 분담`은 적용하지 않는다.
+
+### P4 DELTA — 계산 로직과 저장 DTO 분리
+
+- **상태/재사용:** 필요량·예산·구매 시점 최적화는 재사용한다. item DB 식별자에 기대는 보유량 계산과 결과 DTO만 변경한다. P2 v3 저장/재조회와 P3의 검증 DTO를 입력으로 사용한다.
+- **EDIT:** `src/engine/stage4_optimize.py`, `src/dto.py`, `tests/test_baby_optimizer.py`, `tests/test_baby_db_pipeline.py`, 보유량/편집 결함 회귀.
+- **IMPLEMENT:** 보유 충족은 fulfilled_by_item_id의 존재가 아니라 검증된 fulfilled_qty로 계산한다. owned 표시 행 ID는 전환 계약의 파생 ID이며 DB 물품 FK가 아니다. 후보 편집 qty는 develop의 구매 팩 수(정수1~99), 필요량은 qty*unit_qty로 환산한다. 총2/보유1은 한 개만 충족한다. candidate check의 requirement_id 일치와 unit_code를 검증하고, 누락·unknown·fail은 선택/확정을 허용하지 않는다.
+- **IMPLEMENT:** 순수 계산이 planning.item에 접근하지 않게 한다. status=owned는 화면/계산용이며 purchase_line을 생성하지 않는다. now/soon/later와 예산 포함 feasible 규칙은 유지한다. HTTP item_id 매핑과 영속 편집은 P5 책임이다.
+- **ACCEPTANCE D4:** P2 DB 왕복 DTO로 총2/보유1→구매1; 보유만으로 필수 전체 충족 오판 금지; 후보 교체·단위/수량 오류 거부; 미설정 검색의 unknown 후보 미선택; qty=99 허용/100 거부. 변경되지 않은 순수 예산 테스트 결과는 기존 보고서 참조, 변경한 adapter/보유 경로만 추가 검증한다.
+- **HANDOFF:** v3 DTO 입출력과 D4 결과를 `reports/P4.md`에 추가한다.
+
+## PREVIOUS WORK ORDER — non-conflicting business rules only
+
+이하의 날짜별 상태·구 DB 구현 실적은 과거 기록이다. 현재 상태는 위 절과 manifest를 사용한다. 아래 지시에서 완전 축소 SQL 실행, pgvector 보존, planning.item 복원, domain_version/plan_node/purchase_line 삭제, 근거 객체 저장, shared/notification 스키마 삭제를 요구하는 부분은 실행하지 않는다.
 
 ## REVIEW FIXES — 2026-09-13
 
