@@ -123,8 +123,9 @@ class BasketResult(BaseModel):
 # ── [3-C] 적대적 검증 ───────────────────────────────────────────────────
 class Issue(BaseModel):
     axis: str
-    prosecutor: str = ""
-    defender: str = ""
+    text: str = ""          # 사용자에게 보이는 중립 서술. 판정(judge)과 분리한다
+    prosecutor: str = ""    # 미사용 — 디베이트 제거 이전 설계 (기획서 §10-12)
+    defender: str = ""      # 〃
     tool_result: str = ""
     evidence: list[dict[str, Any]] = Field(default_factory=list)
     judge: str = ""

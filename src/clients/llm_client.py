@@ -82,10 +82,8 @@ def call_llm(
     print(f"[MOCK] LLM 호출: {preview}...")
 
     sys_text = system or ""
-    if "검사AI" in sys_text or "prosecutor" in sys_text:
-        return {"text": "[MOCK 검사AI] 조합 이슈를 근거와 함께 제기합니다."}
-    if "변호인AI" in sys_text or "defender" in sys_text:
-        return {"text": "[MOCK 변호인AI] 제기된 쟁점에 도구 근거로 반박합니다."}
+    if "검증 쟁점" in sys_text:
+        return {"text": "[MOCK] 관측값과 근거를 그대로 옮긴 쟁점 문장입니다."}
 
     # 그 외 구조화 출력 요청 → 호출자가 시나리오 정답값을 직접 주입하므로 빈 골격 반환
     return {"text": "[MOCK] 일반 응답"}
