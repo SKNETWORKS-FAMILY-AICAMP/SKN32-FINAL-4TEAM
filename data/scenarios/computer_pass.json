@@ -32,15 +32,13 @@
             "axis": "전력 여유",
             "penalty": 4,
             "judge": "경미",
-            "prosecutor": "GPU 트랜지언트 스파이크 고려 시 850W 권장 구간에 근접합니다.",
-            "defender": "상시부하 420W로 정격의 55%, 트랜지언트 마진도 이슈 사례집 기준 충분합니다."
+            "tool_result": "상시부하 420W · 정격 대비 55%"
           },
           {
             "axis": "CPU↔GPU 병목",
             "penalty": 6,
             "judge": "경미",
-            "prosecutor": "QHD에서 두 게임 모두 GPU 바운드지만 1% 로우는 CPU 의존이 있습니다.",
-            "defender": "선정 CPU tier가 밸런스 프로파일 목표(5.5) 이상이라 병목 영향 미미합니다."
+            "tool_result": "CPU tier 6.0 · GPU tier 7.0 (차이 1단계)"
           }
         ]
       }

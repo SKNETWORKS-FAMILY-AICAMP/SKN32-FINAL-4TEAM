@@ -113,8 +113,8 @@ uv run python main.py computer_pass
 **2. 프롬프트 문안 팀 승인.**
 `prompts.py`의 두 문안은 기획서 §19-3 체크리스트의 미승인 항목이다. 실호출에서 드러난 약점 둘을 같이 올린다 — headline이 검증 신뢰도 인용을 빠뜨리는 경우가 있고, "강력한 성능" 같은 평가 표현이 섞인다(규칙 7 위반이지만 후처리 검사는 통과한다).
 
-**3. 데모 시나리오에 `tool_result` 추가.**
-`data/scenarios/*.json`의 쟁점에 관측값이 없어서 데모 경로는 쟁점 문장을 RAG 근거만으로 만든다. 시연 품질 문제다. 같은 파일들이 이제 쓰지 않는 `prosecutor`/`defender`도 들고 있다.
+**3. 데모 시나리오에 `tool_result` 추가 — 완료 (2026-09-13).**
+`computer_pass.json`·`computer_research.json`의 쟁점 다섯 건에 `tool_result`(관측값 문자열)를 채우고, 쓰지 않던 `prosecutor`/`defender`는 제거했다. `stage3c_verify._issue_sentence`의 프롬프트가 이제 "관측값: (기록 없음)" 대신 실제 값("상시부하 420W · 정격 대비 55%" 등)을 받는다. `MOCK_MODE=1`으로 `main.py computer_pass`·`computer_research` 둘 다 재확인, `pytest` 기준선(87 passed / 기존에도 실패하던 `test_list_service.py` 3건 제외) 그대로 유지.
 
 **4. 팀에 알릴 것 둘.**
 `recommendation_service.py`의 `message=issue.text or ...` 한 줄을 우리가 고쳤다(담당자 영역). 그리고 계약 문서 §D-3이 아직 Bedrock 기준이라 OpenAI 전환이 반영돼 있지 않다.
