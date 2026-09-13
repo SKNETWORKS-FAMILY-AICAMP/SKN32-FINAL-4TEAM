@@ -1,0 +1,69 @@
+category: computer
+label: "컴퓨터 (PC 본체 조립)"
+modes: [build, upgrade]
+required_inputs: [purpose, budget_max, priority]
+required_inputs_by_mode:               # mode별 추가 필수 (§D-4-1)
+  upgrade: [upgrade_parts]
+slot_structure: [CPU, GPU, RAM, 메인보드, 저장장치, 파워, 케이스, 쿨러]
+verify_branch: set            # [4] 세트 최적화 → [3-C] 세트 검증
+
+slot_schema:
+  purpose:         { type: enum, values: [game, creation, office, study, other] }
+  budget_max:      { type: int, nullable: true }
+  priority:        { type: enum, values: [performance, value, quiet], nullable: true }
+  games:           { type: list }
+  resolution:      { type: enum, values: [FHD_144, QHD_165, "4K"], nullable: true }
+  assembly:        { type: enum, values: [self, service], nullable: true }
+  noise_sensitive: { type: bool, nullable: true }
+  brand_pref:      { type: enum, values: [intel, amd, none], nullable: true }
+  upgrade_parts:   { type: list }        # mode=upgrade 일 때만 필수
+  current_specs:   { type: object, nullable: true }   # TODO: 사양 파일 파싱 결정 전까지 자유 텍스트로만 수집
+  spec_file_name:  { type: str, nullable: true }       # TODO: 파일 업로드 미구현 — accepts_spec_file=false
+  owned:           { type: list }
+  extra:           { type: list }
+
+defaults:                      # 동적 기본값 실패 시 fallback
+  resolution: FHD_144
+  assembly: service
+  noise_sensitive: false
+  brand_pref: none
+
+# ConditionState.fields 순서·표시 라벨 (§D-4-1 "카테고리별 필드")
+fields:
+  - { key: mode, label: "구성 방식", display: { build: "새 컴퓨터", upgrade: "업그레이드" } }
+  - { key: upgrade_parts, label: "업그레이드 부품", mode_only: upgrade }
+  - { key: purpose, label: "주요 용도",
+      display: { game: "게임", creation: "창작", office: "사무", study: "학습", other: "기타" } }
+  - { key: budget_max, label: "예산" }
+  - { key: priority, label: "우선순위",
+      display: { performance: "성능 우선", value: "가성비", quiet: "저소음" } }
+
+question_sets:
+  - { id: q_purpose, select: single, maps_to: purpose,
+      label: "주로 어떤 용도로 쓰실 건가요?",
+      options: ["게임", "창작·작업", "사무", "학습", "기타"],
+      values: [game, creation, office, study, other] }
+  - { id: q_budget_max, select: free, maps_to: budget_max,
+      label: "예산은 얼마까지 생각하시나요?" }
+  - { id: q_priority, select: single, maps_to: priority,
+      label: "가장 중요하게 생각하시는 건 뭔가요?",
+      options: ["성능 우선", "가성비", "조용한 게 좋아요"],
+      values: [performance, value, quiet] }
+  - { id: q_upgrade_parts, select: multi, maps_to: upgrade_parts,
+      label: "어떤 부품을 업그레이드하고 싶으신가요?",
+      options: ["CPU", "GPU", "RAM", "메인보드", "저장장치", "파워", "케이스", "쿨러"],
+      mode_only: upgrade }
+  - { id: q_resolution, select: single, maps_to: resolution,
+      label: "목표 해상도·주사율은?",
+      options: ["FHD 144Hz", "QHD 165Hz", "4K", "잘 모르겠어요"],
+      values: [FHD_144, QHD_165, "4K", null] }
+  - { id: q_games, select: multi, maps_to: games,
+      label: "어떤 게임을 하시나요?" }
+  - { id: q_assembly, select: single, maps_to: assembly,
+      label: "조립은 어떻게 하시겠어요?",
+      options: ["직접 조립", "조립 대행"],
+      values: [self, service] }
+  - { id: q_noise, select: single, maps_to: noise_sensitive,
+      label: "소음에 민감하신 편인가요?",
+      options: ["조용한 게 좋아요", "상관없어요"],
+      values: [true, false] }

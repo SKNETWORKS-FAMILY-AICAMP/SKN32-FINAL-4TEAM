@@ -1,0 +1,23 @@
+[
+  {"id":"minimum-age","query":"좌석 모드 월령은 몇 개월 이상인가요?","status":"success","expected_text":["6 개월 이상","22 kg 이하","혼자 앉을 수 있음","모두 충족"]},
+  {"id":"weight-limit","query":"좌석 모드 체중 제한과 필수 조건","status":"success","expected_text":["22 kg 이하","혼자 앉을 수 있음"]},
+  {"id":"newborn","query":"신생아 구성 지원 여부","status":"success","expected_text":["신생아 구성: 지원하지 않습니다."]},
+  {"id":"one-hand","query":"한 손 접기 기능을 지원하나요?","status":"success","expected_text":["한 손 접기 기능: 지원합니다."]},
+  {"id":"standing","query":"접힌 상태 자립 기능 지원 여부","status":"success","expected_text":["자립 기능: 지원하지 않습니다."]},
+  {"id":"basket","query":"바구니 최대 하중은?","status":"success","expected_text":["바구니 최대 하중: 3 kg."]},
+  {"id":"assembled-weight","query":"좌석 장착 제품 무게","status":"success","expected_text":["6.5 kg"]},
+  {"id":"folded-size","query":"접힌 크기 가로 깊이 높이","status":"success","expected_text":["45 × 25 × 55 cm"]},
+  {"id":"unfolded-size","query":"펼친 크기 가로 깊이 높이","status":"success","expected_text":["55 × 85 × 105 cm"]},
+  {"id":"compatibility","query":"등록된 호환 부품은?","status":"success","expected_text":["미등록 조합의 호환 여부는 미확인"]},
+  {"id":"components","query":"추가 구성품 목록","status":"success","expected_text":["내장 부품의 전체 목록을 뜻하지 않습니다."]},
+  {"id":"stop","query":"사용 중단 체중 초과 조건","status":"success","expected_text":["22 kg을 초과하면"]},
+  {"id":"missing-folding-procedure","query":"한 손 접기 순서를 알려주세요","status":"no_evidence"},
+  {"id":"missing-washing","query":"이 유모차 세탁 방법은?","status":"no_evidence"},
+  {"id":"missing-sterilization","query":"소독 온도와 시간","status":"no_evidence"},
+  {"id":"missing-installation","query":"좌석 조립 설치 방법","status":"no_evidence"},
+  {"id":"missing-certification","query":"KC 인증번호","status":"no_evidence"},
+  {"id":"other-product","query":"바구니 최대 하중","filters":{"product_key":"SYN-STROLLER-999"},"status":"no_evidence"},
+  {"id":"other-variant","query":"바구니 최대 하중","filters":{"variant_key":"SYN-STROLLER-001-BLUE"},"status":"no_evidence"},
+  {"id":"other-market","query":"바구니 최대 하중","filters":{"market":"US"},"status":"no_evidence"},
+  {"id":"other-domain","query":"바구니 최대 하중","filters":{"domain":"computer"},"status":"no_evidence"}
+]

@@ -1,0 +1,579 @@
+<title>Deal Ledger 주간 원장</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --paper:#F1F2EE; --paper-2:#E6E8E1; --card:#FBFBF9;
+  --ink:#15181C; --ink-2:#4B5158; --ink-3:#7C828A;
+  --rule:#C7CBC2; --rule-2:#DDE0D8; --rule-strong:#9CA298;
+  --accent:#2B3AA0; --accent-soft:#E1E4F4; --accent-ink:#2B3AA0;
+  --ok:#2F6B4F; --ok-soft:#DFEDE4;
+  --warn:#8A6712; --warn-soft:#F2E9CF;
+  --bad:#B0442A; --bad-soft:#F4E1DA;
+  --sans:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --mono:"IBM Plex Mono","SFMono-Regular",Consolas,monospace;
+  --gut:clamp(20px,4vw,64px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#131619; --paper-2:#1A1E22; --card:#1B2025;
+    --ink:#E9EAE5; --ink-2:#A9AFB5; --ink-3:#787E85;
+    --rule:#2C3238; --rule-2:#23282D; --rule-strong:#434A52;
+    --accent:#8A99F4; --accent-soft:#1F2542; --accent-ink:#A4B0F8;
+    --ok:#6FBB92; --ok-soft:#16281F;
+    --warn:#D8AC45; --warn-soft:#2B2413;
+    --bad:#E28466; --bad-soft:#2E1B15;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#131619; --paper-2:#1A1E22; --card:#1B2025;
+  --ink:#E9EAE5; --ink-2:#A9AFB5; --ink-3:#787E85;
+  --rule:#2C3238; --rule-2:#23282D; --rule-strong:#434A52;
+  --accent:#8A99F4; --accent-soft:#1F2542; --accent-ink:#A4B0F8;
+  --ok:#6FBB92; --ok-soft:#16281F;
+  --warn:#D8AC45; --warn-soft:#2B2413;
+  --bad:#E28466; --bad-soft:#2E1B15;
+}
+
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-weight:400;
+  font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased;}
+h1,h2,h3,h4,p,ul,ol,figure,table,dl{margin:0}
+ul{padding-left:0;list-style:none}
+a{color:var(--accent-ink)}
+code,.m0{font-family:var(--mono);font-size:.86em}
+
+/* chrome */
+.topbar{position:sticky;top:0;z-index:20;background:var(--paper);
+  border-bottom:1px solid var(--rule);display:flex;align-items:stretch;}
+.brand{display:flex;align-items:baseline;gap:10px;padding:12px var(--gut) 10px;
+  font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2);
+  border-right:1px solid var(--rule);white-space:nowrap}
+.brand b{color:var(--ink);font-weight:600}
+.rail{display:flex;flex:1;overflow-x:auto;scrollbar-width:none}
+.rail::-webkit-scrollbar{display:none}
+.rail button{appearance:none;background:none;border:0;border-right:1px solid var(--rule-2);
+  font-family:var(--mono);font-size:11px;letter-spacing:.1em;
+  color:var(--ink-3);padding:12px 14px 10px;cursor:pointer;white-space:nowrap;
+  border-bottom:2px solid transparent;margin-bottom:-1px}
+.rail button:hover{color:var(--ink)}
+.rail button[aria-current="true"]{color:var(--accent-ink);border-bottom-color:var(--accent)}
+.tools{display:flex;border-left:1px solid var(--rule)}
+.tools button{appearance:none;background:none;border:0;
+  font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--ink-2);
+  padding:12px 16px 10px;cursor:pointer;white-space:nowrap}
+.tools button:hover{color:var(--ink);background:var(--paper-2)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* stage */
+main{padding:0 var(--gut)}
+.slide{padding:clamp(28px,4.5vw,54px) 0 clamp(28px,4vw,48px);max-width:1180px}
+body[data-mode="doc"] .slide{border-bottom:1px solid var(--rule-2)}
+body[data-mode="doc"] .slide:last-of-type{border-bottom:0}
+
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--ink-3);display:flex;gap:14px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+.eyebrow .tick{width:26px;height:1px;background:var(--rule-strong);display:inline-block}
+h2.title{font-size:clamp(27px,3.5vw,44px);font-weight:700;letter-spacing:-.022em;line-height:1.2;
+  text-wrap:balance;max-width:24ch}
+h2.title .q{color:var(--accent-ink)}
+.lede{font-size:clamp(15.5px,1.3vw,18.5px);color:var(--ink-2);font-weight:300;max-width:64ch;margin-top:16px;line-height:1.62}
+.lede b,.note b{font-weight:600;color:var(--ink)}
+.body{margin-top:clamp(20px,2.6vw,32px);display:flex;flex-direction:column;gap:22px}
+
+/* cover */
+.cover-num{font-family:var(--mono);font-weight:600;font-size:clamp(60px,12vw,140px);
+  line-height:.86;letter-spacing:-.045em;color:var(--ink)}
+.cover-num span{color:var(--accent-ink)}
+.cover-meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(178px,1fr));gap:1px;
+  background:var(--rule);border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);margin-top:32px}
+.cover-meta>div{background:var(--paper);padding:14px 0 16px}
+.cover-meta dt{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+.cover-meta dd{margin:6px 0 0;font-size:15px;font-weight:500}
+
+/* generic */
+.cols{display:grid;gap:1px;background:var(--rule);border:1px solid var(--rule)}
+.cols>*{background:var(--card);padding:18px 20px 20px}
+.c2{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.c3{grid-template-columns:repeat(auto-fit,minmax(228px,1fr))}
+.cols h3{font-size:15px;font-weight:600;margin-bottom:9px;display:flex;gap:9px;align-items:baseline;flex-wrap:wrap}
+.cols h3 .id{font-family:var(--mono);font-size:11px;color:var(--accent-ink);font-weight:600;letter-spacing:.04em}
+.cols p{font-size:14px;color:var(--ink-2);line-height:1.6}
+.cols p+p{margin-top:8px}
+.cols p b{color:var(--ink);font-weight:600}
+
+/* delta — a real ordered account of change */
+.delta{display:grid;gap:1px;background:var(--rule);border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.delta li{background:var(--paper);display:grid;grid-template-columns:44px 1fr;gap:18px;padding:20px 0}
+.delta .n{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--accent-ink);padding-top:4px}
+.delta h3{font-size:clamp(17px,1.7vw,21px);font-weight:600;letter-spacing:-.012em}
+.delta p{font-size:14.5px;color:var(--ink-2);margin-top:6px;max-width:72ch}
+.delta p b{color:var(--ink);font-weight:600}
+
+/* decision block — the fixed five-slot schema */
+.dec{border:1px solid var(--rule);background:var(--card)}
+.dec>div{display:grid;grid-template-columns:118px 1fr;border-bottom:1px solid var(--rule-2)}
+.dec>div:last-child{border-bottom:0}
+.dec dt{font-family:var(--mono);font-size:11px;letter-spacing:.1em;
+  color:var(--ink-3);padding:14px 16px;border-right:1px solid var(--rule-2);background:var(--paper-2)}
+.dec dd{margin:0;padding:14px 18px;font-size:14.5px;line-height:1.62;color:var(--ink-2)}
+.dec dd b{color:var(--ink);font-weight:600}
+.dec dd.pick{font-weight:600;color:var(--ink)}
+.dec .cite{font-family:var(--mono);font-size:12.5px;color:var(--ink-2);display:block;line-height:1.6}
+.dec .cite+.cite{margin-top:6px}
+.dec .cite b{color:var(--accent-ink);font-weight:600}
+
+.note{border-left:2px solid var(--accent);padding:2px 0 2px 16px;font-size:14.5px;color:var(--ink-2);max-width:80ch;line-height:1.62}
+.warnbox{border:1px solid var(--rule);border-left:3px solid var(--warn);background:var(--warn-soft);
+  padding:14px 18px;font-size:14.5px;color:var(--ink-2);line-height:1.62;max-width:82ch}
+.warnbox b{color:var(--ink);font-weight:600}
+.warnbox .kicker{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--warn);margin-bottom:6px}
+
+/* pipeline */
+.flow{display:flex;flex-wrap:wrap;border:1px solid var(--rule);background:var(--rule);gap:1px}
+.flow .step{background:var(--card);padding:14px 18px 16px;flex:1 1 140px;min-width:140px;
+  display:flex;flex-direction:column;gap:5px}
+.flow .step .t{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:var(--ink-3)}
+.flow .step .v{font-size:14.5px;font-weight:600;letter-spacing:-.012em}
+.flow .step .s{font-size:12.5px;color:var(--ink-2);line-height:1.5}
+.flow .step.hot{background:var(--accent-soft)}
+.flow .step.hot .v{color:var(--accent-ink)}
+
+.guard{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule)}
+.guard>div{background:var(--card);padding:18px 20px 20px}
+.guard .lvl{font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:var(--accent-ink);font-weight:600}
+.guard h3{font-size:16.5px;font-weight:600;margin:7px 0 9px;letter-spacing:-.012em}
+.guard p{font-size:14px;color:var(--ink-2);line-height:1.62}
+.guard p b{color:var(--ink);font-weight:600}
+
+/* tables */
+.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl th{text-align:left;font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--ink-3);font-weight:500;padding:0 16px 9px 0;border-bottom:1px solid var(--rule-strong);white-space:nowrap}
+.tbl td{padding:11px 16px 11px 0;border-bottom:1px solid var(--rule-2);vertical-align:top;color:var(--ink-2);line-height:1.58}
+.tbl td:first-child{color:var(--ink);font-weight:500}
+.tbl .m{font-family:var(--mono);font-size:12.5px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tbl th.m{font-size:10.5px}
+.scrollx{overflow-x:auto}
+
+/* log sample */
+pre.log{font-family:var(--mono);font-size:12.5px;line-height:1.75;background:var(--card);
+  border:1px solid var(--rule);padding:16px 18px;overflow-x:auto;color:var(--ink-2);margin:0}
+pre.log b{color:var(--ink);font-weight:600}
+pre.log .k{color:var(--accent-ink)}
+pre.log .audit{color:var(--bad)}
+
+/* P0 unit grid — one cell per confirmed P0 item */
+.p0{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:6px}
+.p0 span{font-family:var(--mono);font-size:11.5px;font-weight:500;letter-spacing:.02em;
+  padding:11px 4px;text-align:center;border:1px solid var(--rule);color:var(--ink-2)}
+.p0 .done{background:var(--ok-soft);border-color:var(--ok);color:var(--ok)}
+.p0 .part{background:var(--warn-soft);border-color:var(--warn);color:var(--warn)}
+.p0 .todo{background:var(--paper-2);border-style:dashed;border-color:var(--rule-strong);color:var(--ink-3)}
+.legend{display:flex;flex-wrap:wrap;gap:20px;font-family:var(--mono);font-size:11.5px;color:var(--ink-2)}
+.legend i{display:inline-block;width:10px;height:10px;margin-right:7px;border:1px solid var(--rule-strong)}
+.legend .done i{background:var(--ok-soft);border-color:var(--ok)}
+.legend .part i{background:var(--warn-soft);border-color:var(--warn)}
+.legend .todo i{background:var(--paper-2);border-style:dashed}
+
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(136px,1fr));gap:1px;background:var(--rule);
+  border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.stats>div{background:var(--paper);padding:16px 0 18px}
+.stats .v{font-family:var(--mono);font-size:clamp(25px,3vw,36px);font-weight:600;letter-spacing:-.025em;
+  font-variant-numeric:tabular-nums;line-height:1}
+.stats .t{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);margin-top:9px}
+
+/* next week */
+.next{display:grid;gap:1px;background:var(--rule);border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.next li{background:var(--paper);display:grid;grid-template-columns:50px 1fr auto;gap:16px;align-items:baseline;padding:15px 0}
+.next .p{font-family:var(--mono);font-size:11px;color:var(--accent-ink);font-weight:600;letter-spacing:.06em}
+.next h3{font-size:15.5px;font-weight:600;letter-spacing:-.01em}
+.next p{font-size:13.5px;color:var(--ink-2);margin-top:5px;max-width:74ch;line-height:1.58}
+.chip{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;padding:3px 8px;border:1px solid var(--rule-strong);
+  color:var(--ink-3);white-space:nowrap}
+.chip.q{border-color:var(--bad);color:var(--bad);background:var(--bad-soft)}
+
+/* footer */
+.footbar{position:sticky;bottom:0;z-index:20;background:var(--paper);border-top:1px solid var(--rule);
+  display:flex;align-items:center;justify-content:space-between;gap:16px;padding:9px var(--gut) 10px;
+  font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--ink-3)}
+.footbar .right{display:flex;align-items:center;gap:14px}
+.footbar .nav{display:flex;gap:6px}
+.footbar .nav button{appearance:none;border:1px solid var(--rule-strong);background:none;color:var(--ink-2);
+  font-family:var(--mono);font-size:12px;width:30px;height:26px;cursor:pointer;line-height:1}
+.footbar .nav button:hover{background:var(--paper-2);color:var(--ink)}
+.footbar .count{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
+.hint{display:none}
+body[data-mode="present"] .hint{display:inline}
+body[data-mode="doc"] .nav{display:none}
+
+@media (max-width:700px){
+  .dec>div{grid-template-columns:1fr}
+  .dec dt{border-right:0;border-bottom:1px solid var(--rule-2)}
+  .delta li{grid-template-columns:1fr;gap:8px}
+  .next li{grid-template-columns:1fr;gap:8px}
+  .footbar{font-size:10px;gap:10px}
+}
+@media (prefers-reduced-motion:no-preference){
+  body[data-mode="present"] .slide{animation:in .26s ease-out}
+  @keyframes in{from{opacity:.6;transform:translateY(4px)}to{opacity:1;transform:none}}
+}
+@media print{
+  .topbar,.footbar{display:none}
+  .slide{break-after:page;border:0}
+}
+</style>
+
+<header class="topbar">
+  <div class="brand"><b>DEAL LEDGER</b> <span>주간 원장</span></div>
+  <nav class="rail" id="rail" aria-label="섹션 이동"></nav>
+  <div class="tools"><button id="modeBtn" type="button">문서 모드</button></div>
+</header>
+
+<main id="deck">
+
+<section class="slide" data-section="개요" data-time="0:00">
+  <div class="eyebrow"><span>2026 / 08 / 31 — 09 / 04</span><span class="tick"></span><span>Weekly Share</span></div>
+  <div class="cover-num">W<span>36</span></div>
+  <h2 class="title" style="margin-top:26px">에이전트가 협상하고,<br>사람은 <span class="q">승인만</span> 한다</h2>
+  <p class="lede">B2B 조달에서 셀러·바이어 에이전트가 가격을 자동으로 주고받고, 사람은 마지막 한 번만 개입하는 거래 플랫폼. 이번 주는 <b>P0 범위를 확정</b>하고 <b>L0~L4 파이프라인을 끝까지 연결</b>했습니다.</p>
+  <dl class="cover-meta">
+    <div><dt>이번 주 상태</dt><dd>P0 확정 + 로컬 end-to-end 동작</dd></div>
+    <div><dt>다음 마일스톤</dt><dd>9/8 AWS 배포 1차</dd></div>
+    <div><dt>제출</dt><dd>9/15 해커톤 중간 발표</dd></div>
+    <div><dt>이 문서</dt><dd>발표 + 회고 원장 겸용</dd></div>
+  </dl>
+</section>
+
+<section class="slide" data-section="개요" data-time="0:40">
+  <div class="eyebrow"><span>무엇을 만드는가</span><span class="tick"></span><span>L0 — L4</span></div>
+  <h2 class="title">거래 한 건이 지나가는 길</h2>
+  <p class="lede">구매 요청 한 건이 들어오면 아래 순서로 흘러갑니다. 파란 칸이 <b>사람이 개입하는 유일한 지점</b>입니다.</p>
+  <div class="body">
+    <div class="flow">
+      <div class="step"><span class="t">L0 · RFQ</span><span class="v">구매 요청</span><span class="s">품목·수량·사양·납기·예산 5필드</span></div>
+      <div class="step"><span class="t">L3 · 스크리닝</span><span class="v">조건 필터</span><span class="s">재고·사양·납기 미달은 라운드 진입 전 제외</span></div>
+      <div class="step"><span class="t">L2 · 협상</span><span class="v">OFFER ↔ REJECT</span><span class="s">셀러별 최대 3라운드</span></div>
+      <div class="step"><span class="t">L3 · 낙찰</span><span class="v">최저가 채택</span><span class="s">SETTLED / NO_DEAL / NO_MATCH</span></div>
+      <div class="step hot"><span class="t">H-02 · 사람</span><span class="v">최종 승인</span><span class="s">실제 액션은 무조건 사람</span></div>
+      <div class="step"><span class="t">L4 · 리포트</span><span class="v">요약 + 원문 로그</span><span class="s">로그에서만 파생</span></div>
+    </div>
+    <p class="note"><b>설계 원칙 하나.</b> 리포트는 에이전트가 직접 쓰지 않습니다. 항상 append된 로그를 다시 읽어서만 만들어집니다 — 그래야 리포트와 로그가 어긋날 수 없습니다.</p>
+  </div>
+</section>
+
+<section class="slide" data-section="델타" data-time="1:20">
+  <div class="eyebrow"><span>지난주 대비</span><span class="tick"></span><span>델타 3건</span></div>
+  <h2 class="title">이번 주에 바뀐 것</h2>
+  <div class="body">
+    <ul class="delta">
+      <li><span class="n">01</span><div>
+        <h3>P0의 정의가 뒤집혔다</h3>
+        <p>직전 확정안(rev.1)은 “P0에 LLM 1곳(조건 해석)”이었습니다. 회의록 3건을 다시 읽고 <b>LLM 0곳 · 전 구간 룰 기반</b>으로 확정했습니다. 이번 주 가장 큰 방향 전환입니다.</p></div></li>
+      <li><span class="n">02</span><div>
+        <h3>파이프라인이 끝까지 붙었다</h3>
+        <p>등록 → 매칭 → 협상 → 승인 → 리포트가 한 번에 돌아갑니다. 화면 3장과 API 7개가 1:1로 연결됐고, SQLite라 서버를 재시작해도 데이터가 남습니다.</p></div></li>
+      <li><span class="n">03</span><div>
+        <h3>실패가 두 종류로 갈라졌다</h3>
+        <p><code>NO_MATCH</code>(조건 맞는 셀러 자체가 없음)와 <code>NO_DEAL</code>(협상은 했으나 가격 결렬). <b>사람이 고쳐야 할 것이 다르기 때문에</b> 화면과 로그에서 분리했습니다.</p></div></li>
+    </ul>
+  </div>
+</section>
+
+<section class="slide" data-section="의사결정" data-time="2:20">
+  <div class="eyebrow"><span>포맷</span><span class="tick"></span><span>매주 동일</span></div>
+  <h2 class="title">결정은 다섯 칸으로만 적습니다</h2>
+  <p class="lede">발표 자료를 나중에 회고 자료로 쓰려면 “무엇을 했는가”가 아니라 <b>“왜 그렇게 정했는가”</b>가 남아야 합니다. 그래서 모든 결정을 아래 다섯 칸에 고정해 적고, 기획 주차든 개발 주차든 칸을 바꾸지 않습니다.</p>
+  <div class="body">
+    <div class="cols c3">
+      <div><h3><span class="id">01</span> 쟁점</h3><p>무엇을 놓고 갈렸는지. 결론이 아니라 질문을 적습니다.</p></div>
+      <div><h3><span class="id">02</span> 선택</h3><p>실제로 정한 것. 한 문장으로 끝냅니다.</p></div>
+      <div><h3><span class="id">03</span> 버린 대안</h3><p>이게 없으면 몇 주 뒤 “왜 저 쉬운 길을 안 갔지”가 반복됩니다.</p></div>
+      <div><h3><span class="id">04</span> 근거</h3><p>회의록 발언과 타임스탬프까지. 기억이 아니라 기록으로 남깁니다.</p></div>
+      <div><h3><span class="id">05</span> 뒤집힐 조건</h3><p>어떤 사실이 나타나면 이 결정을 되돌리는지. 덕분에 사후에 판단을 채점할 수 있습니다.</p></div>
+    </div>
+    <p class="note">이번 주 결정은 <b>7건</b>. 큰 것 두 개를 먼저 보여드리고, 나머지는 묶어서 지나가겠습니다.</p>
+  </div>
+</section>
+
+<section class="slide" data-section="의사결정" data-time="3:00">
+  <div class="eyebrow"><span>D-1</span><span class="tick"></span><span>범위</span></div>
+  <h2 class="title">LLM 플랫폼인데, <span class="q">MVP엔 LLM을 한 줄도</span> 안 넣기로 했습니다</h2>
+  <div class="body">
+    <dl class="dec">
+      <div><dt>쟁점</dt><dd>에이전트 협상 플랫폼인데, 데모까지 2주 남은 시점에 LLM을 넣을 것인가</dd></div>
+      <div><dt>선택</dt><dd class="pick">P0 전 구간 룰 기반 — 조건 매칭은 쿼리 룰, 요청 파싱은 형식 검증, 리포트는 템플릿 렌더링</dd></div>
+      <div><dt>버린 대안</dt><dd>조건 해석 1곳만 LLM(직전 확정안) · 리포트 요약 문단만 LLM(절충안)</dd></div>
+      <div><dt>근거</dt><dd>
+        <span class="cite"><b>11시[40:42]</b> “MVP는 LLM을 사용하지 않는 룰 기반으로 구매부터 판매까지 — 이것이 P0”</span>
+        <span class="cite"><b>12시[18:26]</b> “조건 해석은 당장 LLM을 빼도 된다”</span>
+        <span class="cite"><b>17시[47:02]</b> “LLM을 쓰는 단계는 P1”</span>
+      </dd></div>
+      <div><dt>뒤집힐 조건</dt><dd>데모에서 “왜 에이전트인가”에 답할 화면이 없다고 판단되면 → P1 중 <b>리포트 요약</b>(거래당 호출 1회, 가장 싼 항목)만 앞당깁니다</dd></div>
+    </dl>
+    <div class="warnbox">
+      <div class="kicker">남은 리스크</div>
+      9/15 데모에서 LLM이 한 번도 안 돌면, 기술 심사위원 앞에서 “왜 에이전트인가”에 답할 근거가 화면에 없습니다. 대응은 위 “뒤집힐 조건”을 발동하거나, 도식에서 <b>구현분과 계획분을 색으로 구분</b>해 단계로 설명하는 것 — 둘 중 하나를 9/5에 고릅니다.
+    </div>
+  </div>
+</section>
+
+<section class="slide" data-section="의사결정" data-time="4:20">
+  <div class="eyebrow"><span>D-3</span><span class="tick"></span><span>신뢰성</span></div>
+  <h2 class="title">할루시네이션을 <span class="q">LLM이 아니라 룰로</span> 막았습니다</h2>
+  <p class="lede">회의에서 나온 실제 사례 — <b>“재고가 10대인데 100대 가능하다고 응답한다.”</b> 검증까지 LLM에게 맡기면 검증자도 같이 틀립니다. 그래서 2단으로 나눴습니다.</p>
+  <div class="body">
+    <div class="guard">
+      <div>
+        <div class="lvl">1단 — 사전 스크리닝</div>
+        <h3>거짓말할 기회를 주지 않는다</h3>
+        <p>협상 라운드에 들어가기 <b>전에</b> 재고·사양·납기를 룰로 검사합니다. 미달 셀러는 라운드에 진입조차 못 하고, 떨어진 사유가 즉시 로그에 남습니다.</p>
+      </div>
+      <div>
+        <div class="lvl">2단 — 감사자</div>
+        <h3>틀렸을 때만 개입한다</h3>
+        <p>LLM 출력을 <code>floor_price</code>·<code>cap_price</code>와 대조해 <b>규칙을 어겼을 때만</b> 보정하고 <code>audit_note</code>를 남깁니다. 정상 출력에는 손대지 않습니다.</p>
+      </div>
+    </div>
+    <p class="note"><b>부수 효과가 더 좋았습니다.</b> 감사자가 매 턴 도는 게 아니라 위반 시에만 돌기 때문에, 로그에 <code>audit_note</code>가 찍혀 있다는 사실 자체가 “LLM이 틀렸던 지점”의 증거가 됩니다. 나중에 LLM 모드로 전환해도 신뢰성 근거를 그대로 화면에 보여줄 수 있습니다.</p>
+  </div>
+</section>
+
+<section class="slide" data-section="의사결정" data-time="5:10">
+  <div class="eyebrow"><span>D-2 · D-4 · D-5 · D-6</span><span class="tick"></span><span>나머지 결정 4건</span></div>
+  <h2 class="title">짧게 지나가는 결정들</h2>
+  <div class="body">
+    <div class="cols c2">
+      <div><h3><span class="id">D-2</span> 거래방 객체를 만들지 않는다</h3>
+        <p><b>선택 —</b> 방(room) 없이 <code>request_id</code> 하나로 로그를 묶습니다.</p>
+        <p><b>근거 —</b> 11시[10:18] “거래방을 따로 두는 건 리소스 측면에서 의미가 없고, 중앙에 별도 서버를 두는 것 자체가 위험”</p>
+        <p><b>뒤집힐 조건 —</b> 동시 입찰로 가면서 셀러별 상태가 id 하나로 안 잡히면 재검토</p></div>
+      <div><h3><span class="id">D-4</span> 시뮬레이션 셀러는 3곳</h3>
+        <p><b>선택 —</b> 3곳, 그중 1곳은 조건 미달로 탈락하는 흐름을 일부러 넣습니다.</p>
+        <p><b>근거 —</b> 탈락 장면이 있어야 스크리닝이 데모에서 눈에 보입니다. 시간이 부족하면 2곳까지 축소 가능(11시[42:52])</p></div>
+      <div><h3><span class="id">D-5</span> AWS는 EC2 1대 + Compose</h3>
+        <p><b>선택 —</b> 4프로세스만 올립니다. VPC 3개·게이트웨이는 도식에 남기고 구현분과 색을 구분합니다.</p>
+        <p><b>근거 —</b> 멘토가 지적한 프록시·VPN 구성을 팀 전체가 아직 이해하지 못한 상태(11시[7:38]) → 데모 범위 밖이 안전</p></div>
+      <div><h3><span class="id">D-6</span> 환경변수는 <code>.env</code>로 통일</h3>
+        <p><b>선택 —</b> 셸 명령 대신 파일. <code>.env.example</code>만 커밋합니다.</p>
+        <p><b>근거 —</b> 팀 OS가 섞여 있어 <code>export</code>가 PowerShell에서 안 먹힙니다. 문서로 설명하는 것보다 문제 자체를 없애는 편이 쌉니다.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="slide" data-section="의사결정" data-time="6:00">
+  <div class="eyebrow"><span>D-7</span><span class="tick"></span><span>미해결</span></div>
+  <h2 class="title">아직 못 정한 것 하나</h2>
+  <div class="body">
+    <dl class="dec">
+      <div><dt>쟁점</dt><dd>해커톤 주최가 AWS인데, 지금 코드는 OpenAI API를 씁니다</dd></div>
+      <div><dt>현재 상태</dt><dd class="pick">미정 — Bedrock + Strands SDK 항목이 P1 → <b>P0 후보</b>로 승격만 된 상태</dd></div>
+      <div><dt>근거</dt><dd><span class="cite"><b>15시[12:28~14:18]</b> 주최사 SDK·Bedrock 사용이 채점에 영향을 줄 수 있음</span></dd></div>
+      <div><dt>결정 기한</dt><dd>9/5(금) 오프라인</dd></div>
+    </dl>
+    <div class="warnbox">
+      <div class="kicker">미리 밝히는 정합성 이슈</div>
+      확정안은 “P0에 LLM 0곳”인데, 코드에는 이미 <code>llm_agents.py</code>가 들어가 있습니다. 기본값은 <code>rule</code>이고 환경변수로만 켜지는 <b>P1 선행 구현</b>입니다 — 확정안을 어긴 것이 아니라 앞당겨 둔 것입니다.
+    </div>
+  </div>
+</section>
+
+<section class="slide" data-section="산출물" data-time="6:40">
+  <div class="eyebrow"><span>산출물</span><span class="tick"></span><span>코드 1,186줄</span></div>
+  <h2 class="title">인터페이스를 먼저 고정했습니다</h2>
+  <p class="lede">레이어마다 포트(인터페이스)를 정해뒀기 때문에, 룰 → LLM 전환도 저장소 교체도 <b>파일 하나만 갈아끼우면</b> 됩니다.</p>
+  <div class="body scrollx">
+    <table class="tbl">
+      <thead><tr><th>레이어</th><th>파일</th><th class="m">줄</th><th>역할</th><th>교체 지점</th></tr></thead>
+      <tbody>
+        <tr><td>L0</td><td class="m">schemas.py</td><td class="m">76</td><td>메시지 타입(REQUEST·OFFER·ACCEPT·REJECT·SETTLED)과 Envelope</td><td>—</td></tr>
+        <tr><td>L1</td><td class="m">store.py</td><td class="m">171</td><td>SQLite 카탈로그·거래 + 거래별 JSONL 로그</td><td>메서드 6개 시그니처 고정 → 저장 방식 교체 가능</td></tr>
+        <tr><td>L2</td><td class="m">agents.py<br>llm_agents.py</td><td class="m">64<br>111</td><td>룰 기반 · OpenAI 기반 셀러/바이어 에이전트</td><td>같은 Port → 환경변수 하나로 전환</td></tr>
+        <tr><td>L2+</td><td class="m">audit.py</td><td class="m">29</td><td>감사자 — 규칙 위반 시에만 개입</td><td>—</td></tr>
+        <tr><td>L3</td><td class="m">negotiate.py</td><td class="m">162</td><td>스크리닝 → 라운드 협상(상한 3) → 최저가 채택</td><td>함수 호출을 HTTP·큐로 바꾸면 프로세스 분리</td></tr>
+        <tr><td>L4</td><td class="m">report.py</td><td class="m">109</td><td>로그에서만 파생되는 요약 + 리포트 파일</td><td>Summarizer 주입 교체 → LLM 요약</td></tr>
+        <tr><td>API·화면</td><td class="m">main.py<br>index.html</td><td class="m">95<br>369</td><td>엔드포인트 7개 + 화면 3장</td><td>—</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="slide" data-section="산출물" data-time="7:20">
+  <div class="eyebrow"><span>실제 로그</span><span class="tick"></span><span>감사자가 개입한 한 건</span></div>
+  <h2 class="title">이게 실제로 남는 기록입니다</h2>
+  <div class="body">
+<pre class="log"><b>{</b>
+  <span class="k">"from"</span>: "셀러 B",   <span class="k">"to"</span>: "buyer",
+  <span class="k">"type"</span>: <b>"OFFER"</b>,     <span class="k">"txid"</span>: "tx_8f3c21",
+  <span class="k">"ts"</span>: "2026-09-02T14:07:11",
+  <span class="k">"payload"</span>: <b>{</b>
+    <span class="k">"price"</span>: 38,  <span class="k">"round"</span>: 3,
+    <span class="k">"message"</span>: "최저 수용 가능한 단가입니다.",
+    <span class="k">"audit_note"</span>: <span class="audit">"감사자 개입: LLM 제시가(36원)가
+                    최저수용가(38원) 미만이라 최저수용가로 보정"</span>
+  <b>}</b>
+<b>}</b></pre>
+    <p class="note">여기서 읽히는 것 세 가지 — ① 3라운드까지 갔다 ② LLM이 자기 손해 방향으로 틀렸다 ③ <b>규칙이 그것을 잡았고, 그 사실이 기록에 남았다.</b> 승인 시점에 이 로그가 그대로 리포트 파일로 떨어집니다.</p>
+  </div>
+</section>
+
+<section class="slide" data-section="함정" data-time="7:50">
+  <div class="eyebrow"><span>막힌 것</span><span class="tick"></span><span>다른 팀도 만날 것들</span></div>
+  <h2 class="title">이번 주에 시간을 뺏긴 네 가지</h2>
+  <div class="body scrollx">
+    <table class="tbl">
+      <thead><tr><th>증상</th><th>원인</th><th>대응</th></tr></thead>
+      <tbody>
+        <tr><td class="m">has no column named …</td><td><code>create_all()</code>은 없는 테이블만 만들지, 기존 테이블에 컬럼을 붙여주지 않습니다</td><td>스키마 바꿀 때마다 <code>data/</code> 폴더 삭제 후 재기동. 이 규모에 마이그레이션 도구는 과합니다</td></tr>
+        <tr><td class="m">No module named 'app'</td><td>파일들이 패키지 폴더 없이 저장소 루트에 풀려 있었습니다</td><td>실행 명령이 <code>app</code> 패키지 존재를 전제 — 폴더 구조부터 확인</td></tr>
+        <tr><td class="m">export 가 안 먹힘</td><td>bash 문법이라 PowerShell에서 무동작</td><td><code>.env</code> 파일로 전환 (D-6)</td></tr>
+        <tr><td>배포하면 화면이 API를 못 부름</td><td>목업에 <code>127.0.0.1:8000</code>이 하드코딩되어 있었습니다</td><td>상대경로로 수정 — 로컬·AWS 어디서든 동작</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="slide" data-section="함정" data-time="8:20">
+  <div class="eyebrow"><span>숫자</span><span class="tick"></span><span>P0 확정 21개 항목</span></div>
+  <h2 class="title">지금 어디까지 왔나</h2>
+  <div class="body">
+    <div class="p0">
+      <span class="done">M-01</span><span class="done">M-02</span><span class="part">M-03</span><span class="part">M-05</span><span class="done">M-12</span><span class="part">M-13</span><span class="done">A-01</span><span class="done">A-02</span><span class="done">A-03</span><span class="done">H-02</span><span class="todo">H-04</span><span class="part">H-06</span><span class="done">H-10</span><span class="todo">H-11</span><span class="done">R-01</span><span class="done">R-02</span><span class="part">R-03</span><span class="done">I-04</span><span class="part">I-11</span><span class="todo">D-01</span><span class="done">D-02</span>
+    </div>
+    <div class="legend">
+      <span class="done"><i></i>완료 12</span>
+      <span class="part"><i></i>부분 6 — 동작은 하나 확정안 범위 미달</span>
+      <span class="todo"><i></i>미착수 3</span>
+      <span style="color:var(--ink-3)">※ 자체 판정 · 9/5 오프라인에서 합의 예정</span>
+    </div>
+    <div class="stats">
+      <div><div class="v">3</div><div class="t">협상 라운드 상한</div></div>
+      <div><div class="v">2</div><div class="t">실패 유형 분리</div></div>
+      <div><div class="v">7</div><div class="t">API 엔드포인트</div></div>
+      <div><div class="v">3</div><div class="t">화면</div></div>
+      <div><div class="v">1,186</div><div class="t">코드 줄 수</div></div>
+    </div>
+  </div>
+</section>
+
+<section class="slide" data-section="다음 주" data-time="8:50">
+  <div class="eyebrow"><span>다음 주</span><span class="tick"></span><span>우선순위 순</span></div>
+  <h2 class="title">다음 주에 할 것과, 못 정한 것</h2>
+  <div class="body">
+    <ul class="next">
+      <li><span class="p">P-1</span><div><h3>비교표 + 사람이 후보 중 직접 선택</h3>
+        <p>지금은 시스템이 최저가 1건을 자동 확정하고 사람은 승인/거절만 합니다. 확정안은 “순위표를 보여주고 사람이 고른다” 구조를 요구합니다.</p></div><span class="chip">구조 변경</span></li>
+      <li><span class="p">P-2</span><div><h3>동시 디스패치 (경쟁 입찰)</h3>
+        <p>지금은 셀러 A를 끝까지 협상한 뒤 B로 넘어가는 순차 구조. 흐름도는 적격 셀러 전원 동시 초대 → 독립 제안 → 취합입니다.</p></div><span class="chip">구조 변경</span></li>
+      <li><span class="p">P-3</span><div><h3>로그 스키마에 열람등급 필드</h3>
+        <p>확정안이 “값은 전부 public이라도 지금 만들어 둘 것”이라 명시했는데 아직 없습니다. 지금 넣으면 비용 거의 0, 나중에 넣으면 기존 로그를 전부 손봐야 합니다.</p></div><span class="chip">저비용</span></li>
+      <li><span class="p">P-4</span><div><h3>승인 이력에 “누가”</h3>
+        <p>승인자 개념 자체가 없습니다. 로그인 없이 이름 하드코딩만으로도 P0 기준은 충족합니다.</p></div><span class="chip">저비용</span></li>
+      <li><span class="p">P-5</span><div><h3>AWS 배포 1차 (9/8 목표)</h3>
+        <p>Dockerfile까지는 준비 완료. EC2에 올려서 접속을 검증하는 단계가 남았습니다.</p></div><span class="chip">마일스톤</span></li>
+      <li><span class="p">Q</span><div><h3>9/5에 반드시 정해야 하는 것</h3>
+        <p>① 도메인 — GPU냐 제조업이냐(화면·데이터·발표가 전부 여기 걸려 있습니다) &nbsp;② 챗봇을 P0에 넣을지 &nbsp;③ Bedrock 전환 여부 &nbsp;④ 인증 방식</p></div><span class="chip q">미결 4건</span></li>
+    </ul>
+  </div>
+</section>
+
+<section class="slide" data-section="다음 주" data-time="9:30">
+  <div class="eyebrow"><span>마무리</span><span class="tick"></span><span>이 포맷에 대해</span></div>
+  <h2 class="title">이 문서는 <span class="q">매주 같은 칸</span>으로 다시 씁니다</h2>
+  <p class="lede">발표가 끝나면 슬라이드는 버려지는데, 그 주에 무엇을 왜 정했는지는 회고 때 가장 필요한 정보입니다. 그래서 원장을 저장소에 커밋하고, 발표 자료는 거기서 렌더링만 합니다.</p>
+  <div class="body">
+    <div class="cols c3">
+      <div><h3>주간 원장이 원본</h3><p><code>docs/weekly/2026-W36.md</code> — 사실·근거·수치가 전부 여기 있고 저장소에 커밋됩니다. 매주 diff가 그대로 변화 기록이 됩니다.</p></div>
+      <div><h3>칸은 바뀌지 않습니다</h3><p>델타 / 의사결정 / 산출물 / 막힌 것 / 숫자 / 다음 주. 기획 주차든 개발 주차든 동일하고, 산출물 칸의 내용만 문서에서 코드로 바뀝니다.</p></div>
+      <div><h3>회고는 결정 칸을 이어 붙인 것</h3><p>“뒤집힐 조건”이 남아 있어서, 몇 주 뒤에 그 판단이 맞았는지 <b>사후에 채점</b>할 수 있습니다.</p></div>
+    </div>
+    <p class="note"><b>다른 팀에 권하고 싶은 한 가지 —</b> 결정할 때 “뒤집힐 조건”을 같이 적어두면, 나중에 되돌릴 때 팀 안에서 논쟁이 붙지 않습니다. 그때 정해둔 조건이 충족됐는지만 확인하면 되기 때문입니다.</p>
+  </div>
+</section>
+
+</main>
+
+<footer class="footbar">
+  <span id="sect">개요</span>
+  <span><span class="hint">← → 이동 · D 모드전환 · </span><span id="timing">누적 0:00 / 10:00</span></span>
+  <span class="right">
+    <span class="count"><span id="cur">1</span> / <span id="tot">14</span></span>
+    <span class="nav"><button type="button" id="prev" aria-label="이전 슬라이드">←</button><button type="button" id="next" aria-label="다음 슬라이드">→</button></span>
+  </span>
+</footer>
+
+<script>
+(function(){
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var i = 0, mode = 'present';
+  var cur = document.getElementById('cur'), tot = document.getElementById('tot');
+  var sect = document.getElementById('sect'), timing = document.getElementById('timing');
+  var rail = document.getElementById('rail'), modeBtn = document.getElementById('modeBtn');
+  tot.textContent = slides.length;
+
+  var sections = [];
+  slides.forEach(function(s){
+    if(sections.indexOf(s.dataset.section) === -1) sections.push(s.dataset.section);
+  });
+  sections.forEach(function(name){
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = name;
+    b.addEventListener('click', function(){
+      var t = 0;
+      for(var k = 0; k < slides.length; k++){ if(slides[k].dataset.section === name){ t = k; break; } }
+      if(mode === 'present'){ go(t); }
+      else { slides[t].scrollIntoView({behavior:'smooth', block:'start'}); }
+    });
+    rail.appendChild(b);
+  });
+
+  function paint(){
+    var name = slides[i].dataset.section;
+    sect.textContent = name;
+    cur.textContent = i + 1;
+    timing.textContent = '누적 ' + slides[i].dataset.time + ' / 10:00';
+    Array.prototype.forEach.call(rail.children, function(b){
+      b.setAttribute('aria-current', b.textContent === name ? 'true' : 'false');
+    });
+  }
+  function go(n){
+    if(mode !== 'present') return;
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach(function(s, k){ s.hidden = (k !== i); });
+    paint();
+    window.scrollTo(0, 0);
+  }
+  function setMode(m){
+    mode = m;
+    document.body.dataset.mode = m;
+    modeBtn.textContent = (m === 'present') ? '문서 모드' : '발표 모드';
+    if(m === 'doc'){ slides.forEach(function(s){ s.hidden = false; }); paint(); }
+    else { go(i); }
+  }
+
+  document.getElementById('prev').addEventListener('click', function(){ go(i - 1); });
+  document.getElementById('next').addEventListener('click', function(){ go(i + 1); });
+  modeBtn.addEventListener('click', function(){ setMode(mode === 'present' ? 'doc' : 'present'); });
+
+  document.addEventListener('keydown', function(e){
+    if(e.target && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return;
+    var k = e.key;
+    if(mode === 'present' && (k === 'ArrowRight' || k === 'PageDown' || k === ' ')){ e.preventDefault(); go(i + 1); }
+    else if(mode === 'present' && (k === 'ArrowLeft' || k === 'PageUp')){ e.preventDefault(); go(i - 1); }
+    else if(mode === 'present' && k === 'Home'){ e.preventDefault(); go(0); }
+    else if(mode === 'present' && k === 'End'){ e.preventDefault(); go(slides.length - 1); }
+    else if(k === 'd' || k === 'D' || k === 'ㅇ'){ setMode(mode === 'present' ? 'doc' : 'present'); }
+  });
+
+  window.addEventListener('scroll', function(){
+    if(mode !== 'doc') return;
+    for(var k = slides.length - 1; k >= 0; k--){
+      if(slides[k].getBoundingClientRect().top <= 130){ i = k; paint(); break; }
+    }
+  }, {passive:true});
+
+  setMode('present');
+})();
+</script>

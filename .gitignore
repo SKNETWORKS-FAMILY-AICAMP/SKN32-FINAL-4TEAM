@@ -1,0 +1,68 @@
+# ── Python ──
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+dist/
+*.so
+
+# ── 가상환경 ──
+.venv/
+venv/
+env/
+ENV/
+# 잘못 생성된 디렉토리 (쉘 오류로 만들어진 '&&' 폴더 등) — git init 전에 삭제 권장
+&&/
+
+# ── 환경변수 / 시크릿 ──
+.env
+.env.*
+!.env.example
+
+# ── 테스트 / 타입 / 린트 캐시 ──
+.pytest_cache/
+node_modules/
+.rag-files/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# ── DB (로컬) ──
+db/pgdata/
+db/*.log
+pg.log
+*.dump
+*.sql.gz
+
+# ── 크롤러 캐시 ──
+scripts/.cache_specs/
+scripts/.render_cache/
+
+# ── IDE / 에디터 ──
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# ── OS ──
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── 로그 / 임시 ──
+*.log
+logs/
+tmp/
+*.tmp
+
+# ── (선택) 데이터 생성 부산물 ──
+# 큐레이션 원본(parts_list.csv, scenarios/*.json, categories/*.yaml)은 커밋.
+# 아래는 스크립트가 다시 만들 수 있는 파생물이라 필요 시 주석 해제:
+# data/parts_specs_raw.csv
+# data/parts_specs_todo.csv
+# data/*_preview.csv

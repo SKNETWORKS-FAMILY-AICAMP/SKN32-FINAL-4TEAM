@@ -1,0 +1,1096 @@
+<title>영업 오버레이 화면 기획</title>
+<meta name="description" content="Phase A 화면 — 상주 캐릭터·토스트·채팅 패널·구역 대시보드 2뷰의 클릭 가능한 프로토타입과 화면 스펙">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Serif:wght@600&display=swap">
+<style>
+  :root{
+    --paper:#EDF1F3; --surface:#FFFFFF; --surface-2:#F5F8F9; --surface-3:#EAEFF1;
+    --ink:#141A1E; --ink-2:#4C5962; --ink-3:#7B8891;
+    --line:#CFD8DD; --line-2:#E2E9EC;
+    --teal:#0E7068; --teal-2:#0B5B55; --teal-soft:#DCEDEB;
+    --plum:#6B4761; --plum-soft:#EEE2EB;
+    --clay:#AC3A22; --clay-soft:#F8E1DA;
+    --amber:#8F6008; --amber-soft:#F7E8C9;
+    --crm-bg:#F7F7F5; --crm-line:#E0E0DB; --crm-head:#EDEDE9;
+    --sans:"IBM Plex Sans KR",ui-sans-serif,system-ui,"Malgun Gothic",sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --serif:"IBM Plex Serif",ui-serif,Georgia,serif;
+    --shadow:0 10px 30px rgba(20,26,30,.14);
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --paper:#0F1317; --surface:#171C21; --surface-2:#1D242A; --surface-3:#232B31;
+      --ink:#E3EAEE; --ink-2:#A3B0B9; --ink-3:#76838C;
+      --line:#2B343B; --line-2:#222A30;
+      --teal:#4FCFC2; --teal-2:#79DED3; --teal-soft:#11332F;
+      --plum:#C89CBB; --plum-soft:#31212C;
+      --clay:#EE8B6E; --clay-soft:#391E16;
+      --amber:#DDB264; --amber-soft:#32250E;
+      --crm-bg:#1A1E22; --crm-line:#2C3238; --crm-head:#222830;
+      --shadow:0 10px 30px rgba(0,0,0,.5);
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#0F1317; --surface:#171C21; --surface-2:#1D242A; --surface-3:#232B31;
+    --ink:#E3EAEE; --ink-2:#A3B0B9; --ink-3:#76838C;
+    --line:#2B343B; --line-2:#222A30;
+    --teal:#4FCFC2; --teal-2:#79DED3; --teal-soft:#11332F;
+    --plum:#C89CBB; --plum-soft:#31212C;
+    --clay:#EE8B6E; --clay-soft:#391E16;
+    --amber:#DDB264; --amber-soft:#32250E;
+    --crm-bg:#1A1E22; --crm-line:#2C3238; --crm-head:#222830;
+    --shadow:0 10px 30px rgba(0,0,0,.5);
+  }
+
+  *{box-sizing:border-box}
+  [hidden]{display:none!important}
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:var(--sans); font-size:15px; line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+  button{font-family:inherit; cursor:pointer}
+  :focus-visible{outline:2px solid var(--teal); outline-offset:2px}
+  @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important; transition-duration:.01ms!important}}
+
+  .page{max-width:1240px; margin:0 auto; padding:0 24px 90px}
+
+  /* ══ 상단 ══ */
+  .top{padding:44px 0 22px}
+  .eyebrow{font-family:var(--mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-3); margin:0 0 12px}
+  h1{font-family:var(--serif); font-weight:600; font-size:34px; line-height:1.2; margin:0 0 12px; letter-spacing:-.01em}
+  .top p{max-width:66ch; color:var(--ink-2); margin:0; font-size:15px}
+
+  /* ══ 컨트롤바 ══ */
+  .ctrlbar{
+    display:flex; flex-wrap:wrap; align-items:center; gap:10px;
+    background:var(--surface); border:1px solid var(--line);
+    border-radius:10px 10px 0 0; border-bottom:none; padding:11px 14px;
+  }
+  .ctrl-title{font-family:var(--mono); font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3); margin-right:4px}
+  .btn{
+    border:1px solid var(--line); background:var(--surface-2); color:var(--ink);
+    border-radius:6px; padding:6px 12px; font-size:12.5px; font-weight:500;
+    transition:background .15s, border-color .15s;
+  }
+  .btn:hover{background:var(--surface-3)}
+  .btn.pri{background:var(--teal); border-color:var(--teal); color:var(--surface)}
+  .btn.pri:hover{background:var(--teal-2); border-color:var(--teal-2)}
+  .btn.on{background:var(--teal-soft); border-color:var(--teal); color:var(--teal)}
+  .btn[disabled]{opacity:.45; cursor:not-allowed}
+  .spacer{flex:1}
+  .seg{display:flex; border:1px solid var(--line); border-radius:6px; overflow:hidden}
+  .seg button{border:none; background:var(--surface-2); color:var(--ink-2); padding:6px 13px; font-size:12.5px; font-weight:500}
+  .seg button[aria-pressed="true"]{background:var(--teal); color:var(--surface)}
+
+  /* ══ 스테이지 ══ */
+  .stage{
+    display:flex; height:660px; background:var(--surface);
+    border:1px solid var(--line); border-radius:0 0 10px 10px; overflow:hidden;
+  }
+  .crm{
+    position:relative; flex:1; min-width:0; background:var(--crm-bg);
+    display:flex; flex-direction:column; overflow:hidden;
+  }
+  .dash{
+    width:0; flex:none; overflow:hidden; background:var(--surface);
+    border-left:1px solid var(--line); transition:width .5s cubic-bezier(.4,0,.2,1);
+    display:flex; flex-direction:column;
+  }
+  .stage.split .dash{width:452px}
+
+  /* ── 목업 CRM ── */
+  .crm-chrome{
+    display:flex; align-items:center; gap:9px; padding:9px 14px;
+    background:var(--crm-head); border-bottom:1px solid var(--crm-line); flex:none;
+  }
+  .dot{width:9px; height:9px; border-radius:50%; background:var(--crm-line)}
+  .crm-url{
+    font-family:var(--mono); font-size:11px; color:var(--ink-3);
+    background:var(--crm-bg); border:1px solid var(--crm-line); border-radius:5px;
+    padding:3px 10px; flex:1; margin-left:6px;
+  }
+  .chip{
+    display:inline-block; font-family:var(--mono); font-size:9.5px; letter-spacing:.08em;
+    text-transform:uppercase; padding:2px 7px; border-radius:3px; vertical-align:middle;
+  }
+  .chip.mock{background:var(--clay-soft); color:var(--clay); border:1px solid var(--clay)}
+  .crm-body{display:flex; flex:1; min-height:0}
+  .crm-nav{
+    width:132px; flex:none; border-right:1px solid var(--crm-line);
+    padding:14px 0; font-size:12.5px; color:var(--ink-2);
+  }
+  .crm-nav .grp{font-family:var(--mono); font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3); padding:0 14px; margin:12px 0 5px}
+  .crm-nav .it{padding:5px 14px}
+  .crm-nav .it.sel{background:var(--plum-soft); color:var(--ink); font-weight:600; box-shadow:inset 2px 0 0 var(--plum)}
+  .crm-main{flex:1; min-width:0; padding:18px 22px; overflow-y:auto}
+  .crumb{font-family:var(--mono); font-size:10.5px; color:var(--ink-3); margin-bottom:8px}
+  .crm-h{display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; margin-bottom:4px}
+  .crm-h h3{font-size:19px; margin:0; font-weight:600}
+  .state-chip{
+    font-size:11px; font-weight:600; padding:2px 10px; border-radius:11px;
+    background:var(--surface-3); color:var(--ink-2); border:1px solid var(--line);
+  }
+  .state-chip.done{background:var(--teal-soft); color:var(--teal); border-color:var(--teal)}
+  .kv{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px 20px; margin:16px 0 18px}
+  .kv .k{font-family:var(--mono); font-size:9.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3)}
+  .kv .v{font-size:13px; color:var(--ink)}
+  table.lines{width:100%; border-collapse:collapse; font-size:12.5px}
+  table.lines th{
+    text-align:left; font-family:var(--mono); font-size:9.5px; letter-spacing:.08em;
+    text-transform:uppercase; color:var(--ink-3); font-weight:500;
+    border-bottom:1px solid var(--crm-line); padding:6px 8px;
+  }
+  table.lines td{padding:9px 8px; border-bottom:1px solid var(--crm-line); vertical-align:top}
+  table.lines td.num{text-align:right; font-variant-numeric:tabular-nums; font-family:var(--mono); font-size:12px}
+  .warnline{background:var(--clay-soft)}
+  .subnote{font-size:11px; color:var(--clay); margin-top:3px}
+  .subnote.ok{color:var(--teal)}
+
+  /* ── 캐릭터 ── */
+  .pet{
+    position:absolute; right:22px; bottom:22px; width:56px; height:56px;
+    border-radius:50%; border:2px solid var(--surface); background:var(--teal);
+    box-shadow:var(--shadow); display:grid; place-items:center; padding:0; z-index:6;
+  }
+  .pet .face{width:34px; height:22px; position:relative}
+  .pet .eye{position:absolute; top:4px; width:6px; height:6px; border-radius:50%; background:var(--surface)}
+  .pet .eye.l{left:5px} .pet .eye.r{right:5px}
+  .pet .mouth{position:absolute; bottom:2px; left:11px; width:12px; height:4px; border-radius:0 0 8px 8px; background:var(--surface); opacity:.85}
+  .pet .badge{
+    position:absolute; top:-3px; right:-3px; min-width:19px; height:19px; border-radius:10px;
+    background:var(--clay); color:#fff; font-family:var(--mono); font-size:10.5px; font-weight:600;
+    display:grid; place-items:center; border:2px solid var(--surface);
+  }
+  .pet[data-state="idle"] .face{animation:breathe 3.6s ease-in-out infinite}
+  .pet[data-state="working"]{background:var(--amber)}
+  .pet[data-state="working"] .face{animation:spin 1.1s linear infinite}
+  .pet[data-state="alert"]{animation:hop .9s ease-in-out 3}
+  @keyframes breathe{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
+  @keyframes spin{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
+  @keyframes hop{0%,100%{transform:translateY(0)}30%{transform:translateY(-7px)}60%{transform:translateY(0)}}
+
+  /* ── 토스트 ── */
+  .toast{
+    position:absolute; right:22px; bottom:90px; width:300px; z-index:6;
+    background:var(--surface); border:1px solid var(--teal); border-left:3px solid var(--teal);
+    border-radius:8px; box-shadow:var(--shadow); padding:13px 15px; text-align:left;
+    animation:slidein .34s ease-out;
+  }
+  @keyframes slidein{from{opacity:0; transform:translateY(10px)}to{opacity:1; transform:none}}
+  .toast .lbl{font-family:var(--mono); font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--teal); display:block; margin-bottom:4px}
+  .toast p{margin:0 0 9px; font-size:12.5px; color:var(--ink); line-height:1.5}
+  .toast .act{font-size:11.5px; color:var(--teal); font-weight:600}
+
+  /* ── 채팅 패널 ── */
+  .chat{
+    position:absolute; right:22px; bottom:90px; width:330px; height:396px; z-index:7;
+    background:var(--surface); border:1px solid var(--line); border-radius:10px;
+    box-shadow:var(--shadow); display:flex; flex-direction:column; overflow:hidden;
+    animation:slidein .3s ease-out;
+  }
+  .chat-h{display:flex; align-items:center; gap:8px; padding:10px 13px; border-bottom:1px solid var(--line-2); flex:none}
+  .chat-h .nm{font-size:12.5px; font-weight:600}
+  .chat-h .st{font-family:var(--mono); font-size:9.5px; color:var(--teal); letter-spacing:.06em}
+  .chat-x{margin-left:auto; border:none; background:none; color:var(--ink-3); font-size:16px; line-height:1; padding:2px 4px}
+  .chat-log{flex:1; overflow-y:auto; padding:13px; display:flex; flex-direction:column; gap:10px}
+  .msg{max-width:88%; font-size:12.5px; line-height:1.55; border-radius:9px; padding:9px 12px}
+  .msg.bot{background:var(--surface-2); border:1px solid var(--line-2); align-self:flex-start}
+  .msg.me{background:var(--teal); color:var(--surface); align-self:flex-end}
+  .msg .calc{
+    font-family:var(--mono); font-size:11px; background:var(--surface); border:1px solid var(--line-2);
+    border-radius:5px; padding:7px 9px; margin-top:7px; line-height:1.7;
+  }
+  .msg .calc b{color:var(--teal)}
+  .ref{
+    font-family:var(--mono); font-size:10.5px; color:var(--teal); text-decoration:none;
+    border-bottom:1px dotted var(--teal); cursor:pointer; background:none; border-left:none; border-right:none; border-top:none; padding:0;
+  }
+  .typing{display:flex; gap:4px; padding:11px 12px}
+  .typing i{width:5px; height:5px; border-radius:50%; background:var(--ink-3); animation:blink 1.2s infinite}
+  .typing i:nth-child(2){animation-delay:.2s} .typing i:nth-child(3){animation-delay:.4s}
+  @keyframes blink{0%,60%,100%{opacity:.25}30%{opacity:1}}
+  .chips{display:flex; flex-wrap:wrap; gap:6px; padding:10px 13px; border-top:1px solid var(--line-2); flex:none}
+  .chipbtn{
+    border:1px solid var(--teal); background:var(--teal-soft); color:var(--teal);
+    border-radius:14px; padding:5px 11px; font-size:11.5px; font-weight:500;
+  }
+  .chipbtn:hover{background:var(--teal); color:var(--surface)}
+  .chipbtn[disabled]{opacity:.4; border-color:var(--line); background:var(--surface-2); color:var(--ink-3)}
+
+  /* ── 대시보드 ── */
+  .dash-h{display:flex; align-items:center; gap:9px; padding:11px 15px; border-bottom:1px solid var(--line-2); flex:none}
+  .dash-h .ttl{font-size:13px; font-weight:600}
+  .dash-h .tx{font-family:var(--mono); font-size:10px; color:var(--ink-3)}
+  .tabs{display:flex; gap:2px; padding:0 15px; border-bottom:1px solid var(--line-2); flex:none}
+  .tab{
+    border:none; background:none; padding:9px 12px; font-size:12.5px; font-weight:500;
+    color:var(--ink-3); border-bottom:2px solid transparent; margin-bottom:-1px;
+  }
+  .tab[aria-selected="true"]{color:var(--teal); border-bottom-color:var(--teal)}
+  .view{flex:1; overflow-y:auto; padding:15px}
+  .vhead{font-family:var(--mono); font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3); margin:0 0 9px}
+  .vhead + .vhead{margin-top:18px}
+
+  .rounds{display:flex; flex-direction:column; gap:7px}
+  .rmsg{
+    display:grid; grid-template-columns:auto 1fr auto; gap:9px; align-items:baseline;
+    border:1px solid var(--line-2); border-radius:6px; padding:7px 10px; background:var(--surface-2);
+    font-size:11.5px; animation:slidein .25s ease-out;
+  }
+  .rmsg .who{font-family:var(--mono); font-size:9.5px; color:var(--ink-3); white-space:nowrap}
+  .rmsg .amt{font-family:var(--mono); font-size:11.5px; font-variant-numeric:tabular-nums; white-space:nowrap}
+  .rmsg.rej{border-color:var(--clay); background:var(--clay-soft)}
+  .rmsg.acc{border-color:var(--teal); background:var(--teal-soft)}
+  .rmsg.rd{background:none; border:none; border-top:1px solid var(--line); border-radius:0; padding:9px 0 2px; grid-template-columns:1fr}
+  .rmsg.rd .who{font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--teal)}
+
+  .logsplit{display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-top:9px}
+  .logbox{border:1px solid var(--line); border-radius:6px; overflow:hidden}
+  .logbox .lh{font-family:var(--mono); font-size:9px; letter-spacing:.06em; padding:5px 8px; background:var(--surface-2); border-bottom:1px solid var(--line-2); color:var(--ink-2)}
+  .logbox pre{margin:0; padding:8px; font-family:var(--mono); font-size:8.5px; line-height:1.6; white-space:pre-wrap; word-break:break-all; color:var(--ink-2)}
+  .logbox.secret{border-color:var(--clay)}
+  .logbox.secret .lh{background:var(--clay-soft); color:var(--clay)}
+  .logbox pre em{font-style:normal; color:var(--clay); font-weight:600}
+  .demoonly{font-size:10.5px; color:var(--clay); margin:8px 0 0; line-height:1.5}
+
+  table.rank{width:100%; border-collapse:collapse; font-size:11.5px; margin-top:4px}
+  table.rank th{text-align:left; font-family:var(--mono); font-size:9px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); font-weight:500; padding:5px 6px; border-bottom:1px solid var(--line)}
+  table.rank td{padding:8px 6px; border-bottom:1px solid var(--line-2); vertical-align:middle}
+  table.rank td.num{text-align:right; font-family:var(--mono); font-variant-numeric:tabular-nums}
+  table.rank tr.sel{background:var(--amber-soft)}
+  .pick{border:1px solid var(--line); background:var(--surface); border-radius:5px; padding:3px 10px; font-size:11px}
+  tr.sel .pick{background:var(--amber); border-color:var(--amber); color:var(--surface); font-weight:600}
+  .rankwhy{font-size:10.5px; color:var(--ink-2); margin:9px 0 0; line-height:1.55}
+
+  .confirmbar{border-top:1px solid var(--line); padding:12px 15px; flex:none; background:var(--surface-2)}
+  .confirmbar .sum{font-size:11.5px; color:var(--ink-2); margin:0 0 9px; line-height:1.5}
+  .btn.confirm{width:100%; background:var(--amber); border-color:var(--amber); color:var(--surface); font-weight:600; padding:9px}
+  .receipt{border:1px solid var(--amber); background:var(--amber-soft); border-radius:6px; padding:10px 12px; font-size:11.5px; line-height:1.65}
+  .receipt .rk{font-family:var(--mono); font-size:9px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3)}
+
+  .atp{display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:12px}
+  .atpcell{border:1px solid var(--line-2); border-radius:6px; padding:9px; text-align:center; background:var(--surface-2)}
+  .atpcell.res{border-color:var(--teal); background:var(--teal-soft)}
+  .atpcell .n{font-family:var(--mono); font-size:19px; font-weight:600; font-variant-numeric:tabular-nums; display:block; line-height:1.2}
+  .atpcell.res .n{color:var(--teal)}
+  .atpcell .l{font-size:9.5px; color:var(--ink-3); display:block; margin-top:2px}
+  .deriv{font-family:var(--mono); font-size:11px; background:var(--surface-2); border:1px solid var(--line-2); border-radius:6px; padding:9px 11px; line-height:1.9}
+  .barrow{display:grid; grid-template-columns:74px 1fr 54px; gap:8px; align-items:center; font-size:11px; margin-bottom:6px}
+  .bar{height:9px; border-radius:5px; background:var(--surface-3); overflow:hidden}
+  .bar i{display:block; height:100%; background:var(--teal); border-radius:5px}
+  .bar i.low{background:var(--clay)}
+  .barrow .q{font-family:var(--mono); text-align:right; font-variant-numeric:tabular-nums; color:var(--ink-2)}
+
+  /* ── 스펙 핀 ── */
+  .pin{
+    position:absolute; z-index:9; width:19px; height:19px; border-radius:50%;
+    background:var(--clay); color:#fff; font-family:var(--mono); font-size:10.5px; font-weight:600;
+    display:grid; place-items:center; border:2px solid var(--surface); box-shadow:0 2px 6px rgba(0,0,0,.25);
+  }
+  .stage:not(.spec) .pin{display:none}
+  .stage.spec .specbox{outline:1.5px dashed var(--clay); outline-offset:2px}
+
+  /* ══ 스펙 문서 ══ */
+  section{margin:56px 0 0}
+  .sec-head{display:flex; align-items:baseline; gap:14px; margin-bottom:12px}
+  .sec-num{font-family:var(--mono); font-size:11.5px; color:var(--teal); letter-spacing:.08em; flex:none; padding-top:3px}
+  h2{font-family:var(--serif); font-weight:600; font-size:23px; margin:0}
+  .prose{max-width:68ch; color:var(--ink-2); margin:0 0 20px}
+  .prose strong{color:var(--ink); font-weight:600}
+  code{font-family:var(--mono); font-size:.87em; background:var(--surface-2); border:1px solid var(--line-2); border-radius:3px; padding:1px 5px; color:var(--ink)}
+  .tablewrap{overflow-x:auto; border:1px solid var(--line); border-radius:8px; background:var(--surface); margin-bottom:20px}
+  table.spec{border-collapse:collapse; width:100%; min-width:720px; font-size:13px}
+  table.spec th,table.spec td{text-align:left; padding:10px 14px; border-bottom:1px solid var(--line-2); vertical-align:top}
+  table.spec thead th{font-family:var(--mono); font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); font-weight:500; background:var(--surface-2); border-bottom:1px solid var(--line)}
+  table.spec tbody tr:last-child td{border-bottom:none}
+  table.spec td.mono{font-family:var(--mono); font-size:11.5px}
+  .pinno{display:inline-grid; place-items:center; width:19px; height:19px; border-radius:50%; background:var(--clay); color:#fff; font-family:var(--mono); font-size:10.5px; font-weight:600}
+  .note{border-left:3px solid var(--clay); background:var(--clay-soft); padding:13px 17px; border-radius:0 6px 6px 0; margin:0 0 20px; max-width:74ch; font-size:13.5px; color:var(--ink)}
+  .note.human{border-left-color:var(--amber); background:var(--amber-soft)}
+  .note .lbl{display:block; font-family:var(--mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-2); margin-bottom:5px}
+  footer{border-top:1px solid var(--line); margin-top:56px; padding-top:20px; color:var(--ink-3); font-size:12.5px}
+  footer a{color:var(--ink-2)}
+
+  @media (max-width:1000px){
+    .stage{height:auto; flex-direction:column}
+    .dash{width:100%!important; border-left:none; border-top:1px solid var(--line); height:0; transition:height .5s}
+    .stage.split .dash{height:520px}
+    .crm{min-height:520px}
+  }
+  @media (max-width:640px){
+    .page{padding:0 14px 60px}
+    h1{font-size:27px}
+    .crm-nav{display:none}
+    .chat,.toast{right:12px; width:calc(100% - 24px)}
+  }
+</style>
+
+<div class="page">
+
+<div class="top">
+  <p class="eyebrow">SKN32 4팀 · Phase A 화면 기획</p>
+  <h1>영업 오버레이 화면 기획</h1>
+  <p>
+    클릭하면 실제로 동작하는 프로토타입이다. 더미 데이터로 <strong>캐릭터 알림 → 채팅 → 구역 대시보드 분할 →
+    협상 라운드 → 사람 확정 → CRM 반영</strong>까지 데모 5분 컷 전 구간이 이어진다.
+    화면별 스펙은 아래 §2–§5에 있고, <strong>스펙 핀</strong>을 켜면 각 요소에 번호가 붙는다.
+  </p>
+</div>
+
+<!-- ══════════ 프로토타입 ══════════ -->
+<div class="ctrlbar">
+  <span class="ctrl-title">Prototype</span>
+  <button class="btn pri" id="play">▶ <span data-i18n="ctl.play">Auto-play demo</span></button>
+  <button class="btn" id="reset" data-i18n="ctl.reset">Reset</button>
+  <button class="btn" id="specbtn" data-i18n="ctl.spec">Spec pins</button>
+  <span class="spacer"></span>
+  <span class="ctrl-title">UI</span>
+  <div class="seg" role="group" aria-label="UI language">
+    <button id="lang-en" aria-pressed="true">EN</button>
+    <button id="lang-ko" aria-pressed="false">한국어</button>
+  </div>
+</div>
+
+<div class="stage" id="stage">
+
+  <!-- ── 좌: 고객사 CRM (목업) ── -->
+  <div class="crm" id="crm">
+    <div class="crm-chrome">
+      <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+      <span class="crm-url">crm.internal / sales / quotations</span>
+      <span class="chip mock">mock</span>
+      <div class="pin specbox" style="position:static" hidden></div>
+    </div>
+    <div class="crm-body">
+      <nav class="crm-nav" aria-hidden="true">
+        <div class="grp">Sales</div>
+        <div class="it sel">Quotations</div>
+        <div class="it">Orders</div>
+        <div class="it">Customers</div>
+        <div class="grp">Inventory</div>
+        <div class="it">Products</div>
+        <div class="it">Stock</div>
+        <div class="grp">Purchase</div>
+        <div class="it">Vendors</div>
+        <div class="it">POs</div>
+      </nav>
+      <div class="crm-main">
+        <div class="crumb">Sales / Quotations / SQ-2026-0417</div>
+        <div class="crm-h">
+          <h3>Aurora DataWorks</h3>
+          <span class="state-chip" id="soState" data-i18n="crm.state.draft">Quotation</span>
+        </div>
+        <div class="kv">
+          <div><span class="k" data-i18n="crm.k.date">Quotation date</span><span class="v">2026-09-05</span></div>
+          <div><span class="k" data-i18n="crm.k.deliver">Delivery deadline</span><span class="v">2026-09-30 <span style="color:var(--ink-3)">(D+25)</span></span></div>
+          <div><span class="k" data-i18n="crm.k.rep">Salesperson</span><span class="v">문동원</span></div>
+          <div><span class="k" data-i18n="crm.k.terms">Payment terms</span><span class="v">30% / 70%</span></div>
+        </div>
+        <table class="lines">
+          <thead><tr>
+            <th data-i18n="crm.th.product">Product</th>
+            <th style="text-align:right" data-i18n="crm.th.qty">Qty</th>
+            <th style="text-align:right" data-i18n="crm.th.price">Unit price</th>
+            <th style="text-align:right" data-i18n="crm.th.total">Subtotal</th>
+          </tr></thead>
+          <tbody>
+            <tr id="line1" class="specbox" style="position:relative">
+              <td>
+                NVIDIA H100 NVL
+                <div class="subnote" id="lineNote" data-i18n="crm.line.short">Only 3 of 5 promisable — 2 units unsourced</div>
+              </td>
+              <td class="num">5</td>
+              <td class="num">48,500,000</td>
+              <td class="num">242,500,000</td>
+            </tr>
+            <tr>
+              <td>Rack integration &amp; burn-in</td>
+              <td class="num">1</td>
+              <td class="num">6,400,000</td>
+              <td class="num">6,400,000</td>
+            </tr>
+          </tbody>
+        </table>
+        <p style="font-size:11px; color:var(--ink-3); margin-top:14px" data-i18n="crm.foot">
+          This pane is the customer's own CRM. Our system does not modify it — it reads through the JSON-2 API and writes one decision record.
+        </p>
+      </div>
+    </div>
+
+    <!-- 오버레이 표면 -->
+    <div class="pin" id="pin1" style="right:86px; bottom:34px">1</div>
+    <button class="pet specbox" id="pet" data-state="idle" aria-label="Sales assistant">
+      <span class="face"><span class="eye l"></span><span class="eye r"></span><span class="mouth"></span></span>
+      <span class="badge" id="petBadge" hidden>1</span>
+    </button>
+
+    <div class="pin" id="pin2" style="right:330px; bottom:150px">2</div>
+    <div class="toast specbox" id="toast" hidden>
+      <span class="lbl" data-i18n="toast.lbl">Available-to-promise</span>
+      <p id="toastBody" data-i18n="toast.body">Quote SQ-2026-0417 asks for 5 × H100 NVL. Only <b>3</b> are promisable by 2026-09-30.</p>
+      <span class="act" data-i18n="toast.act">Open assistant →</span>
+    </div>
+
+    <div class="pin" id="pin3" style="right:360px; bottom:400px">3</div>
+    <div class="chat specbox" id="chat" hidden>
+      <div class="chat-h">
+        <span class="nm" data-i18n="chat.name">Sales assistant</span>
+        <span class="st" id="chatState">● ready</span>
+        <button class="chat-x" id="chatX" aria-label="Close">×</button>
+      </div>
+      <div class="chat-log" id="chatLog"></div>
+      <div class="chips" id="chips"></div>
+    </div>
+  </div>
+
+  <!-- ── 우: 구역 대시보드 ── -->
+  <div class="dash" id="dash">
+    <div class="dash-h">
+      <span class="ttl" data-i18n="dash.title">Procurement</span>
+      <span class="tx" id="dashTx">TX-20260905-7C1A</span>
+      <div class="pin" id="pin4" style="position:absolute; right:398px; top:74px">4</div>
+    </div>
+    <div class="tabs" role="tablist">
+      <button class="tab" id="tabNeg" role="tab" aria-selected="true" data-i18n="dash.tab.neg">Negotiation</button>
+      <button class="tab" id="tabAtp" role="tab" aria-selected="false" data-i18n="dash.tab.atp">Inventory &amp; ATP</button>
+    </div>
+
+    <!-- 뷰 1 : 협상 진행 -->
+    <div class="view" id="viewNeg" role="tabpanel">
+      <p class="vhead" data-i18n="neg.req">Request</p>
+      <div class="deriv" style="margin-bottom:14px">
+        <span data-i18n="neg.req.item">Item</span>: NVIDIA H100 NVL &nbsp;·&nbsp; <span data-i18n="neg.req.qty">Qty</span>: 2<br>
+        <span data-i18n="neg.req.cap">Cap price</span>: 42,000,000 &nbsp;·&nbsp; <span data-i18n="neg.req.lead">Max lead</span>: 30d<br>
+        <span data-i18n="neg.req.prio">Priority</span>: price_min
+      </div>
+
+      <p class="vhead" data-i18n="neg.rounds">Rounds</p>
+      <div class="rounds" id="rounds"></div>
+
+      <div id="sellerViewWrap" hidden style="margin-top:14px">
+        <button class="btn" id="sellerViewBtn" style="width:100%; font-size:11.5px" data-i18n="neg.sv.open">Open seller node view (demo only)</button>
+        <div id="sellerView" hidden>
+          <div class="logsplit">
+            <div class="logbox secret">
+              <div class="lh">seller_logs/…jsonl</div>
+              <pre>{"from":"오퍼렛",
+ "type":"OFFER","round":3,
+ "price":41500000,
+ "raw_price":41200000,
+ <em>"floor_price":41500000,</em>
+ <em>"audit_note":"최저수용가</em>
+<em>  미만 — 발신 전 보정"</em>}</pre>
+            </div>
+            <div class="logbox">
+              <div class="lh">broker_logs/…jsonl</div>
+              <pre>{"from":"10.0.1.12:8000",
+ "type":"OFFER","round":3,
+ "price":41500000,
+ "available":true,
+ "spec_score":0.88,
+ "seller_id":"오퍼렛"}
+
+<span style="color:var(--teal)">// floor 없음</span></pre>
+            </div>
+          </div>
+          <p class="demoonly" data-i18n="neg.sv.note">Demo-only lens. In production the buyer never sees the left pane — the correction happens inside the seller's own server and never enters the response schema.</p>
+        </div>
+      </div>
+
+      <div id="rankWrap" hidden>
+        <p class="vhead" data-i18n="neg.cand">Candidates</p>
+        <table class="rank">
+          <thead><tr>
+            <th data-i18n="rank.th.seller">Seller</th>
+            <th style="text-align:right" data-i18n="rank.th.price">Unit</th>
+            <th style="text-align:right" data-i18n="rank.th.lead">Lead</th>
+            <th style="text-align:right" data-i18n="rank.th.spec">Spec</th>
+            <th style="text-align:right" data-i18n="rank.th.margin">Margin</th>
+            <th></th>
+          </tr></thead>
+          <tbody id="rankBody"></tbody>
+        </table>
+        <p class="rankwhy" id="rankWhy"></p>
+      </div>
+    </div>
+
+    <!-- 뷰 2 : 재고 · ATP -->
+    <div class="view" id="viewAtp" role="tabpanel" hidden>
+      <p class="vhead">NVIDIA H100 NVL — <span data-i18n="atp.head">Available to promise</span> (2026-09-30)</p>
+      <div class="atp">
+        <div class="atpcell"><span class="n">8</span><span class="l" data-i18n="atp.onhand">On hand</span></div>
+        <div class="atpcell"><span class="n">−5</span><span class="l" data-i18n="atp.reserved">Reserved</span></div>
+        <div class="atpcell"><span class="n">+0</span><span class="l" data-i18n="atp.inbound">Inbound</span></div>
+        <div class="atpcell res"><span class="n">3</span><span class="l" data-i18n="atp.result">Promisable</span></div>
+      </div>
+      <div class="deriv">
+        8 <span style="color:var(--ink-3)">on hand</span><br>
+        − 5 <span style="color:var(--ink-3)">reserved by</span> <button class="ref">SO-2026-0388</button> <span style="color:var(--ink-3)">(3)</span>, <button class="ref">SO-2026-0401</button> <span style="color:var(--ink-3)">(2)</span><br>
+        + 0 <span style="color:var(--ink-3)">inbound before 09-30</span><br>
+        <b style="color:var(--teal)">= 3 promisable</b>
+      </div>
+
+      <p class="vhead" data-i18n="atp.inb">Inbound schedule</p>
+      <div class="deriv" style="font-size:11px">
+        PO-2026-0233 · 4 units · <span style="color:var(--clay)">ETA 2026-10-14 — after deadline</span>
+      </div>
+
+      <p class="vhead" data-i18n="atp.other">Other items</p>
+      <div class="barrow"><span>L40S</span><div class="bar"><i style="width:78%"></i></div><span class="q">18 / 23</span></div>
+      <div class="barrow"><span>A100 80GB</span><div class="bar"><i style="width:46%"></i></div><span class="q">6 / 13</span></div>
+      <div class="barrow"><span>RTX 6000 Ada</span><div class="bar"><i class="low" style="width:12%"></i></div><span class="q">1 / 8</span></div>
+    </div>
+
+    <div class="confirmbar" id="confirmBar" hidden>
+      <div class="pin" id="pin5" style="position:absolute; right:398px; bottom:52px">5</div>
+      <p class="sum" id="confirmSum"></p>
+      <button class="btn confirm" id="confirmBtn" data-i18n="cfm.btn">Confirm — record decision</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ 스펙 문서 ══════════ -->
+
+<section id="s1">
+  <div class="sec-head"><span class="sec-num">01</span><h2>화면 목록과 표면</h2></div>
+  <p class="prose">
+    Phase A는 <strong>화면(page)이 아니라 표면(surface)</strong> 단위로 센다. 고객사 CRM 위에 얹히는 구조라
+    페이지 이동이 없고, 네 개의 표면이 상태에 따라 나타났다 사라진다.
+  </p>
+  <div class="tablewrap">
+    <table class="spec">
+      <thead><tr><th>핀</th><th>표면</th><th>기본 상태</th><th>여는 조건</th><th>담는 것</th></tr></thead>
+      <tbody>
+        <tr><td><span class="pinno">1</span></td><td><b>상주 캐릭터</b></td><td>항상 표시 · idle</td><td>—</td><td>에이전트 상태(idle / working / alert) + 미확인 배지</td></tr>
+        <tr><td><span class="pinno">2</span></td><td><b>토스트 알림</b></td><td>숨김</td><td>서버 SSE 이벤트 수신</td><td>한 줄 요약 + 행동 유도. 12초 후 자동 접힘, 배지는 남음</td></tr>
+        <tr><td><span class="pinno">3</span></td><td><b>채팅 패널</b></td><td>숨김</td><td>캐릭터 · 토스트 클릭</td><td>자연어 질의응답, 근거 링크, 추천 질문 칩</td></tr>
+        <tr><td><span class="pinno">4</span></td><td><b>구역 대시보드</b></td><td>폭 0</td><td>어시스턴트의 <code>open_dashboard_view</code> tool 또는 사용자 클릭</td><td>협상 진행 · 재고/ATP 2개 뷰</td></tr>
+        <tr><td><span class="pinno">5</span></td><td><b>확정 바</b></td><td>숨김</td><td>후보 순위표에서 한 건 선택</td><td>선택 요약 + 확정 버튼 (사람의 유일한 실행 지점)</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="note human">
+    <span class="lbl">화면 설계의 제1원칙</span>
+    <strong>확정 버튼은 대시보드에만 있다.</strong> 채팅 패널에는 어떤 실행 버튼도 두지 않는다.
+    대화로 실행이 되면 "무엇을 승인했는지"가 로그에 남지 않기 때문이다.
+    챗봇은 대시보드의 해당 뷰를 열어줄 뿐이며, 이것이 §5 tool 권한 설계와 화면이 일치하는 지점이다.
+  </div>
+</section>
+
+<section id="s2">
+  <div class="sec-head"><span class="sec-num">02</span><h2>상주 캐릭터 · 토스트</h2></div>
+  <p class="prose">
+    캐릭터는 장식이 아니라 <strong>에이전트의 상태 표시기</strong>다. 세 상태가 형태로 구분되어야 하며,
+    색만으로 구분하지 않는다(움직임 + 배지 + 색).
+  </p>
+  <div class="tablewrap">
+    <table class="spec">
+      <thead><tr><th>상태</th><th class="mono">data-state</th><th>형태</th><th>발생</th></tr></thead>
+      <tbody>
+        <tr><td>대기</td><td class="mono">idle</td><td>teal · 3.6초 주기 호흡 애니메이션</td><td>기본</td></tr>
+        <tr><td>작업 중</td><td class="mono">working</td><td>amber · 회전. 협상 라운드가 도는 동안 유지</td><td>tool 호출 시작 ~ 결과 수신</td></tr>
+        <tr><td>알림 있음</td><td class="mono">alert</td><td>3회 점프 + 붉은 배지(미확인 수)</td><td>SSE 이벤트 수신</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="prose">
+    <strong>토스트는 한 줄이어야 한다.</strong> 판단에 필요한 숫자 하나(약속 가능 수량)와 행동 유도만 담고,
+    근거·계산 과정은 채팅 패널로 미룬다. 토스트에 표를 넣으면 CRM 작업을 가린다.
+  </p>
+  <div class="tablewrap">
+    <table class="spec">
+      <thead><tr><th>이벤트</th><th class="mono">SSE type</th><th>문구 규칙</th><th>Phase</th></tr></thead>
+      <tbody>
+        <tr><td>견적 수량 &gt; ATP</td><td class="mono">atp.shortfall</td><td>요청 수량 · 약속 가능 수량 · 기준 날짜</td><td><b>A</b></td></tr>
+        <tr><td>협상 종료</td><td class="mono">nego.settled</td><td>후보 수 · 최저 단가</td><td><b>A</b></td></tr>
+        <tr><td>원가 변동 → 마진</td><td class="mono">margin.changed</td><td>대상 견적 번호 · 마진 변화폭</td><td>B (S9)</td></tr>
+        <tr><td>단가 이상 감지</td><td class="mono">price.anomaly</td><td>품목 · 벤더 · 평균 대비 편차</td><td>B (S6)</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="s3">
+  <div class="sec-head"><span class="sec-num">03</span><h2>채팅 패널</h2></div>
+  <p class="prose">
+    답변에는 <strong>반드시 근거가 붙는다.</strong> 숫자만 답하는 말풍선은 금지이며,
+    계산 과정 블록과 원본 레코드 링크를 함께 낸다. 산출할 수 없는 질문에는 추정하지 않고
+    "데이터가 없다"고 답한다.
+  </p>
+  <div class="tablewrap">
+    <table class="spec">
+      <thead><tr><th>요소</th><th>규칙</th><th>데이터 출처</th></tr></thead>
+      <tbody>
+        <tr><td>봇 말풍선</td><td>본문 1~3줄 + 필요 시 계산 블록 1개</td><td>어시스턴트 응답</td></tr>
+        <tr><td>계산 블록</td><td>등호가 보이는 한 줄 수식. 결과값만 강조색</td><td class="mono">get_available_to_promise</td></tr>
+        <tr><td>근거 링크</td><td>레코드 ID를 점선 밑줄로. 클릭 시 좌측 CRM에서 해당 레코드 열림</td><td class="mono">get_sale_orders</td></tr>
+        <tr><td>추천 질문 칩</td><td>최대 3개. 사용한 칩은 비활성. 자유 입력은 Phase B</td><td>대화 상태별 고정 목록</td></tr>
+        <tr><td>상태 표시</td><td class="mono">● ready / ● thinking / ● negotiating</td><td>tool 호출 상태</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="note">
+    <span class="lbl">Phase A 제약</span>
+    자유 텍스트 입력창은 <strong>넣지 않는다.</strong> 5분 데모에서 오타·예상 못 한 질문 하나가
+    전체 흐름을 무너뜨린다. 추천 질문 칩 3개로 고정하고, 자유 입력은 Phase B에서 연다.
+  </div>
+</section>
+
+<section id="s4">
+  <div class="sec-head"><span class="sec-num">04</span><h2>구역 대시보드 — 2개 뷰</h2></div>
+  <p class="prose">
+    대시보드가 열리면 CRM은 <strong>줄어들 뿐 사라지지 않는다.</strong> 왼쪽 CRM은 계속 조작 가능해야 하고,
+    확정 직후 좌측에서 반영 결과가 보여야 한다 — 데모 3:40 컷이 이 동작 하나에 걸려 있다.
+  </p>
+  <div class="tablewrap">
+    <table class="spec">
+      <thead><tr><th>뷰</th><th>구역</th><th>내용</th><th>데이터 출처</th></tr></thead>
+      <tbody>
+        <tr><td rowspan="4"><b>협상 진행</b></td><td>요청 요약</td><td>품목·수량·상한가·최대 납기·우선순위</td><td class="mono">negotiate_procurement 인자</td></tr>
+        <tr><td>라운드 스트림</td><td>노드별 OFFER / REJECT / ACCEPT를 시간순 추가. 라운드 구분선 삽입</td><td class="mono">SSE ← broker 로그</td></tr>
+        <tr><td>셀러 노드 뷰</td><td><b>데모 전용.</b> 셀러 로그와 브로커 로그를 나란히 놓아 <code>floor_price</code>가 한쪽에만 있음을 보임</td><td class="mono">seller_logs / broker_logs</td></tr>
+        <tr><td>후보 순위표</td><td>단가·납기·사양 유사도·예상 마진 + 선택 버튼</td><td class="mono">SETTLED payload</td></tr>
+        <tr><td rowspan="3"><b>재고 · ATP</b></td><td>4칸 요약</td><td>현재고 / 예약 / 입고예정 / <b>약속 가능</b> — 마지막 칸만 강조</td><td class="mono">get_available_to_promise</td></tr>
+        <tr><td>계산 전개</td><td>수식 한 줄 + 예약 건별 레코드 링크</td><td class="mono">stock.quant · sale.order</td></tr>
+        <tr><td>입고 일정</td><td>기준일 이후 도착분은 붉은색으로 "기한 초과" 표기</td><td class="mono">purchase.order</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="prose">
+    <strong>순위 1위가 정답이 아니다.</strong> 프로토타입에서 시스템은 <code>price_min</code> 가중치로
+    오퍼렛을 1위로 올리지만, 고객 납기가 D+25라 28일이 걸리는 오퍼렛은 실제로는 쓸 수 없다.
+    담당자가 2위를 고르는 이 장면이 "에이전트는 안, 결정은 사람"의 가장 좋은 증거다 — 순위표는
+    <b>정렬된 후보 목록이지 결론이 아니다.</b>
+  </p>
+</section>
+
+<section id="s5">
+  <div class="sec-head"><span class="sec-num">05</span><h2>인터랙션 흐름과 상태</h2></div>
+  <div class="tablewrap">
+    <table class="spec">
+      <thead><tr><th class="mono">step</th><th>트리거</th><th>화면 변화</th><th>호출</th><th>데모 컷</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">0 idle</td><td>초기 진입</td><td>CRM 전체 화면 · 캐릭터 idle</td><td>—</td><td>0:00</td></tr>
+        <tr><td class="mono">1 alert</td><td>SSE <code>atp.shortfall</code></td><td>캐릭터 alert + 배지 · 토스트 등장</td><td class="mono">get_available_to_promise</td><td>0:35</td></tr>
+        <tr><td class="mono">2 chat</td><td>캐릭터 · 토스트 클릭</td><td>채팅 패널 확장 · 첫 답변</td><td>—</td><td>1:10</td></tr>
+        <tr><td class="mono">3 evidence</td><td>칩 &ldquo;왜 3대?&rdquo;</td><td>계산 블록 + 레코드 링크</td><td class="mono">get_sale_orders</td><td>1:10</td></tr>
+        <tr><td class="mono">4 split</td><td>칩 &ldquo;2대 조달돼?&rdquo;</td><td><b>구역 분할</b> · 캐릭터 working</td><td class="mono">open_dashboard_view<br>negotiate_procurement</td><td>1:45</td></tr>
+        <tr><td class="mono">5 rounds</td><td>브로커 SSE</td><td>라운드 스트림 순차 추가</td><td class="mono">POST /api/offer ×N</td><td>2:00</td></tr>
+        <tr><td class="mono">6 rank</td><td><code>SETTLED</code></td><td>순위표 · 캐릭터 idle 복귀</td><td>—</td><td>3:10</td></tr>
+        <tr><td class="mono">7 pick</td><td>후보 선택</td><td>확정 바 등장</td><td>—</td><td>3:10</td></tr>
+        <tr><td class="mono">8 confirm</td><td>확정 클릭</td><td>영수증 표시 + <b>좌측 CRM 갱신</b></td><td class="mono">record_decision</td><td>3:40</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="note">
+    <span class="lbl">구현 메모 — 이호원</span>
+    이 파일의 <code>STEPS</code> 배열과 <code>go(step)</code> 함수가 위 표와 1:1로 대응한다.
+    더미 데이터를 SSE 이벤트로 바꾸는 것이 실제 구현이며, DOM 구조와 CSS는 그대로 쓸 수 있다.
+    <code>Auto-play</code>는 촬영용 — 리허설과 영상 촬영에서 손 떨림 없이 같은 타이밍을 재현한다.
+  </div>
+</section>
+
+<footer>
+  구조는 <a href="시스템_구조도.html">시스템 구조도</a>,
+  범위와 일정은 <a href="해커톤_실행계획_2026-09.md">해커톤 실행계획</a>,
+  전체 설계는 <a href="프로젝트_기획서_v2.md">프로젝트 기획서 v2</a>.
+</footer>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ── i18n ────────────────────────────────── */
+  var T = {
+    en: {
+      "ctl.play":"Auto-play demo","ctl.reset":"Reset","ctl.spec":"Spec pins",
+      "crm.state.draft":"Quotation","crm.state.done":"Sourced",
+      "crm.k.date":"Quotation date","crm.k.deliver":"Delivery deadline","crm.k.rep":"Salesperson","crm.k.terms":"Payment terms",
+      "crm.th.product":"Product","crm.th.qty":"Qty","crm.th.price":"Unit price","crm.th.total":"Subtotal",
+      "crm.line.short":"Only 3 of 5 promisable — 2 units unsourced",
+      "crm.line.ok":"2 units sourced from 한빛테크 · ₩41,800,000 · 21d lead",
+      "crm.foot":"This pane is the customer's own CRM. Our system does not modify it — it reads through the JSON-2 API and writes one decision record.",
+      "toast.lbl":"Available-to-promise","toast.act":"Open assistant →",
+      "chat.name":"Sales assistant",
+      "dash.title":"Procurement","dash.tab.neg":"Negotiation","dash.tab.atp":"Inventory & ATP",
+      "neg.req":"Request","neg.req.item":"Item","neg.req.qty":"Qty","neg.req.cap":"Cap price","neg.req.lead":"Max lead","neg.req.prio":"Priority",
+      "neg.rounds":"Rounds","neg.cand":"Candidates",
+      "neg.sv.open":"Open seller node view (demo only)","neg.sv.close":"Close seller node view",
+      "neg.sv.note":"Demo-only lens. In production the buyer never sees the left pane — the correction happens inside the seller's own server and never enters the response schema.",
+      "rank.th.seller":"Seller","rank.th.price":"Unit","rank.th.lead":"Lead","rank.th.spec":"Spec","rank.th.margin":"Margin",
+      "atp.head":"Available to promise","atp.onhand":"On hand","atp.reserved":"Reserved","atp.inbound":"Inbound","atp.result":"Promisable",
+      "atp.inb":"Inbound schedule","atp.other":"Other items",
+      "cfm.btn":"Confirm — record decision"
+    },
+    ko: {
+      "ctl.play":"자동 재생","ctl.reset":"초기화","ctl.spec":"스펙 핀",
+      "crm.state.draft":"견적","crm.state.done":"조달 확정",
+      "crm.k.date":"견적일","crm.k.deliver":"납기 기한","crm.k.rep":"영업 담당","crm.k.terms":"결제 조건",
+      "crm.th.product":"품목","crm.th.qty":"수량","crm.th.price":"단가","crm.th.total":"금액",
+      "crm.line.short":"5대 중 3대만 약속 가능 — 2대 미조달",
+      "crm.line.ok":"2대 한빛테크 조달 · ₩41,800,000 · 납기 21일",
+      "crm.foot":"이 영역은 고객사가 쓰던 CRM이다. 우리 시스템은 이 화면을 수정하지 않고, JSON-2 API로 읽고 확정 기록 한 건만 쓴다.",
+      "toast.lbl":"약속 가능 수량","toast.act":"어시스턴트 열기 →",
+      "chat.name":"영업 어시스턴트",
+      "dash.title":"조달","dash.tab.neg":"협상 진행","dash.tab.atp":"재고 · ATP",
+      "neg.req":"요청","neg.req.item":"품목","neg.req.qty":"수량","neg.req.cap":"상한가","neg.req.lead":"최대 납기","neg.req.prio":"우선순위",
+      "neg.rounds":"라운드","neg.cand":"후보",
+      "neg.sv.open":"셀러 노드 뷰 열기 (데모 전용)","neg.sv.close":"셀러 노드 뷰 닫기",
+      "neg.sv.note":"데모 전용 관측 창이다. 실제 운영에서 바이어는 왼쪽 로그를 볼 수 없다 — 보정은 셀러 자기 서버 안에서 일어나고 응답 스키마에 들어가지 않는다.",
+      "rank.th.seller":"판매사","rank.th.price":"단가","rank.th.lead":"납기","rank.th.spec":"사양","rank.th.margin":"마진",
+      "atp.head":"약속 가능 수량","atp.onhand":"현재고","atp.reserved":"예약","atp.inbound":"입고예정","atp.result":"약속 가능",
+      "atp.inb":"입고 일정","atp.other":"기타 품목",
+      "cfm.btn":"확정 — 결정 기록"
+    }
+  };
+  var lang = "en";
+  function t(k){ return (T[lang] && T[lang][k]) || T.en[k] || k; }
+
+  var TOAST = {
+    en: 'Quote SQ-2026-0417 asks for 5 × H100 NVL. Only <b>3</b> are promisable by 2026-09-30.',
+    ko: '견적 SQ-2026-0417 은 H100 NVL 5대다. 2026-09-30 기준 약속 가능한 것은 <b>3대</b>다.'
+  };
+
+  /* ── 대화 스크립트 ───────────────────────── */
+  var SCRIPT = {
+    en: {
+      greet:'Quote <b>SQ-2026-0417</b> asks for 5 units by 2026-09-30. I can promise <b>3</b> today.',
+      whyQ:'Why only 3?',
+      whyA:'Eight units are on hand, but five are already reserved by other orders, and nothing arrives before your deadline.',
+      sourceQ:'Can we source the other 2?',
+      sourceA:'Opening the procurement view. I am asking both supplier agents now — cap price ₩42,000,000, deadline 2026-09-30.',
+      invQ:'Show inventory',
+      invA:'Opened the inventory view. RTX 6000 Ada is the tight one — 1 promisable against 8 on hand.',
+      done:'Recorded. <b>한빛테크</b>, 2 units at ₩41,800,000, 21-day lead. The quote line on the left is updated.'
+    },
+    ko: {
+      greet:'견적 <b>SQ-2026-0417</b> 은 2026-09-30 까지 5대다. 오늘 약속 가능한 것은 <b>3대</b>다.',
+      whyQ:'왜 3대야?',
+      whyA:'현재고는 8대지만 5대가 다른 주문에 이미 예약돼 있고, 납기 전에 들어오는 물량이 없다.',
+      sourceQ:'부족한 2대, 조달 되나?',
+      sourceA:'조달 뷰를 연다. 지금 양쪽 공급사 에이전트에 물어보는 중 — 상한가 ₩42,000,000, 납기 2026-09-30.',
+      invQ:'재고 보여줘',
+      invA:'재고 뷰를 열었다. RTX 6000 Ada 가 빠듯하다 — 현재고 8대 중 약속 가능 1대.',
+      done:'기록했다. <b>한빛테크</b>, 2대, 단가 ₩41,800,000, 납기 21일. 왼쪽 견적 줄이 갱신됐다.'
+    }
+  };
+
+  var CALC = {
+    en:'8 <span style="color:var(--ink-3)">on hand</span><br>− 5 <span style="color:var(--ink-3)">reserved</span> · <button class="ref">SO-2026-0388</button> <button class="ref">SO-2026-0401</button><br>+ 0 <span style="color:var(--ink-3)">inbound before 09-30</span><br><b>= 3 promisable</b>',
+    ko:'8 <span style="color:var(--ink-3)">현재고</span><br>− 5 <span style="color:var(--ink-3)">예약</span> · <button class="ref">SO-2026-0388</button> <button class="ref">SO-2026-0401</button><br>+ 0 <span style="color:var(--ink-3)">09-30 이전 입고</span><br><b>= 3대 약속 가능</b>'
+  };
+
+  /* ── 라운드 스크립트 ─────────────────────── */
+  var ROUNDS = [
+    {kind:"rd",  txt:{en:"Round 1",ko:"라운드 1"}},
+    {kind:"off", who:"한빛테크", txt:{en:"OFFER · lead 21d · spec 0.94",ko:"OFFER · 납기 21일 · 사양 0.94"}, amt:"43,200,000"},
+    {kind:"rej", who:"broker",  txt:{en:"REJECT — above cap",ko:"REJECT — 상한가 초과"}, amt:"cap 42,000,000"},
+    {kind:"off", who:"오퍼렛",   txt:{en:"OFFER · lead 28d · spec 0.88",ko:"OFFER · 납기 28일 · 사양 0.88"}, amt:"42,600,000"},
+    {kind:"rej", who:"broker",  txt:{en:"REJECT — above cap",ko:"REJECT — 상한가 초과"}, amt:"cap 42,000,000"},
+    {kind:"rd",  txt:{en:"Round 2",ko:"라운드 2"}},
+    {kind:"off", who:"한빛테크", txt:{en:"OFFER · concession curve",ko:"OFFER · 양보곡선 적용"}, amt:"41,800,000"},
+    {kind:"acc", who:"broker",  txt:{en:"ACCEPT — within cap",ko:"ACCEPT — 상한가 이내"}, amt:"41,800,000"},
+    {kind:"off", who:"오퍼렛",   txt:{en:"OFFER · concession curve",ko:"OFFER · 양보곡선 적용"}, amt:"42,400,000"},
+    {kind:"rej", who:"broker",  txt:{en:"REJECT — above cap",ko:"REJECT — 상한가 초과"}, amt:"cap 42,000,000"},
+    {kind:"rd",  txt:{en:"Round 3",ko:"라운드 3"}},
+    {kind:"off", who:"오퍼렛",   txt:{en:"OFFER · seller-side audit applied",ko:"OFFER · 셀러측 감사 적용"}, amt:"41,500,000", audit:true},
+    {kind:"acc", who:"broker",  txt:{en:"ACCEPT — within cap",ko:"ACCEPT — 상한가 이내"}, amt:"41,500,000"}
+  ];
+
+  var CANDS = [
+    {rank:1, name:"오퍼렛",   price:"41,500,000", lead:"28d", spec:"0.88", margin:"14.4%"},
+    {rank:2, name:"한빛테크", price:"41,800,000", lead:"21d", spec:"0.94", margin:"13.8%"}
+  ];
+
+  var WHY = {
+    en:'Ranked by <code>price_min</code>. <b>Rank 1 misses the customer deadline</b> — 오퍼렛 needs 28 days, the quote promises delivery in 25. The ranking is a sorted candidate list, not a conclusion.',
+    ko:'<code>price_min</code> 가중치로 정렬했다. <b>1위는 고객 납기를 못 맞춘다</b> — 오퍼렛은 28일이 필요하고 견적 납기는 25일이다. 순위표는 정렬된 후보 목록이지 결론이 아니다.'
+  };
+
+  var CFM = {
+    en:function(c){return 'Selected: <b>'+c.name+'</b> · 2 units · ₩'+c.price+' · lead '+c.lead+'. This will be recorded with your name, timestamp and the evidence shown above.';},
+    ko:function(c){return '선택: <b>'+c.name+'</b> · 2대 · ₩'+c.price+' · 납기 '+c.lead+'. 확정자·시각·위에 제시된 근거와 함께 기록된다.';}
+  };
+  var RECEIPT = {
+    en:function(c){return '<span class="rk">recorded · record_decision</span><br><b>'+c.name+'</b> · 2 × H100 NVL · ₩'+c.price+'<br>Confirmed by 문동원 · 2026-09-05 14:22 KST<br>Approval stage 1 (within +5% / +3d / ₩5M)';},
+    ko:function(c){return '<span class="rk">기록 완료 · record_decision</span><br><b>'+c.name+'</b> · H100 NVL 2대 · ₩'+c.price+'<br>확정자 문동원 · 2026-09-05 14:22 KST<br>승인 1단계 (기준단가 +5% · 납기 +3일 · 500만원 이내)';}
+  };
+
+  /* ── DOM ─────────────────────────────────── */
+  var $ = function(id){ return document.getElementById(id); };
+  var stage=$("stage"), pet=$("pet"), petBadge=$("petBadge"), toast=$("toast"),
+      chat=$("chat"), chatLog=$("chatLog"), chips=$("chips"), chatState=$("chatState"),
+      dash=$("dash"), rounds=$("rounds"), rankWrap=$("rankWrap"), rankBody=$("rankBody"),
+      rankWhy=$("rankWhy"), confirmBar=$("confirmBar"), confirmSum=$("confirmSum"),
+      soState=$("soState"), lineNote=$("lineNote"), line1=$("line1"),
+      sellerViewWrap=$("sellerViewWrap"), sellerView=$("sellerView"), sellerViewBtn=$("sellerViewBtn");
+
+  var step = 0, picked = null, timers = [], playing = false, confirmed = false;
+
+  function clearTimers(){ timers.forEach(clearTimeout); timers = []; }
+  function later(fn, ms){ var id = setTimeout(fn, ms); timers.push(id); return id; }
+
+  function applyLang(){
+    document.querySelectorAll("[data-i18n]").forEach(function(el){
+      el.textContent = t(el.getAttribute("data-i18n"));
+    });
+    $("toastBody").innerHTML = TOAST[lang];
+    $("lang-en").setAttribute("aria-pressed", lang==="en");
+    $("lang-ko").setAttribute("aria-pressed", lang==="ko");
+    sellerViewBtn.textContent = sellerView.hidden ? t("neg.sv.open") : t("neg.sv.close");
+    soState.textContent = confirmed ? t("crm.state.done") : t("crm.state.draft");
+    lineNote.textContent = confirmed ? t("crm.line.ok") : t("crm.line.short");
+    if (rankWhy.innerHTML) rankWhy.innerHTML = WHY[lang];
+    if (picked && !confirmed) confirmSum.innerHTML = CFM[lang](picked);
+    if (picked && confirmed) confirmBar.innerHTML = '<div class="receipt">'+RECEIPT[lang](picked)+'</div>';
+  }
+
+  /* ── 채팅 ─────────────────────────────────── */
+  function addMsg(who, html, calc){
+    var d = document.createElement("div");
+    d.className = "msg " + who;
+    d.innerHTML = html + (calc ? '<div class="calc">'+calc+'</div>' : '');
+    chatLog.appendChild(d);
+    chatLog.scrollTop = chatLog.scrollHeight;
+    return d;
+  }
+  function typing(cb, ms){
+    var d = document.createElement("div");
+    d.className = "msg bot typing";
+    d.innerHTML = "<i></i><i></i><i></i>";
+    chatLog.appendChild(d);
+    chatLog.scrollTop = chatLog.scrollHeight;
+    later(function(){ d.remove(); cb(); }, ms || 700);
+  }
+  function setChips(list){
+    chips.innerHTML = "";
+    list.forEach(function(c){
+      var b = document.createElement("button");
+      b.className = "chipbtn";
+      b.textContent = c.label;
+      if (c.done) b.disabled = true;
+      b.addEventListener("click", c.fn);
+      chips.appendChild(b);
+    });
+  }
+  var used = {};
+  function chipList(){
+    var S = SCRIPT[lang];
+    return [
+      {label:S.whyQ,    done:used.why,    fn:function(){ if(!used.why){ go(3); } }},
+      {label:S.sourceQ, done:used.source, fn:function(){ if(!used.source){ go(4); } }},
+      {label:S.invQ,    done:used.inv,    fn:function(){ if(!used.inv){ used.inv=true; addMsg("me",S.invQ); typing(function(){ addMsg("bot",S.invA); showTab("atp"); openDash(); setChips(chipList()); }); } }}
+    ];
+  }
+
+  /* ── 대시보드 ─────────────────────────────── */
+  function openDash(){ stage.classList.add("split"); }
+  function showTab(which){
+    var neg = which === "neg";
+    $("tabNeg").setAttribute("aria-selected", neg);
+    $("tabAtp").setAttribute("aria-selected", !neg);
+    $("viewNeg").hidden = !neg;
+    $("viewAtp").hidden = neg;
+    confirmBar.hidden = !(neg && picked && !confirmed);
+    if (neg && confirmed) confirmBar.hidden = false;
+  }
+  function addRound(r){
+    var d = document.createElement("div");
+    if (r.kind === "rd"){
+      d.className = "rmsg rd";
+      d.innerHTML = '<span class="who">'+r.txt[lang]+'</span>';
+    } else {
+      d.className = "rmsg " + (r.kind==="rej" ? "rej" : r.kind==="acc" ? "acc" : "");
+      d.innerHTML = '<span class="who">'+r.who+'</span><span>'+r.txt[lang]+'</span><span class="amt">'+r.amt+'</span>';
+    }
+    rounds.appendChild(d);
+    d.scrollIntoView({block:"nearest"});
+    if (r.audit) sellerViewWrap.hidden = false;
+  }
+  function renderRank(){
+    rankBody.innerHTML = "";
+    CANDS.forEach(function(c){
+      var tr = document.createElement("tr");
+      tr.innerHTML =
+        '<td>'+c.rank+'. '+c.name+'</td>'+
+        '<td class="num">'+c.price+'</td>'+
+        '<td class="num">'+c.lead+'</td>'+
+        '<td class="num">'+c.spec+'</td>'+
+        '<td class="num">'+c.margin+'</td>'+
+        '<td style="text-align:right"><button class="pick">'+(lang==="en"?"Select":"선택")+'</button></td>';
+      tr.querySelector(".pick").addEventListener("click", function(){ pick(c, tr); });
+      rankBody.appendChild(tr);
+    });
+    rankWhy.innerHTML = WHY[lang];
+    rankWrap.hidden = false;
+  }
+  function pick(c, tr){
+    if (confirmed) return;
+    picked = c; step = Math.max(step, 7);
+    Array.prototype.forEach.call(rankBody.children, function(row){ row.classList.remove("sel"); });
+    tr.classList.add("sel");
+    Array.prototype.forEach.call(rankBody.querySelectorAll(".pick"), function(b){
+      b.textContent = lang==="en" ? "Select" : "선택";
+    });
+    tr.querySelector(".pick").textContent = lang==="en" ? "Selected" : "선택됨";
+    confirmSum.innerHTML = CFM[lang](c);
+    confirmBar.hidden = false;
+  }
+  function doConfirm(){
+    if (!picked || confirmed) return;
+    confirmed = true; step = 8;
+    confirmBar.innerHTML = '<div class="receipt">'+RECEIPT[lang](picked)+'</div>';
+    soState.textContent = t("crm.state.done");
+    soState.classList.add("done");
+    lineNote.textContent = t("crm.line.ok");
+    lineNote.classList.add("ok");
+    line1.classList.remove("warnline");
+    petBadge.hidden = true;
+    pet.setAttribute("data-state","idle");
+    if (!chat.hidden) typing(function(){ addMsg("bot", SCRIPT[lang].done); }, 500);
+  }
+
+  /* ── 단계 ─────────────────────────────────── */
+  function go(n){
+    var S = SCRIPT[lang];
+    if (n === 1){
+      step = 1;
+      pet.setAttribute("data-state","alert");
+      petBadge.hidden = false;
+      toast.hidden = false;
+      line1.classList.add("warnline");
+      later(function(){ if (step === 1) pet.setAttribute("data-state","idle"); }, 2800);
+    }
+    if (n === 2){
+      step = 2;
+      toast.hidden = true;
+      chat.hidden = false;
+      petBadge.hidden = true;
+      if (!chatLog.children.length){
+        typing(function(){ addMsg("bot", S.greet); setChips(chipList()); }, 600);
+      }
+    }
+    if (n === 3){
+      step = 3; used.why = true;
+      addMsg("me", S.whyQ);
+      chatState.textContent = "● thinking";
+      typing(function(){
+        addMsg("bot", S.whyA, CALC[lang]);
+        chatState.textContent = "● ready";
+        setChips(chipList());
+      }, 800);
+    }
+    if (n === 4){
+      step = 4; used.source = true;
+      addMsg("me", S.sourceQ);
+      chatState.textContent = "● negotiating";
+      pet.setAttribute("data-state","working");
+      typing(function(){
+        addMsg("bot", S.sourceA);
+        setChips(chipList());
+        showTab("neg");
+        openDash();
+        later(function(){ go(5); }, 500);
+      }, 800);
+    }
+    if (n === 5){
+      step = 5;
+      rounds.innerHTML = "";
+      sellerViewWrap.hidden = true;
+      sellerView.hidden = true;
+      ROUNDS.forEach(function(r, i){
+        later(function(){ addRound(r); }, 360 * (i + 1));
+      });
+      later(function(){ go(6); }, 360 * (ROUNDS.length + 1));
+    }
+    if (n === 6){
+      step = 6;
+      renderRank();
+      chatState.textContent = "● ready";
+      pet.setAttribute("data-state","idle");
+    }
+  }
+
+  /* ── 자동 재생 ─────────────────────────────── */
+  function autoplay(){
+    doReset();
+    playing = true;
+    $("play").disabled = true;
+    later(function(){ go(1); }, 900);
+    later(function(){ go(2); }, 3200);
+    later(function(){ go(3); }, 5400);
+    later(function(){ go(4); }, 8600);
+    later(function(){
+      var tr = rankBody.children[1];
+      if (tr) { pick(CANDS[1], tr); }
+    }, 8600 + 1600 + 360 * (ROUNDS.length + 2) + 900);
+    later(function(){
+      doConfirm();
+      playing = false;
+      $("play").disabled = false;
+    }, 8600 + 1600 + 360 * (ROUNDS.length + 2) + 3000);
+  }
+
+  function doReset(){
+    clearTimers();
+    playing = false; step = 0; picked = null; confirmed = false; used = {};
+    $("play").disabled = false;
+    pet.setAttribute("data-state","idle");
+    petBadge.hidden = true;
+    toast.hidden = true;
+    chat.hidden = true;
+    chatLog.innerHTML = "";
+    chips.innerHTML = "";
+    chatState.textContent = "● ready";
+    stage.classList.remove("split");
+    rounds.innerHTML = "";
+    rankWrap.hidden = true;
+    rankBody.innerHTML = "";
+    rankWhy.innerHTML = "";
+    sellerViewWrap.hidden = true;
+    sellerView.hidden = true;
+    confirmBar.hidden = true;
+    confirmBar.innerHTML =
+      '<div class="pin" id="pin5" style="position:absolute; right:398px; bottom:52px">5</div>' +
+      '<p class="sum" id="confirmSum"></p>' +
+      '<button class="btn confirm" id="confirmBtn">'+t("cfm.btn")+'</button>';
+    confirmSum = $("confirmSum");
+    $("confirmBtn").addEventListener("click", doConfirm);
+    soState.textContent = t("crm.state.draft");
+    soState.classList.remove("done");
+    lineNote.textContent = t("crm.line.short");
+    lineNote.classList.remove("ok");
+    line1.classList.remove("warnline");
+    showTab("neg");
+  }
+
+  /* ── 이벤트 ───────────────────────────────── */
+  pet.addEventListener("click", function(){
+    if (chat.hidden) { go(step < 2 ? 2 : 2); if (step < 2) step = 2; }
+    else chat.hidden = true;
+  });
+  toast.addEventListener("click", function(){ go(2); });
+  $("chatX").addEventListener("click", function(){ chat.hidden = true; });
+  $("tabNeg").addEventListener("click", function(){ showTab("neg"); });
+  $("tabAtp").addEventListener("click", function(){ showTab("atp"); });
+  sellerViewBtn.addEventListener("click", function(){
+    sellerView.hidden = !sellerView.hidden;
+    sellerViewBtn.textContent = sellerView.hidden ? t("neg.sv.open") : t("neg.sv.close");
+  });
+  $("play").addEventListener("click", autoplay);
+  $("reset").addEventListener("click", doReset);
+  $("specbtn").addEventListener("click", function(){
+    var on = stage.classList.toggle("spec");
+    this.classList.toggle("on", on);
+  });
+  $("lang-en").addEventListener("click", function(){ lang="en"; applyLang(); if(rankBody.children.length) renderRank(); });
+  $("lang-ko").addEventListener("click", function(){ lang="ko"; applyLang(); if(rankBody.children.length) renderRank(); });
+
+  /* ── 시작 ─────────────────────────────────── */
+  doReset();
+  applyLang();
+  later(function(){ if (step === 0) go(1); }, 1400);
+})();
+</script>

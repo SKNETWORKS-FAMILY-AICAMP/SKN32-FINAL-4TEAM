@@ -1,0 +1,44 @@
+category: baby
+label: "유아용품"
+status: stub                  # 유아 상품 카탈로그·추천 엔진(stage2~4)은 별도 구현 대기 — 조건 수집만 가능
+modes: [born, prenatal]
+required_inputs: [age_months, needs, health_skin, owned_items, budget_max]
+slot_structure: ["수유", "수면", "위생/기저귀", "외출"]
+verify_branch: per_item      # [3-C] 품목별 검증 → [4] 예산 배분
+
+slot_schema:
+  age_months:   { type: int, nullable: true }   # null + mode=prenatal → "출산 예정"
+  needs:        { type: list }
+  health_skin:  { type: list }                  # ["none"] = 특이사항 없음
+  owned_items:  { type: list }                  # ["none"] = 보유 물품 없음
+  budget_max:   { type: int, nullable: true }
+
+defaults: {}
+
+# ConditionState.fields 순서·표시 라벨 (§D-4-1 "카테고리별 필드")
+# age_stage 는 저장 필드가 아니라 age_months(+mode)에서 계산되는 표시 전용 필드.
+fields:
+  - { key: age_stage, label: "아이 연령대", computed: age_months }
+  - { key: needs, label: "필요한 영역" }
+  - { key: health_skin, label: "건강·피부 특성" }
+  - { key: owned_items, label: "이미 보유한 물품" }
+  - { key: budget_max, label: "예산" }
+
+question_sets:
+  - { id: q_age, select: single, maps_to: age_months,
+      label: "아이는 몇 개월인가요?",
+      options: ["출산 예정", "0~3개월", "4~6개월", "7~12개월", "13~24개월", "25개월 이상"],
+      values: [0, 1, 5, 9, 18, 30] }   # 0 = 출산 예정 (null 은 "모르겠어요"류 미확정 전용이라 실제값엔 안 씀)
+  - { id: q_needs, select: multi, maps_to: needs,
+      label: "지금 필요한 영역을 골라주세요.",
+      options: ["수유", "이유식·식사", "수면", "외출", "목욕·위생", "기저귀·배변", "의류", "놀이", "안전·건강"] }
+  - { id: q_health_skin, select: multi, maps_to: health_skin,
+      label: "피부·건강에 특이사항이 있나요?",
+      options: ["아토피", "민감성 피부", "특이사항 없음"],
+      none_option: "특이사항 없음" }
+  - { id: q_owned, select: multi, maps_to: owned_items,
+      label: "이미 갖고 있는 물품이 있나요?",
+      options: ["유모차", "카시트", "젖병", "아기침대", "기저귀", "없음"],
+      none_option: "없음" }
+  - { id: q_budget_max, select: free, maps_to: budget_max,
+      label: "예산은 얼마까지 생각하시나요?" }

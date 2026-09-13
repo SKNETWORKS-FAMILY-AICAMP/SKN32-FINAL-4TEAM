@@ -1,0 +1,165 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="3360" height="1160" viewBox="0 0 3360 1160" role="img" aria-labelledby="title desc">
+<title id="title">데이터베이스 → 스키마 → 테이블 전체 구조</title>
+<desc id="desc">PostgreSQL 데이터베이스 하나 아래 12개 스키마와 총 58개 테이블을 가로로 배치한 소속 관계도. 파일 원본은 별도 객체 저장소에 보관한다.</desc>
+<rect width="3360" height="1160" fill="#f8fafc"/>
+<text x="60" y="79" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="44" font-weight="700" fill="#24364b">데이터베이스 전체 구조</text>
+<text x="60" y="120" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="24" font-weight="400" fill="#617287">테이블 명세서 v4 기준  ·  소속 관계도 — 외래키 연결은 생략</text>
+<rect x="1280" y="155" width="800" height="128" rx="12" fill="#163d50" stroke="none" stroke-width="2"/>
+<text x="1680" y="207" text-anchor="middle" font-family="Malgun Gothic, sans-serif" font-size="30" font-weight="700" fill="#ffffff">데이터베이스 1개</text>
+<text x="1680" y="249" text-anchor="middle" font-family="Malgun Gothic, sans-serif" font-size="24" font-weight="400" fill="#d9edf4">PostgreSQL + pgvector  ·  12개 스키마 / 58개 테이블</text>
+<rect x="2470" y="165" width="820" height="110" rx="12" fill="#ffffff" stroke="#b7c5cf" stroke-width="2"/>
+<text x="2880" y="207" text-anchor="middle" font-family="Malgun Gothic, sans-serif" font-size="27" font-weight="700" fill="#24364b">별도 객체 저장소 · DB 외부</text>
+<text x="2880" y="247" text-anchor="middle" font-family="Malgun Gothic, sans-serif" font-size="23" font-weight="400" fill="#24364b">파일 원본·파생 이미지·비공개 데이터셋 산출물</text>
+<polyline points="2080,218 2470,218" fill="none" stroke="#94a3b8" stroke-width="3" stroke-dasharray="8 8"/>
+<text x="2275" y="198" text-anchor="middle" font-family="Malgun Gothic, sans-serif" font-size="21" font-weight="400" fill="#617287">위치·메타데이터 참조</text>
+<polyline points="1680,283 1680,340" fill="none" stroke="#94a3b8" stroke-width="3"/>
+<polyline points="185.0,340 3155.0,340" fill="none" stroke="#94a3b8" stroke-width="3"/>
+<text x="60" y="315" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="21" font-weight="700" fill="#617287">01  DATABASE → 02  SCHEMA</text>
+<polyline points="185.0,340 185.0,382" fill="none" stroke="#94a3b8" stroke-width="3"/>
+<rect x="60" y="382" width="250" height="118" rx="12" fill="#e4eef5" stroke="#bacddb" stroke-width="2"/>
+<text x="185.0" y="423" text-anchor="middle" font-family="Malgun Gothic, sans-serif" font-size="26" font-weight="700" fill="#24364b">config</text>
+<text x="185.0" y="460" text-anchor="middle" font-family="Malgun Gothic, sans-serif" font-size="21" font-weight="400" fill="#24364b">도메인 정의 · 2개</text>
+<polyline points="185.0,500 185.0,555" fill="none" stroke="#94a3b8" stroke-width="3"/>
+<rect x="60" y="555" width="250" height="416" rx="12" fill="#ffffff" stroke="#d3dce4" stroke-width="2"/>
+<text x="80" y="588" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="17" font-weight="700" fill="#718396">TABLES</text>
+<text x="80" y="636" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="23" font-weight="400" fill="#24364b">도메인</text>
+<text x="80" y="678" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="23" font-weight="400" fill="#24364b">도메인 정의 버전</text>
+<polyline points="455.0,340 455.0,382" fill="none" stroke="#94a3b8" stroke-width="3"/>
+<rect x="330" y="382" width="250" height="118" rx="12" fill="#e4eef5" stroke="#bacddb" stroke-width="2"/>
+<text x="455.0" y="423" text-anchor="middle" font-family="Malgun Gothic, sans-serif" font-size="26" font-weight="700" fill="#24364b">identity</text>
+<text x="455.0" y="460" text-anchor="middle" font-family="Malgun Gothic, sans-serif" font-size="21" font-weight="400" fill="#24364b">사용자와 대화 · 4개</text>
+<polyline points="455.0,500 455.0,555" fill="none" stroke="#94a3b8" stroke-width="3"/>
+<rect x="330" y="555" width="250" height="416" rx="12" fill="#ffffff" stroke="#d3dce4" stroke-width="2"/>
+<text x="350" y="588" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="17" font-weight="700" fill="#718396">TABLES</text>
+<text x="350" y="636" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="23" font-weight="400" fill="#24364b">사용자</text>
+<text x="350" y="678" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="23" font-weight="400" fill="#24364b">사용자 설정</text>
+<text x="350" y="720" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="23" font-weight="400" fill="#24364b">대화</text>
+<text x="350" y="762" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="23" font-weight="400" fill="#24364b">메시지</text>
+<polyline points="725.0,340 725.0,382" fill="none" stroke="#94a3b8" stroke-width="3"/>
+<rect x="600" y="382" width="250" height="118" rx="12" fill="#e4eef5" stroke="#bacddb" stroke-width="2"/>
+<text x="725.0" y="423" text-anchor="middle" font-family="Malgun Gothic, sans-serif" font-size="26" font-weight="700" fill="#24364b">shared</text>
+<text x="725.0" y="460" text-anchor="middle" font-family="Malgun Gothic, sans-serif" font-size="21" font-weight="400" fill="#24364b">공통 기준 · 1개</text>
+<polyline points="725.0,500 725.0,555" fill="none" stroke="#94a3b8" stroke-width="3"/>
+<rect x="600" y="555" width="250" height="416" rx="12" fill="#ffffff" stroke="#d3dce4" stroke-width="2"/>
+<text x="620" y="588" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="17" font-weight="700" fill="#718396">TABLES</text>
+<text x="620" y="636" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="23" font-weight="400" fill="#24364b">단위</text>
+<polyline points="995.0,340 995.0,382" fill="none" stroke="#94a3b8" stroke-width="3"/>
+<rect x="870" y="382" width="250" height="118" rx="12" fill="#e4eef5" stroke="#bacddb" stroke-width="2"/>
+<text x="995.0" y="423" text-anchor="middle" font-family="Malgun Gothic, sans-serif" font-size="26" font-weight="700" fill="#24364b">planning</text>
+<text x="995.0" y="460" text-anchor="middle" font-family="Malgun Gothic, sans-serif" font-size="21" font-weight="400" fill="#24364b">구매 계획 · 8개</text>
+<polyline points="995.0,500 995.0,555" fill="none" stroke="#94a3b8" stroke-width="3"/>
+<rect x="870" y="555" width="250" height="416" rx="12" fill="#ffffff" stroke="#d3dce4" stroke-width="2"/>
+<text x="890" y="588" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="17" font-weight="700" fill="#718396">TABLES</text>
+<text x="890" y="636" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="23" font-weight="400" fill="#24364b">계획</text>
+<text x="890" y="678" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="23" font-weight="400" fill="#24364b">계획 버전</text>
+<text x="890" y="720" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="23" font-weight="400" fill="#24364b">조건</text>
+<text x="890" y="762" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="23" font-weight="400" fill="#24364b">그룹 / 슬롯</text>
+<text x="890" y="804" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="23" font-weight="400" fill="#24364b">필요 항목</text>
+<text x="890" y="846" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="23" font-weight="400" fill="#24364b">보유 물품</text>
+<text x="890" y="888" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="23" font-weight="400" fill="#24364b">구매 항목</text>
+<text x="890" y="930" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="23" font-weight="400" fill="#24364b">충족 연결</text>
+<polyline points="1265.0,340 1265.0,382" fill="none" stroke="#94a3b8" stroke-width="3"/>
+<rect x="1140" y="382" width="250" height="118" rx="12" fill="#e4eef5" stroke="#bacddb" stroke-width="2"/>
+<text x="1265.0" y="423" text-anchor="middle" font-family="Malgun Gothic, sans-serif" font-size="26" font-weight="700" fill="#24364b">catalog</text>
+<text x="1265.0" y="460" text-anchor="middle" font-family="Malgun Gothic, sans-serif" font-size="21" font-weight="400" fill="#24364b">상품과 가격 · 8개</text>
+<polyline points="1265.0,500 1265.0,555" fill="none" stroke="#94a3b8" stroke-width="3"/>
+<rect x="1140" y="555" width="250" height="416" rx="12" fill="#ffffff" stroke="#d3dce4" stroke-width="2"/>
+<text x="1160" y="588" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="17" font-weight="700" fill="#718396">TABLES</text>
+<text x="1160" y="636" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="23" font-weight="400" fill="#24364b">상품</text>
+<text x="1160" y="678" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="23" font-weight="400" fill="#24364b">옵션</text>
+<text x="1160" y="720" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="23" font-weight="400" fill="#24364b">분류</text>
+<text x="1160" y="762" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="23" font-weight="400" fill="#24364b">분류 연결</text>
+<text x="1160" y="804" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="23" font-weight="400" fill="#24364b">근거 속성</text>
+<text x="1160" y="846" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="23" font-weight="400" fill="#24364b">판매처</text>
+<text x="1160" y="888" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="23" font-weight="400" fill="#24364b">판매 제안</text>
+<text x="1160" y="930" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="23" font-weight="400" fill="#24364b">가격 / 재고 관측</text>
+<polyline points="1535.0,340 1535.0,382" fill="none" stroke="#94a3b8" stroke-width="3"/>
+<rect x="1410" y="382" width="250" height="118" rx="12" fill="#e4eef5" stroke="#bacddb" stroke-width="2"/>
+<text x="1535.0" y="423" text-anchor="middle" font-family="Malgun Gothic, sans-serif" font-size="26" font-weight="700" fill="#24364b">assets</text>
+<text x="1535.0" y="460" text-anchor="middle" font-family="Malgun Gothic, sans-serif" font-size="21" font-weight="400" fill="#24364b">상품 자료 관리 · 4개</text>
+<polyline points="1535.0,500 1535.0,555" fill="none" stroke="#94a3b8" stroke-width="3"/>
+<rect x="1410" y="555" width="250" height="416" rx="12" fill="#ffffff" stroke="#d3dce4" stroke-width="2"/>
+<text x="1430" y="588" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="17" font-weight="700" fill="#718396">TABLES</text>
+<text x="1430" y="636" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="23" font-weight="400" fill="#24364b">파일 객체</text>
+<text x="1430" y="678" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="23" font-weight="400" fill="#24364b">상품 자료</text>
+<text x="1430" y="720" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="23" font-weight="400" fill="#24364b">자료 버전</text>
+<text x="1430" y="762" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="23" font-weight="400" fill="#24364b">적용 상품 연결</text>
+<polyline points="1805.0,340 1805.0,382" fill="none" stroke="#94a3b8" stroke-width="3"/>
+<rect x="1680" y="382" width="250" height="118" rx="12" fill="#e4eef5" stroke="#bacddb" stroke-width="2"/>
+<text x="1805.0" y="423" text-anchor="middle" font-family="Malgun Gothic, sans-serif" font-size="26" font-weight="700" fill="#24364b">rag</text>
+<text x="1805.0" y="460" text-anchor="middle" font-family="Malgun Gothic, sans-serif" font-size="21" font-weight="400" fill="#24364b">자료 검색 · 6개</text>
+<polyline points="1805.0,500 1805.0,555" fill="none" stroke="#94a3b8" stroke-width="3"/>
+<rect x="1680" y="555" width="250" height="416" rx="12" fill="#ffffff" stroke="#d3dce4" stroke-width="2"/>
+<text x="1700" y="588" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="17" font-weight="700" fill="#718396">TABLES</text>
+<text x="1700" y="636" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="23" font-weight="400" fill="#24364b">추출 작업</text>
+<text x="1700" y="678" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="23" font-weight="400" fill="#24364b">청크</text>
+<text x="1700" y="720" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="23" font-weight="400" fill="#24364b">임베딩 설정</text>
+<text x="1700" y="762" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="23" font-weight="400" fill="#24364b">청크 벡터</text>
+<text x="1700" y="804" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="23" font-weight="400" fill="#24364b">검색 실행</text>
+<text x="1700" y="846" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="23" font-weight="400" fill="#24364b">검색 결과</text>
+<polyline points="2075.0,340 2075.0,382" fill="none" stroke="#94a3b8" stroke-width="3"/>
+<rect x="1950" y="382" width="250" height="118" rx="12" fill="#e4eef5" stroke="#bacddb" stroke-width="2"/>
+<text x="2075.0" y="423" text-anchor="middle" font-family="Malgun Gothic, sans-serif" font-size="26" font-weight="700" fill="#24364b">community</text>
+<text x="2075.0" y="460" text-anchor="middle" font-family="Malgun Gothic, sans-serif" font-size="21" font-weight="400" fill="#24364b">PC 구성과 리뷰 · 5개</text>
+<polyline points="2075.0,500 2075.0,555" fill="none" stroke="#94a3b8" stroke-width="3"/>
+<rect x="1950" y="555" width="250" height="416" rx="12" fill="#ffffff" stroke="#d3dce4" stroke-width="2"/>
+<text x="1970" y="588" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="17" font-weight="700" fill="#718396">TABLES</text>
+<text x="1970" y="636" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="23" font-weight="400" fill="#24364b">사용자 PC</text>
+<text x="1970" y="678" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="23" font-weight="400" fill="#24364b">구성 버전</text>
+<text x="1970" y="720" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="23" font-weight="400" fill="#24364b">구성 부품</text>
+<text x="1970" y="762" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="23" font-weight="400" fill="#24364b">작성 리뷰</text>
+<text x="1970" y="804" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="23" font-weight="400" fill="#24364b">리뷰 본문 버전</text>
+<polyline points="2345.0,340 2345.0,382" fill="none" stroke="#94a3b8" stroke-width="3"/>
+<rect x="2220" y="382" width="250" height="118" rx="12" fill="#e4eef5" stroke="#bacddb" stroke-width="2"/>
+<text x="2345.0" y="423" text-anchor="middle" font-family="Malgun Gothic, sans-serif" font-size="26" font-weight="700" fill="#24364b">evidence</text>
+<text x="2345.0" y="460" text-anchor="middle" font-family="Malgun Gothic, sans-serif" font-size="21" font-weight="400" fill="#24364b">근거와 리뷰 통계 · 6개</text>
+<polyline points="2345.0,500 2345.0,555" fill="none" stroke="#94a3b8" stroke-width="3"/>
+<rect x="2220" y="555" width="250" height="416" rx="12" fill="#ffffff" stroke="#d3dce4" stroke-width="2"/>
+<text x="2240" y="588" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="17" font-weight="700" fill="#718396">TABLES</text>
+<text x="2240" y="636" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="23" font-weight="400" fill="#24364b">출처</text>
+<text x="2240" y="678" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="23" font-weight="400" fill="#24364b">인용 근거</text>
+<text x="2240" y="720" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="23" font-weight="400" fill="#24364b">리뷰 대상</text>
+<text x="2240" y="762" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="23" font-weight="400" fill="#24364b">리뷰 요약</text>
+<text x="2240" y="804" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="23" font-weight="400" fill="#24364b">리뷰 집계</text>
+<text x="2240" y="846" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="23" font-weight="400" fill="#24364b">집계 구성원</text>
+<polyline points="2615.0,340 2615.0,382" fill="none" stroke="#94a3b8" stroke-width="3"/>
+<rect x="2490" y="382" width="250" height="118" rx="12" fill="#e4eef5" stroke="#bacddb" stroke-width="2"/>
+<text x="2615.0" y="423" text-anchor="middle" font-family="Malgun Gothic, sans-serif" font-size="26" font-weight="700" fill="#24364b">engine</text>
+<text x="2615.0" y="460" text-anchor="middle" font-family="Malgun Gothic, sans-serif" font-size="21" font-weight="400" fill="#24364b">추천과 검증 · 7개</text>
+<polyline points="2615.0,500 2615.0,555" fill="none" stroke="#94a3b8" stroke-width="3"/>
+<rect x="2490" y="555" width="250" height="416" rx="12" fill="#ffffff" stroke="#d3dce4" stroke-width="2"/>
+<text x="2510" y="588" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="17" font-weight="700" fill="#718396">TABLES</text>
+<text x="2510" y="636" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="23" font-weight="400" fill="#24364b">추천 실행</text>
+<text x="2510" y="678" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="23" font-weight="400" fill="#24364b">추천 후보</text>
+<text x="2510" y="720" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="23" font-weight="400" fill="#24364b">후보 근거</text>
+<text x="2510" y="762" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="23" font-weight="400" fill="#24364b">검사 결과</text>
+<text x="2510" y="804" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="23" font-weight="400" fill="#24364b">검사 대상</text>
+<text x="2510" y="846" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="23" font-weight="400" fill="#24364b">검사 근거</text>
+<text x="2510" y="888" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="23" font-weight="400" fill="#24364b">사용자 행동 기록</text>
+<polyline points="2885.0,340 2885.0,382" fill="none" stroke="#94a3b8" stroke-width="3"/>
+<rect x="2760" y="382" width="250" height="118" rx="12" fill="#e4eef5" stroke="#bacddb" stroke-width="2"/>
+<text x="2885.0" y="423" text-anchor="middle" font-family="Malgun Gothic, sans-serif" font-size="26" font-weight="700" fill="#24364b">notification</text>
+<text x="2885.0" y="460" text-anchor="middle" font-family="Malgun Gothic, sans-serif" font-size="21" font-weight="400" fill="#24364b">가격 추적과 알림 · 3개</text>
+<polyline points="2885.0,500 2885.0,555" fill="none" stroke="#94a3b8" stroke-width="3"/>
+<rect x="2760" y="555" width="250" height="416" rx="12" fill="#ffffff" stroke="#d3dce4" stroke-width="2"/>
+<text x="2780" y="588" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="17" font-weight="700" fill="#718396">TABLES</text>
+<text x="2780" y="636" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="23" font-weight="400" fill="#24364b">가격 추적</text>
+<text x="2780" y="678" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="23" font-weight="400" fill="#24364b">가격 판정</text>
+<text x="2780" y="720" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="23" font-weight="400" fill="#24364b">알림 이벤트</text>
+<polyline points="3155.0,340 3155.0,382" fill="none" stroke="#94a3b8" stroke-width="3"/>
+<rect x="3030" y="382" width="250" height="118" rx="12" fill="#e4eef5" stroke="#bacddb" stroke-width="2"/>
+<text x="3155.0" y="423" text-anchor="middle" font-family="Malgun Gothic, sans-serif" font-size="26" font-weight="700" fill="#24364b">dataset</text>
+<text x="3155.0" y="460" text-anchor="middle" font-family="Malgun Gothic, sans-serif" font-size="21" font-weight="400" fill="#24364b">리뷰 학습 데이터 · 4개</text>
+<polyline points="3155.0,500 3155.0,555" fill="none" stroke="#94a3b8" stroke-width="3"/>
+<rect x="3030" y="555" width="250" height="416" rx="12" fill="#ffffff" stroke="#d3dce4" stroke-width="2"/>
+<text x="3050" y="588" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="17" font-weight="700" fill="#718396">TABLES</text>
+<text x="3050" y="636" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="23" font-weight="400" fill="#24364b">생성 실행</text>
+<text x="3050" y="678" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="23" font-weight="400" fill="#24364b">실제 / 합성 표본</text>
+<text x="3050" y="720" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="23" font-weight="400" fill="#24364b">라벨 정의</text>
+<text x="3050" y="762" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="23" font-weight="400" fill="#24364b">정답 / 검수 이력</text>
+<text x="60" y="539" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="21" font-weight="700" fill="#617287">03  TABLE</text>
+<polyline points="60,1010 3300,1010" fill="none" stroke="#d3dce4" stroke-width="2"/>
+<text x="60" y="1063" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="24" font-weight="700" fill="#24364b">읽는 법</text>
+<text x="200" y="1063" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="24" font-weight="400" fill="#24364b">위: 데이터베이스  →  가운데: 업무별 스키마  →  아래: 소속 테이블</text>
+<text x="60" y="1115" text-anchor="start" font-family="Malgun Gothic, sans-serif" font-size="23" font-weight="400" fill="#617287">파일은 객체 저장소에, 관계·버전·검색 벡터는 PostgreSQL에 저장합니다.</text>
+</svg>

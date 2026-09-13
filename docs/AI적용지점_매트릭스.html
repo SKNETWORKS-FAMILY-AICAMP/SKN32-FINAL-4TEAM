@@ -1,0 +1,563 @@
+<title>AI 적용 지점 매트릭스</title>
+<meta name="description" content="에이전트·LLM 능력과 영업·구매·재고 부서 업무를 전부 나열해 매칭하고, 채택할 지점을 점수로 고른 분석">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Serif:wght@600&display=swap">
+<style>
+  :root{
+    --paper:#EDF1F3; --surface:#FFFFFF; --surface-2:#F5F8F9; --surface-3:#EAEFF1;
+    --ink:#141A1E; --ink-2:#4C5962; --ink-3:#7B8891;
+    --line:#CFD8DD; --line-2:#E2E9EC;
+    --teal:#0E7068; --teal-soft:#DCEDEB;
+    --plum:#6B4761; --plum-soft:#EEE2EB;
+    --clay:#AC3A22; --clay-soft:#F8E1DA;
+    --amber:#8F6008; --amber-soft:#F7E8C9;
+    --sans:"IBM Plex Sans KR",ui-sans-serif,system-ui,"Malgun Gothic",sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --serif:"IBM Plex Serif",ui-serif,Georgia,serif;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --paper:#0F1317; --surface:#171C21; --surface-2:#1D242A; --surface-3:#232B31;
+      --ink:#E3EAEE; --ink-2:#A3B0B9; --ink-3:#76838C;
+      --line:#2B343B; --line-2:#222A30;
+      --teal:#4FCFC2; --teal-soft:#11332F;
+      --plum:#C89CBB; --plum-soft:#31212C;
+      --clay:#EE8B6E; --clay-soft:#391E16;
+      --amber:#DDB264; --amber-soft:#32250E;
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#0F1317; --surface:#171C21; --surface-2:#1D242A; --surface-3:#232B31;
+    --ink:#E3EAEE; --ink-2:#A3B0B9; --ink-3:#76838C;
+    --line:#2B343B; --line-2:#222A30;
+    --teal:#4FCFC2; --teal-soft:#11332F;
+    --plum:#C89CBB; --plum-soft:#31212C;
+    --clay:#EE8B6E; --clay-soft:#391E16;
+    --amber:#DDB264; --amber-soft:#32250E;
+  }
+  *{box-sizing:border-box}
+  body{margin:0; background:var(--paper); color:var(--ink); font-family:var(--sans); font-size:15px; line-height:1.7; -webkit-font-smoothing:antialiased}
+  .wrap{max-width:1180px; margin:0 auto; padding:0 26px 90px}
+
+  header.mast{border-bottom:1px solid var(--line); padding:52px 0 26px; margin-bottom:40px}
+  .eyebrow{font-family:var(--mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-3); margin:0 0 12px}
+  h1{font-family:var(--serif); font-weight:600; font-size:37px; line-height:1.2; margin:0 0 15px; letter-spacing:-.01em; text-wrap:balance}
+  .lede{max-width:68ch; color:var(--ink-2); font-size:16px; margin:0}
+
+  section{margin:0 0 62px}
+  .sec-head{display:flex; align-items:baseline; gap:15px; margin-bottom:13px}
+  .sec-num{font-family:var(--mono); font-size:12px; color:var(--teal); letter-spacing:.08em; flex:none; padding-top:4px}
+  h2{font-family:var(--serif); font-weight:600; font-size:24px; margin:0; letter-spacing:-.005em}
+  h3{font-size:15px; font-weight:600; margin:26px 0 10px}
+  .prose{max-width:68ch; color:var(--ink-2); margin:0 0 22px}
+  .prose strong{color:var(--ink); font-weight:600}
+  code{font-family:var(--mono); font-size:.87em; background:var(--surface-2); border:1px solid var(--line-2); border-radius:3px; padding:1px 5px; color:var(--ink)}
+
+  .tablewrap{overflow-x:auto; border:1px solid var(--line); border-radius:8px; background:var(--surface); margin-bottom:20px}
+  table{border-collapse:collapse; width:100%; font-size:13px}
+  th,td{text-align:left; padding:10px 13px; border-bottom:1px solid var(--line-2); vertical-align:top}
+  thead th{font-family:var(--mono); font-size:10.5px; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-3); font-weight:500; background:var(--surface-2); border-bottom:1px solid var(--line); white-space:nowrap}
+  tbody tr:last-child td{border-bottom:none}
+  td.mono,th.mono{font-family:var(--mono); font-size:11.5px}
+  td.id{font-family:var(--mono); font-size:11px; color:var(--teal); white-space:nowrap}
+  td.c{text-align:center; white-space:nowrap}
+  .sc{font-family:var(--mono); font-size:11px; letter-spacing:-.5px; color:var(--teal)}
+  .sc.cost{color:var(--clay)}
+  .sc i{color:var(--line); font-style:normal}
+  td.tot{text-align:center; font-family:var(--mono); font-weight:600; font-variant-numeric:tabular-nums}
+  tr.top td{background:var(--teal-soft)}
+  tr.drop td{opacity:.62}
+  tr.drop td.id{color:var(--clay)}
+
+  .tag{display:inline-block; font-family:var(--mono); font-size:9.5px; letter-spacing:.06em; text-transform:uppercase; padding:2px 7px; border-radius:3px; white-space:nowrap}
+  .tag.have{background:var(--teal-soft); color:var(--teal); border:1px solid var(--teal)}
+  .tag.hidden{background:var(--amber-soft); color:var(--amber); border:1px solid var(--amber)}
+  .tag.new{background:var(--clay-soft); color:var(--clay); border:1px solid var(--clay)}
+  .tag.a{background:var(--teal); color:var(--surface)}
+  .tag.b{background:var(--surface-3); color:var(--ink-2); border:1px solid var(--line)}
+  .tag.no{background:var(--surface-2); color:var(--ink-3); border:1px solid var(--line)}
+
+  .grid2{display:grid; grid-template-columns:repeat(auto-fit,minmax(330px,1fr)); gap:20px; margin-bottom:20px}
+  .note{border-left:3px solid var(--clay); background:var(--clay-soft); padding:14px 18px; border-radius:0 6px 6px 0; margin:0 0 22px; max-width:76ch; font-size:13.5px; color:var(--ink)}
+  .note.key{border-left-color:var(--teal); background:var(--teal-soft)}
+  .note.human{border-left-color:var(--amber); background:var(--amber-soft)}
+  .note .lbl{display:block; font-family:var(--mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-2); margin-bottom:5px}
+
+  ol.steps{max-width:70ch; color:var(--ink-2); padding-left:20px}
+  ol.steps li{margin-bottom:9px}
+  ol.steps strong{color:var(--ink)}
+
+  .cut{display:grid; grid-template-columns:78px 1fr; gap:0; border:1px solid var(--line); border-radius:8px; overflow:hidden; background:var(--surface); margin-bottom:8px}
+  .cut .tm{font-family:var(--mono); font-size:11.5px; padding:12px; background:var(--surface-2); border-right:1px solid var(--line-2); color:var(--ink-2)}
+  .cut .bd{padding:12px 15px; font-size:13.5px}
+  .cut.add{border-color:var(--teal)}
+  .cut.add .tm{background:var(--teal-soft); color:var(--teal); font-weight:600}
+  .cut.del{border-color:var(--clay)}
+  .cut.del .tm{background:var(--clay-soft); color:var(--clay)}
+  .cut.del .bd{text-decoration:line-through; color:var(--ink-3)}
+
+  footer{border-top:1px solid var(--line); padding-top:22px; color:var(--ink-3); font-size:12.5px}
+  footer a{color:var(--ink-2)}
+  @media (max-width:700px){ .wrap{padding:0 16px 60px} h1{font-size:29px} }
+  @media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style>
+
+<div class="wrap">
+
+<header class="mast">
+  <p class="eyebrow">SKN32 4팀 · 피드백 대응 분석</p>
+  <h1>AI 적용 지점 매트릭스</h1>
+  <p class="lede">
+    &ldquo;AI 쓸 수 있는 요소가 적어 보인다&rdquo;는 피드백에 답하기 위해, 에이전트 능력 10종과
+    파운데이션 모델 능력 15종을 전부 나열하고 영업·구매·재고·승인 부서의 업무 33개와 맞대어 봤다.
+    24개 매칭을 네 축으로 점수화했고, 결론은 <strong>&ldquo;하나만 새로 넣고, 이미 있는 셋을 화면에 꺼내라&rdquo;</strong>다.
+  </p>
+</header>
+
+<!-- ═════ 00 ═════ -->
+<section id="s0">
+  <div class="sec-head"><span class="sec-num">00</span><h2>먼저 — 피드백을 어떻게 읽을 것인가</h2></div>
+  <p class="prose">
+    나열해놓고 보니 문제는 <strong>AI 지점이 적은 게 아니었다.</strong> 지금 시스템에서 모델이 실제로 일하는 곳은
+    이미 다섯 군데다 — 사양 태그 추출, 사양 유사도 판단, 협상 근거 문장, 리포트 요약, 어시스턴트의 tool 선택.
+    그런데 <strong>화면에 나오는 건 전부 숫자다.</strong> 가격이 내려가고 순위가 매겨진다.
+    숫자만 보면 규칙 엔진과 구별되지 않는다.
+  </p>
+  <div class="note key">
+    <span class="lbl">이 분석의 결론을 먼저</span>
+    <strong>AI를 더 넣는 게 아니라, 룰 엔진이 절대 처리할 수 없는 입력을 받게 만들어야 한다.</strong>
+    음성·사진·제각각인 문서 양식이 들어오는 순간 &ldquo;왜 AI인가&rdquo;는 설명할 필요가 없어진다.
+    반대로 정형 필드만 들어오고 정형 숫자만 나오면, 안에서 무엇이 돌든 심사위원에게는 규칙 엔진으로 보인다.
+  </div>
+  <p class="prose">
+    그래서 아래 매칭에서 <strong>입력의 비정형성</strong>을 가시성 점수의 핵심으로 잡았다.
+    같은 값을 만들어내더라도, 손으로 채운 폼에서 출발하는 기능과 30초 음성 메모에서 출발하는 기능은
+    같은 화면이 아니다.
+  </p>
+</section>
+
+<!-- ═════ 01 ═════ -->
+<section id="s1">
+  <div class="sec-head"><span class="sec-num">01</span><h2>재료 A — AI 에이전트가 할 수 있는 것</h2></div>
+  <p class="prose">
+    모델 한 번 호출로 되는 일이 아니라, <strong>도구·자율성·다중 에이전트</strong> 층에서 가능한 것들.
+    Strands Agents SDK가 직접 지원하는 항목에 표시했다.
+  </p>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>ID</th><th>능력</th><th>설명</th><th class="mono">Strands</th></tr></thead>
+      <tbody>
+        <tr><td class="id">A-01</td><td>도구 호출</td><td>조회·계산·기록을 함수로 실행하고 결과를 근거로 삼음</td><td class="c">✓ <code>@tool</code></td></tr>
+        <tr><td class="id">A-02</td><td>다단계 계획 수립</td><td>목표를 스스로 하위 작업으로 쪼개고 순서를 정함</td><td class="c">✓ agent loop</td></tr>
+        <tr><td class="id">A-03</td><td>다중 에이전트 협업</td><td>역할이 다른 에이전트가 서로를 도구로 부름</td><td class="c">✓ agent-as-tool · swarm</td></tr>
+        <tr><td class="id">A-04</td><td><b>회사 경계를 넘는 교섭</b></td><td>상대 회사 에이전트와 정보 비대칭 상태로 조건을 좁혀감</td><td class="c">—</td></tr>
+        <tr><td class="id">A-05</td><td><b>능동 트리거</b></td><td>사람이 묻지 않아도 상태 변화를 감지해 먼저 말을 검</td><td class="c">—</td></tr>
+        <tr><td class="id">A-06</td><td>정책 가드레일 검증</td><td>산출물이 규칙을 어겼는지 발신·실행 전에 검사</td><td class="c">△ hooks</td></tr>
+        <tr><td class="id">A-07</td><td>메모리</td><td>과거 상호작용·선호를 다음 판단에 재사용</td><td class="c">✓ memory</td></tr>
+        <tr><td class="id">A-08</td><td>지식 검색 (RAG)</td><td>외부 문서·이력을 근거로 끌어와 답변에 붙임</td><td class="c">✓ MCP · KB</td></tr>
+        <tr><td class="id">A-09</td><td>결정 추적 (관측성)</td><td>어떤 도구를 왜 불렀는지 전 과정을 기록</td><td class="c">✓ tracing</td></tr>
+        <tr><td class="id">A-10</td><td>사람 개입 게이트</td><td>실행 직전에 멈추고 사람의 확정을 기다림</td><td class="c">△ hooks</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ═════ 02 ═════ -->
+<section id="s2">
+  <div class="sec-head"><span class="sec-num">02</span><h2>재료 B — 모델이 할 수 있는 것</h2></div>
+  <p class="prose">
+    텍스트 LLM만이 아니라 <strong>멀티모달·음성·문서</strong>까지 전부 포함했다.
+    오른쪽 열은 이 능력을 실제로 제공하는 AWS 서비스다 — 해커톤 주최가 AWS이므로,
+    Bedrock 외 서비스를 쓰는 것 자체가 Technological Implementation 점수에 붙는다.
+  </p>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>ID</th><th>능력</th><th>설명</th><th>AWS 서비스</th></tr></thead>
+      <tbody>
+        <tr><td class="id">L-01</td><td>자연어 → 구조화</td><td>지저분한 문장에서 필드를 뽑아 스키마에 맞춤</td><td class="mono">Bedrock</td></tr>
+        <tr><td class="id">L-02</td><td>자연어 생성</td><td>요약·설명·초안 작성</td><td class="mono">Bedrock</td></tr>
+        <tr><td class="id">L-03</td><td>분류 · 라우팅</td><td>들어온 것을 유형별로 나눠 담당에게 보냄</td><td class="mono">Bedrock</td></tr>
+        <tr><td class="id">L-04</td><td>의미 유사도 (임베딩)</td><td>표현이 다른 두 텍스트가 같은 것을 뜻하는지 판단</td><td class="mono">Bedrock · Titan</td></tr>
+        <tr><td class="id">L-05</td><td>문서 간 교차 추론</td><td>양식이 다른 여러 문서에서 같은 항목을 찾아 대조</td><td class="mono">Bedrock</td></tr>
+        <tr><td class="id">L-06</td><td>쿼리 생성 (text-to-SQL)</td><td>자연어 질문을 DB 조회로 바꿈</td><td class="mono">Bedrock</td></tr>
+        <tr><td class="id">L-07</td><td>번역</td><td>문서·대화의 언어 변환</td><td class="mono">Bedrock · Translate</td></tr>
+        <tr><td class="id">L-08</td><td><b>음성 → 텍스트 (STT)</b></td><td>통화·미팅·음성 메모를 받아쓰기</td><td class="mono">Transcribe</td></tr>
+        <tr><td class="id">L-09</td><td>텍스트 → 음성 (TTS)</td><td>답변을 소리로 읽어줌</td><td class="mono">Polly</td></tr>
+        <tr><td class="id">L-10</td><td><b>이미지 이해 (VLM)</b></td><td>사진·도면·스크린샷을 보고 내용을 서술·추출</td><td class="mono">Bedrock (멀티모달)</td></tr>
+        <tr><td class="id">L-11</td><td><b>문서 OCR · 표 추출</b></td><td>스캔 PDF에서 글자와 표 구조를 뽑아냄</td><td class="mono">Textract</td></tr>
+        <tr><td class="id">L-12</td><td>이미지 생성</td><td>텍스트로 그림을 만듦</td><td class="mono">Nova Canvas · Titan Image</td></tr>
+        <tr><td class="id">L-13</td><td>화자 분리 · 회의 요약</td><td>여러 사람의 대화를 나누고 액션 아이템을 뽑음</td><td class="mono">Transcribe + Bedrock</td></tr>
+        <tr><td class="id">L-14</td><td>감정 · 톤 분석</td><td>텍스트에서 태도·만족도를 추정</td><td class="mono">Comprehend</td></tr>
+        <tr><td class="id">L-15</td><td>이상치 설명</td><td>통계로 잡은 이상값에 자연어 사유를 붙임</td><td class="mono">Bedrock</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ═════ 03 ═════ -->
+<section id="s3">
+  <div class="sec-head"><span class="sec-num">03</span><h2>재료 C — 부서별 실제 업무</h2></div>
+  <p class="prose">
+    AI를 어디에 붙일지 정하기 전에, 사람들이 실제로 하루에 무엇을 하는지부터 적었다.
+    <strong>고통</strong>은 반복성 · 소요 시간 · 실수 비용을 합쳐 본 주관 평가다.
+  </p>
+
+  <h3>영업 담당자</h3>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>ID</th><th>업무</th><th>지금 어떻게 하나</th><th class="c">고통</th></tr></thead>
+      <tbody>
+        <tr><td class="id">S-01</td><td>고객 문의 접수</td><td>메일·전화·메신저로 제각각 들어옴</td><td class="c"><span class="sc">●●●●<i>●</i></span></td></tr>
+        <tr><td class="id">S-02</td><td>요구 사양 정리</td><td>고객 말·첨부 스펙시트를 읽고 손으로 품목에 매핑</td><td class="c"><span class="sc">●●●●<i>●</i></span></td></tr>
+        <tr><td class="id">S-03</td><td>견적서 작성</td><td>CRM 양식에 품목·수량·단가 입력</td><td class="c"><span class="sc">●●●<i>●●</i></span></td></tr>
+        <tr><td class="id">S-04</td><td><b>재고·납기 확인</b></td><td>구매팀 문의 → 벤더 회신 대기 → 수일</td><td class="c"><span class="sc">●●●●●</span></td></tr>
+        <tr><td class="id">S-05</td><td>가격 협의·할인 승인</td><td>마진 계산 후 상급자에게 구두·메신저 요청</td><td class="c"><span class="sc">●●●<i>●●</i></span></td></tr>
+        <tr><td class="id">S-06</td><td>경쟁사 대비 포지셔닝</td><td>개인 경험에 의존</td><td class="c"><span class="sc">●●<i>●●●</i></span></td></tr>
+        <tr><td class="id">S-07</td><td>미팅 전 거래처 파악</td><td>CRM 여기저기를 뒤져 이력 확인</td><td class="c"><span class="sc">●●●<i>●●</i></span></td></tr>
+        <tr><td class="id">S-08</td><td><b>미팅 기록·후속 정리</b></td><td>수첩·기억에 의존 → 나중에 CRM에 옮김 → 자주 누락</td><td class="c"><span class="sc">●●●●●</span></td></tr>
+        <tr><td class="id">S-09</td><td>CRM 입력·파이프라인 갱신</td><td>손으로. 밀리면 며칠치가 한꺼번에</td><td class="c"><span class="sc">●●●●<i>●</i></span></td></tr>
+        <tr><td class="id">S-10</td><td>수주 확정·계약 확인</td><td>계약 조항을 눈으로 검토</td><td class="c"><span class="sc">●●●<i>●●</i></span></td></tr>
+        <tr><td class="id">S-11</td><td>납기 지연 고객 대응</td><td>상황 파악 후 안내문 직접 작성</td><td class="c"><span class="sc">●●●<i>●●</i></span></td></tr>
+        <tr><td class="id">S-12</td><td>주간 실적 보고</td><td>스프레드시트로 집계</td><td class="c"><span class="sc">●●●<i>●●</i></span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>구매 담당자</h3>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>ID</th><th>업무</th><th>지금 어떻게 하나</th><th class="c">고통</th></tr></thead>
+      <tbody>
+        <tr><td class="id">P-01</td><td>소요 취합</td><td>수주·재고 보충 요청을 모아 정리</td><td class="c"><span class="sc">●●●<i>●●</i></span></td></tr>
+        <tr><td class="id">P-02</td><td>벤더 발굴·자격 확인</td><td>검색·소개·기존 거래선</td><td class="c"><span class="sc">●●●<i>●●</i></span></td></tr>
+        <tr><td class="id">P-03</td><td>RFQ 발송</td><td>벤더별로 메일 작성·발송</td><td class="c"><span class="sc">●●●●<i>●</i></span></td></tr>
+        <tr><td class="id">P-04</td><td><b>견적 회신 비교표 작성</b></td><td>제각각 양식의 회신을 엑셀에 손으로 옮겨 정렬</td><td class="c"><span class="sc">●●●●●</span></td></tr>
+        <tr><td class="id">P-05</td><td><b>가격 협상</b></td><td>메일·전화 왕복. 벤더마다 며칠</td><td class="c"><span class="sc">●●●●●</span></td></tr>
+        <tr><td class="id">P-06</td><td>발주서 작성·송부</td><td>양식 작성 후 사람이 송부</td><td class="c"><span class="sc">●●<i>●●●</i></span></td></tr>
+        <tr><td class="id">P-07</td><td>납기 추적·독촉</td><td>달력 보고 개별 연락</td><td class="c"><span class="sc">●●●●<i>●</i></span></td></tr>
+        <tr><td class="id">P-08</td><td>입고 검수</td><td>현품과 문서 대조</td><td class="c"><span class="sc">●●●<i>●●</i></span></td></tr>
+        <tr><td class="id">P-09</td><td><b>매입 문서 3자 대조</b></td><td>발주서·명세서·계산서 세 장을 눈으로. 건수 많으면 표본만</td><td class="c"><span class="sc">●●●●●</span></td></tr>
+        <tr><td class="id">P-10</td><td>단가 추이 관리</td><td>사실상 관리 안 됨. 건별로만 봄</td><td class="c"><span class="sc">●●●●<i>●</i></span></td></tr>
+        <tr><td class="id">P-11</td><td>벤더 평가</td><td>연 1회 정도 주관 평가</td><td class="c"><span class="sc">●●<i>●●●</i></span></td></tr>
+        <tr><td class="id">P-12</td><td>계약서 검토</td><td>조항을 눈으로. 법무 검토는 큰 건만</td><td class="c"><span class="sc">●●●●<i>●</i></span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>재고 담당자 · 승인권자</h3>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>ID</th><th>업무</th><th>지금 어떻게 하나</th><th class="c">고통</th></tr></thead>
+      <tbody>
+        <tr><td class="id">I-01</td><td>실사·수불 대사</td><td>주기적 실사, 차이 원인 추적</td><td class="c"><span class="sc">●●●●<i>●</i></span></td></tr>
+        <tr><td class="id">I-02</td><td>재주문 시점 판단</td><td>기준선 룰 + 경험</td><td class="c"><span class="sc">●●<i>●●●</i></span></td></tr>
+        <tr><td class="id">I-03</td><td><b>약속 가능 수량 판단</b></td><td>현재고에서 예약분을 머릿속으로 빼고 감으로 답함</td><td class="c"><span class="sc">●●●●●</span></td></tr>
+        <tr><td class="id">I-04</td><td>입출고 처리</td><td>시스템 입력</td><td class="c"><span class="sc">●●<i>●●●</i></span></td></tr>
+        <tr><td class="id">I-05</td><td>불용·장기재고 관리</td><td>가끔 들여다봄</td><td class="c"><span class="sc">●●●<i>●●</i></span></td></tr>
+        <tr><td class="id">I-06</td><td>로트·시리얼 추적</td><td>요청 있을 때만</td><td class="c"><span class="sc">●●<i>●●●</i></span></td></tr>
+        <tr><td class="id">M-01</td><td>한도 초과 건 판단</td><td>요청서를 보고 승인/반려</td><td class="c"><span class="sc">●●●<i>●●</i></span></td></tr>
+        <tr><td class="id">M-02</td><td>예외 사유 확인</td><td>담당자에게 물어봄</td><td class="c"><span class="sc">●●●<i>●●</i></span></td></tr>
+        <tr><td class="id">M-03</td><td>사후 감사</td><td>표본 추출해 확인</td><td class="c"><span class="sc">●●●<i>●●</i></span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ═════ 04 ═════ -->
+<section id="s4">
+  <div class="sec-head"><span class="sec-num">04</span><h2>매칭 — 24개 후보와 점수</h2></div>
+  <p class="prose">
+    네 축으로 점수를 매겼다. <strong>점수 = 고통 + 적합 + 가시성 − 비용</strong>이며,
+    비용만 낮을수록 좋다(1 = 하루, 5 = 2주 이상).
+  </p>
+  <ol class="steps" style="margin-bottom:20px">
+    <li><strong>고통</strong> — 그 업무가 지금 얼마나 아픈가</li>
+    <li><strong>적합</strong> — 규칙으로는 못 하고 모델이어야만 하는가 <em>(낮으면 굳이 AI일 필요가 없다는 뜻)</em></li>
+    <li><strong>가시성</strong> — 5분 영상에서 &ldquo;저건 AI다&rdquo;가 즉시 보이는가</li>
+    <li><strong>비용</strong> — 9일 안에 얼마나 걸리는가</li>
+  </ol>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr>
+        <th>ID</th><th>후보</th><th class="mono">업무</th><th class="mono">능력</th>
+        <th class="c">고통</th><th class="c">적합</th><th class="c">가시</th><th class="c">비용</th><th class="c">점수</th>
+        <th>현재 상태</th>
+      </tr></thead>
+      <tbody>
+        <tr class="top">
+          <td class="id">O-06</td><td><b>회사 경계 넘는 에이전트 협상</b></td><td class="mono">P-05</td><td class="mono">A-03 A-04</td>
+          <td class="c"><span class="sc">●●●●●</span></td><td class="c"><span class="sc">●●●●●</span></td><td class="c"><span class="sc">●●●●<i>●</i></span></td><td class="c"><span class="sc cost">●<i>●●●●</i></span></td><td class="tot">14</td>
+          <td><span class="tag have">구현됨</span></td>
+        </tr>
+        <tr class="top">
+          <td class="id">O-01</td><td><b>미팅 직후 음성 메모 → 활동기록·요구사양 구조화</b></td><td class="mono">S-08 S-09 S-02</td><td class="mono">L-08 L-01 L-02</td>
+          <td class="c"><span class="sc">●●●●●</span></td><td class="c"><span class="sc">●●●●●</span></td><td class="c"><span class="sc">●●●●●</span></td><td class="c"><span class="sc cost">●●<i>●●●</i></span></td><td class="tot">13</td>
+          <td><span class="tag new">신규</span></td>
+        </tr>
+        <tr class="top">
+          <td class="id">O-17</td><td>셀러측 감사자 — 정책 위반 사전 차단·보정</td><td class="mono">P-05</td><td class="mono">A-06</td>
+          <td class="c"><span class="sc">●●●●<i>●</i></span></td><td class="c"><span class="sc">●●●●<i>●</i></span></td><td class="c"><span class="sc">●●●●<i>●</i></span></td><td class="c"><span class="sc cost">●<i>●●●●</i></span></td><td class="tot">12</td>
+          <td><span class="tag have">구현됨</span></td>
+        </tr>
+        <tr class="top">
+          <td class="id">O-03</td><td><b>스펙 PDF·현장 사진 → 품목·사양 추출</b></td><td class="mono">S-02 P-02</td><td class="mono">L-10 L-11</td>
+          <td class="c"><span class="sc">●●●●<i>●</i></span></td><td class="c"><span class="sc">●●●●●</span></td><td class="c"><span class="sc">●●●●●</span></td><td class="c"><span class="sc cost">●●●<i>●●</i></span></td><td class="tot">11</td>
+          <td><span class="tag new">신규</span></td>
+        </tr>
+        <tr class="top">
+          <td class="id">O-02</td><td>고객 메일·메신저 → RFQ 5필드 구조화</td><td class="mono">S-01 S-02</td><td class="mono">L-01</td>
+          <td class="c"><span class="sc">●●●●<i>●</i></span></td><td class="c"><span class="sc">●●●●<i>●</i></span></td><td class="c"><span class="sc">●●●●<i>●</i></span></td><td class="c"><span class="sc cost">●<i>●●●●</i></span></td><td class="tot">11</td>
+          <td><span class="tag hidden">있는데 안 보임</span></td>
+        </tr>
+        <tr class="top">
+          <td class="id">O-05</td><td>약속 가능 수량 + 계산 근거 서술</td><td class="mono">S-04 I-03</td><td class="mono">A-01 L-02</td>
+          <td class="c"><span class="sc">●●●●●</span></td><td class="c"><span class="sc">●●●<i>●●</i></span></td><td class="c"><span class="sc">●●●●<i>●</i></span></td><td class="c"><span class="sc cost">●<i>●●●●</i></span></td><td class="tot">11</td>
+          <td><span class="tag b">Phase A 진행중</span></td>
+        </tr>
+        <tr class="top">
+          <td class="id">O-07</td><td>능동 알림 — 먼저 말을 검</td><td class="mono">S-04</td><td class="mono">A-05</td>
+          <td class="c"><span class="sc">●●●●<i>●</i></span></td><td class="c"><span class="sc">●●●●<i>●</i></span></td><td class="c"><span class="sc">●●●●●</span></td><td class="c"><span class="sc cost">●●<i>●●●</i></span></td><td class="tot">11</td>
+          <td><span class="tag b">Phase A 진행중</span></td>
+        </tr>
+        <tr class="top">
+          <td class="id">O-10</td><td>다속성 비교표 + 선택 근거 문장</td><td class="mono">P-04</td><td class="mono">A-01 L-02</td>
+          <td class="c"><span class="sc">●●●●●</span></td><td class="c"><span class="sc">●●●<i>●●</i></span></td><td class="c"><span class="sc">●●●●<i>●</i></span></td><td class="c"><span class="sc cost">●<i>●●●●</i></span></td><td class="tot">11</td>
+          <td><span class="tag hidden">있는데 안 보임</span></td>
+        </tr>
+        <tr>
+          <td class="id">O-04</td><td>매입 문서 3자 대조</td><td class="mono">P-09</td><td class="mono">L-11 L-05</td>
+          <td class="c"><span class="sc">●●●●●</span></td><td class="c"><span class="sc">●●●●●</span></td><td class="c"><span class="sc">●●●●<i>●</i></span></td><td class="c"><span class="sc cost">●●●●<i>●</i></span></td><td class="tot">10</td>
+          <td><span class="tag b">Phase B (S7)</span></td>
+        </tr>
+        <tr>
+          <td class="id">O-21</td><td>회의 녹음 → 회의록·액션 아이템</td><td class="mono">S-08</td><td class="mono">L-08 L-13 L-02</td>
+          <td class="c"><span class="sc">●●●●<i>●</i></span></td><td class="c"><span class="sc">●●●●●</span></td><td class="c"><span class="sc">●●●●<i>●</i></span></td><td class="c"><span class="sc cost">●●●<i>●●</i></span></td><td class="tot">10</td>
+          <td><span class="tag new">신규</span></td>
+        </tr>
+        <tr>
+          <td class="id">O-16</td><td>사양 동일성 판단 (표현 다른 스펙 매칭)</td><td class="mono">P-04</td><td class="mono">L-04</td>
+          <td class="c"><span class="sc">●●●●<i>●</i></span></td><td class="c"><span class="sc">●●●●●</span></td><td class="c"><span class="sc">●●<i>●●●</i></span></td><td class="c"><span class="sc cost">●●<i>●●●</i></span></td><td class="tot">9</td>
+          <td><span class="tag hidden">있는데 안 보임</span></td>
+        </tr>
+        <tr>
+          <td class="id">O-11</td><td>납기 지연 고객 안내문 초안</td><td class="mono">S-11</td><td class="mono">L-02</td>
+          <td class="c"><span class="sc">●●●<i>●●</i></span></td><td class="c"><span class="sc">●●●●<i>●</i></span></td><td class="c"><span class="sc">●●●<i>●●</i></span></td><td class="c"><span class="sc cost">●<i>●●●●</i></span></td><td class="tot">9</td>
+          <td><span class="tag no">미검토</span></td>
+        </tr>
+        <tr>
+          <td class="id">O-08</td><td>미팅 전 거래처 브리핑</td><td class="mono">S-07</td><td class="mono">A-08 L-02</td>
+          <td class="c"><span class="sc">●●●<i>●●</i></span></td><td class="c"><span class="sc">●●●●<i>●</i></span></td><td class="c"><span class="sc">●●●<i>●●</i></span></td><td class="c"><span class="sc cost">●●<i>●●●</i></span></td><td class="tot">8</td>
+          <td><span class="tag b">Phase C (S11)</span></td>
+        </tr>
+        <tr>
+          <td class="id">O-09</td><td>자연어 이력 질의 (text-to-SQL)</td><td class="mono">S-09 P-10</td><td class="mono">L-06 A-01</td>
+          <td class="c"><span class="sc">●●●<i>●●</i></span></td><td class="c"><span class="sc">●●●●<i>●</i></span></td><td class="c"><span class="sc">●●●<i>●●</i></span></td><td class="c"><span class="sc cost">●●<i>●●●</i></span></td><td class="tot">8</td>
+          <td><span class="tag b">Phase B (S10)</span></td>
+        </tr>
+        <tr>
+          <td class="id">O-15</td><td>단가 이상 감지 + 사유 설명</td><td class="mono">P-10</td><td class="mono">L-15</td>
+          <td class="c"><span class="sc">●●●●<i>●</i></span></td><td class="c"><span class="sc">●●●<i>●●</i></span></td><td class="c"><span class="sc">●●●<i>●●</i></span></td><td class="c"><span class="sc cost">●●<i>●●●</i></span></td><td class="tot">8</td>
+          <td><span class="tag b">Phase B (S6)</span></td>
+        </tr>
+        <tr>
+          <td class="id">O-18</td><td>원가 변동 → 미확정 견적 마진 재계산 알림</td><td class="mono">S-05</td><td class="mono">A-05 L-02</td>
+          <td class="c"><span class="sc">●●●●<i>●</i></span></td><td class="c"><span class="sc">●●●<i>●●</i></span></td><td class="c"><span class="sc">●●●●<i>●</i></span></td><td class="c"><span class="sc cost">●●●<i>●●</i></span></td><td class="tot">8</td>
+          <td><span class="tag b">Phase B (S9)</span></td>
+        </tr>
+        <tr>
+          <td class="id">O-07b</td><td>납기 추적 자동 독촉 초안</td><td class="mono">P-07</td><td class="mono">A-05 L-02</td>
+          <td class="c"><span class="sc">●●●●<i>●</i></span></td><td class="c"><span class="sc">●●●<i>●●</i></span></td><td class="c"><span class="sc">●●<i>●●●</i></span></td><td class="c"><span class="sc cost">●●<i>●●●</i></span></td><td class="tot">7</td>
+          <td><span class="tag no">미검토</span></td>
+        </tr>
+        <tr>
+          <td class="id">O-14</td><td>계약 조항 리스크 검토</td><td class="mono">P-12 S-10</td><td class="mono">L-05 L-11</td>
+          <td class="c"><span class="sc">●●●●<i>●</i></span></td><td class="c"><span class="sc">●●●●<i>●</i></span></td><td class="c"><span class="sc">●●●<i>●●</i></span></td><td class="c"><span class="sc cost">●●●●<i>●</i></span></td><td class="tot">7</td>
+          <td><span class="tag no">범위 밖</span></td>
+        </tr>
+        <tr>
+          <td class="id">O-12</td><td>주간 실적 리포트 자동 생성</td><td class="mono">S-12</td><td class="mono">L-02</td>
+          <td class="c"><span class="sc">●●●<i>●●</i></span></td><td class="c"><span class="sc">●●●<i>●●</i></span></td><td class="c"><span class="sc">●●<i>●●●</i></span></td><td class="c"><span class="sc cost">●<i>●●●●</i></span></td><td class="tot">7</td>
+          <td><span class="tag have">구현됨 (R-03)</span></td>
+        </tr>
+        <tr>
+          <td class="id">O-20</td><td>견적서·계약서 다국어 생성</td><td class="mono">S-03</td><td class="mono">L-07</td>
+          <td class="c"><span class="sc">●●<i>●●●</i></span></td><td class="c"><span class="sc">●●●●<i>●</i></span></td><td class="c"><span class="sc">●●<i>●●●</i></span></td><td class="c"><span class="sc cost">●<i>●●●●</i></span></td><td class="tot">7</td>
+          <td><span class="tag no">미검토</span></td>
+        </tr>
+        <tr>
+          <td class="id">O-19</td><td>통화 중 실시간 코칭</td><td class="mono">S-01</td><td class="mono">L-08 L-02</td>
+          <td class="c"><span class="sc">●●●<i>●●</i></span></td><td class="c"><span class="sc">●●●●<i>●</i></span></td><td class="c"><span class="sc">●●●●<i>●</i></span></td><td class="c"><span class="sc cost">●●●●●</span></td><td class="tot">6</td>
+          <td><span class="tag no">비용 과다</span></td>
+        </tr>
+        <tr class="drop">
+          <td class="id">O-13</td><td>벤더 평가 요약</td><td class="mono">P-11</td><td class="mono">L-02 L-04</td>
+          <td class="c"><span class="sc">●●<i>●●●</i></span></td><td class="c"><span class="sc">●●●<i>●●</i></span></td><td class="c"><span class="sc">●●<i>●●●</i></span></td><td class="c"><span class="sc cost">●●<i>●●●</i></span></td><td class="tot">5</td>
+          <td><span class="tag no">보류</span></td>
+        </tr>
+        <tr class="drop">
+          <td class="id">O-23</td><td>캐릭터 음성 응답 (TTS)</td><td class="mono">—</td><td class="mono">L-09</td>
+          <td class="c"><span class="sc">●<i>●●●●</i></span></td><td class="c"><span class="sc">●●<i>●●●</i></span></td><td class="c"><span class="sc">●●●<i>●●</i></span></td><td class="c"><span class="sc cost">●●<i>●●●</i></span></td><td class="tot">4</td>
+          <td><span class="tag no">기각</span></td>
+        </tr>
+        <tr class="drop">
+          <td class="id">O-24</td><td>고객 감정 점수화</td><td class="mono">S-01</td><td class="mono">L-14</td>
+          <td class="c"><span class="sc">●●<i>●●●</i></span></td><td class="c"><span class="sc">●●<i>●●●</i></span></td><td class="c"><span class="sc">●●<i>●●●</i></span></td><td class="c"><span class="sc cost">●●<i>●●●</i></span></td><td class="tot">4</td>
+          <td><span class="tag no">기각</span></td>
+        </tr>
+        <tr class="drop">
+          <td class="id">O-22</td><td>제품 이미지 생성</td><td class="mono">S-03</td><td class="mono">L-12</td>
+          <td class="c"><span class="sc">●<i>●●●●</i></span></td><td class="c"><span class="sc">●<i>●●●●</i></span></td><td class="c"><span class="sc">●●●<i>●●</i></span></td><td class="c"><span class="sc cost">●●●<i>●●</i></span></td><td class="tot">2</td>
+          <td><span class="tag no">기각</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    <span class="lbl">기각한 셋과 이유 — 이게 더 중요하다</span>
+    <b>O-22 이미지 생성</b> — GPU 서버 실물과 다른 그림을 견적서에 넣으면 오히려 사고다. 쓸 데가 없다.<br>
+    <b>O-23 TTS</b> — 사무실에서 소리 내는 어시스턴트는 실사용에서 제일 먼저 꺼진다. 데모용 장식이다.
+    (시각 보조 접근성 옵션으로는 나중에 재검토)<br>
+    <b>O-24 감정 점수화</b> — 거래처 담당자를 점수 매기는 기능은 근거도 약하고 윤리적으로도 미묘하다.
+    <br><br>
+    <strong>&ldquo;AI를 쓸 수 있다&rdquo;와 &ldquo;AI를 써야 한다&rdquo;는 다르다.</strong> 기각 목록이 있어야
+    채택 목록이 설득력을 갖는다 — 심사에서 &ldquo;왜 이건 안 넣었나&rdquo;를 물으면 이 표가 답이 된다.
+  </div>
+</section>
+
+<!-- ═════ 05 ═════ -->
+<section id="s5">
+  <div class="sec-head"><span class="sec-num">05</span><h2>결론 — 하나 넣고, 셋을 꺼낸다</h2></div>
+
+  <h3>① 새로 넣는 것 — 딱 하나</h3>
+  <div class="note key">
+    <span class="lbl">O-01 · 미팅 직후 음성 메모</span>
+    영업사원이 미팅을 마치고 나오며 <strong>30초 말한다.</strong>
+    &ldquo;오로라 데이터웍스 미팅했고, H100 다섯 대 9월 말까지 필요하다는데 NVLink는 필수고
+    예산은 대당 오천 이하로 맞춰달래.&rdquo;<br><br>
+    그러면 <b>Amazon Transcribe</b>가 받아쓰고, <b>Bedrock</b>이 여기서
+    거래처 · 품목 · 수량 · 납기 · 사양 · 예산을 뽑아 <b>견적 초안과 활동 기록</b>으로 만든다.
+    <strong>사람은 확인만 한다.</strong><br><br>
+    이 하나가 S-08(미팅 기록) · S-09(CRM 입력) · S-02(사양 정리) 세 업무를 동시에 친다.
+    셋 다 고통 4~5점인데 지금은 전부 손으로 한다.
+  </div>
+  <p class="prose">
+    <strong>왜 이것이어야 하는가.</strong> 음성은 규칙 엔진이 손댈 수 없는 입력이다.
+    폼에 숫자를 넣는 장면과, 말 한 마디로 견적 초안이 서는 장면은 심사위원에게 완전히 다르게 보인다.
+    게다가 Bedrock 외에 <b>Transcribe</b>라는 AWS 서비스를 하나 더 쓰게 되어 기술 점수에도 붙는다.
+  </p>
+  <p class="prose">
+    <strong>비용을 낮추는 방법.</strong> 라이브 마이크 녹음은 데모 당일 리스크가 크다.
+    Phase A는 <strong>미리 녹음한 오디오 파일을 올리는 경로</strong>로 만든다 —
+    파일 → Transcribe → Bedrock → 필드 파이프라인은 전부 진짜로 돌고, 입력 방식만 고정이다.
+    라이브 마이크는 시간이 남으면 붙이는 스트레치.
+  </p>
+
+  <h3>② 이미 있는데 화면에 안 보이는 것 — 셋</h3>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>후보</th><th>지금 상태</th><th>무엇을 바꾸면 보이나</th><th class="c">비용</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><b>O-02</b> 자연어 → RFQ 구조화</td>
+          <td><code>rfq_parse.py</code>에 이미 있고 <code>POST /api/buyers/parse</code>로 열려 있다. 그런데 데모 동선에 없다</td>
+          <td>음성 메모(O-01)의 뒷단으로 붙이면 그대로 재사용된다. <b>추가 개발 거의 없음</b></td>
+          <td class="c"><span class="sc cost">●<i>●●●●</i></span></td>
+        </tr>
+        <tr>
+          <td><b>O-16</b> 사양 동일성 판단</td>
+          <td><code>spec_match.py</code>가 LLM으로 태그를 뽑고 룰로 채점한다. 화면엔 <code>spec 0.94</code> 숫자 하나만 나온다</td>
+          <td>순위표에서 숫자를 눌렀을 때 <b>&ldquo;GDDR6 48GB ECC = HBM3 94GB 아님&rdquo;</b> 식으로
+              어떤 속성이 왜 맞고 틀렸는지 펼쳐준다. 데이터는 이미 <code>spec_detail</code>에 있다</td>
+          <td class="c"><span class="sc cost">●<i>●●●●</i></span></td>
+        </tr>
+        <tr>
+          <td><b>O-10</b> 선택 근거 문장</td>
+          <td>순위표에 숫자만 있다. 왜 이 조합인지 설명이 없다</td>
+          <td>각 후보 아래 <b>한 줄 근거</b>를 모델이 쓴다 — &ldquo;가격은 1위지만 납기 28일로 고객 기한을 3일 넘긴다&rdquo;.
+              지금 프로토타입에서 사람이 2위를 고르는 장면이 <b>이 문장 하나로 설명된다</b></td>
+          <td class="c"><span class="sc cost">●<i>●●●●</i></span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="prose">
+    셋 다 <strong>새 기능이 아니라 표시 방식</strong>이다. 합쳐서 하루면 된다.
+    그런데 이걸 하면 화면에서 AI가 일하는 지점이 <strong>2곳에서 6곳으로</strong> 늘어난다.
+  </p>
+
+  <h3>③ Phase B에 이미 잡혀 있는 것 — 굳이 앞당기지 않는다</h3>
+  <p class="prose">
+    O-04(3자 대조) · O-09(자연어 이력 질의) · O-15(단가 이상) · O-18(마진 피드백)은 점수는 좋지만
+    이미 10/26 계획에 있고, 5분 영상에서는 협상 엔진의 변주로 보인다. 앞당기지 않는다.
+    다만 <strong>발표 슬라이드에 &ldquo;AI 적용 지점 지도&rdquo;로 한 장 넣어</strong>
+    구현분과 계획분을 색으로 구분하면, 지금 안 만들어도 범위는 보여줄 수 있다.
+  </p>
+</section>
+
+<!-- ═════ 06 ═════ -->
+<section id="s6">
+  <div class="sec-head"><span class="sec-num">06</span><h2>데모 컷 수정안</h2></div>
+  <p class="prose">
+    5분은 이미 꽉 차 있으므로 <strong>넣으려면 빼야 한다.</strong>
+    0:20–0:35의 문제 제기 자막 카드를 음성 메모 장면으로 교체하는 것을 제안한다 —
+    설명으로 때우던 15초가 <strong>실제 동작</strong>으로 바뀐다.
+  </p>
+  <div class="cut del"><div class="tm">0:20–0:35</div><div class="bd">문제 제기 자막 — &ldquo;The one question they can't answer: how many, by when?&rdquo;</div></div>
+  <div class="cut add"><div class="tm">0:20–0:45</div><div class="bd">
+    <b>음성 메모 → 견적 초안.</b> 영업사원이 미팅에서 나오며 30초 말한다 → 파형이 텍스트가 되고 →
+    거래처·품목·수량·납기·사양·예산 필드가 차례로 채워지며 CRM에 견적 초안이 선다.<br>
+    <span style="color:var(--ink-3); font-size:12.5px">
+    &ldquo;She just walked out of a meeting. She didn't open a form — she talked.
+    Transcribe writes it down, the model pulls out the customer, the part, the quantity, the deadline, the spec.
+    The quote drafts itself. <b>She only checks it.</b>&rdquo;</span>
+  </div></div>
+  <div class="cut"><div class="tm">0:45–1:15</div><div class="bd">캐릭터가 먼저 말을 검 — &ldquo;5 requested, only 3 promisable&rdquo; <span style="color:var(--ink-3)">(기존 0:35 컷, 10초 뒤로)</span></div></div>
+  <p class="prose" style="margin-top:18px">
+    이렇게 하면 영상 앞 45초에 <strong>비정형 입력 → 구조화 → 능동 감지</strong>가 연달아 나온다.
+    &ldquo;AI가 안 보인다&rdquo;는 지적은 여기서 끝난다. 뒷부분(협상·감사·확정)은 그대로 두고
+    3:10–3:40 순위표 구간에서 <b>15초를 줄여</b> 총 길이를 맞춘다.
+  </p>
+  <div class="note human">
+    <span class="lbl">일정 영향 — 솔직하게</span>
+    O-01은 <strong>9일 계획에 없던 작업</strong>이다. 오디오 파일 경로로 좁혀도 1~1.5일,
+    담당은 박회종(Odoo tool 세트와 파이프라인이 겹침)이 적합하다.
+    <strong>그만큼 어디선가 빼야 한다.</strong> 후보는 재고·ATP 뷰의 &ldquo;기타 품목&rdquo; 목록과
+    Bedrock AgentCore 스트레치다. 9/9 게이트에서 O-01이 안 붙으면
+    <strong>기존 0:20 자막 컷으로 되돌리는 것을 폴백으로 두고 시작</strong>한다.
+  </div>
+</section>
+
+<!-- ═════ 07 ═════ -->
+<section id="s7">
+  <div class="sec-head"><span class="sec-num">07</span><h2>정리 — 적용 후 AI 지점 지도</h2></div>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>단계</th><th>AI가 하는 일</th><th class="mono">능력</th><th class="mono">AWS</th><th>Phase</th></tr></thead>
+      <tbody>
+        <tr><td>① 미팅 직후</td><td>음성 → 거래처·품목·수량·납기·사양·예산 구조화</td><td class="mono">L-08 L-01</td><td class="mono">Transcribe · Bedrock</td><td><span class="tag a">A 신규</span></td></tr>
+        <tr><td>② 견적 작성</td><td>사양 문구의 실질적 동일성 판단 + 근거 전개</td><td class="mono">L-04</td><td class="mono">Bedrock</td><td><span class="tag a">A 가시화</span></td></tr>
+        <tr><td>③ 약속 가능 수량</td><td>계산은 룰, <b>근거 서술과 tool 선택</b>은 모델</td><td class="mono">A-01 L-02</td><td class="mono">Bedrock</td><td><span class="tag a">A</span></td></tr>
+        <tr><td>④ 능동 감지</td><td>상태 변화를 스스로 읽고 먼저 말을 검</td><td class="mono">A-05</td><td class="mono">—</td><td><span class="tag a">A</span></td></tr>
+        <tr><td>⑤ 조달 협상</td><td>회사 경계를 넘어 상대 에이전트와 다속성 교섭</td><td class="mono">A-03 A-04</td><td class="mono">Bedrock</td><td><span class="tag a">A</span></td></tr>
+        <tr><td>⑥ 감사</td><td>발신 전 자사 정책 위반 검증·보정</td><td class="mono">A-06</td><td class="mono">—</td><td><span class="tag a">A</span></td></tr>
+        <tr><td>⑦ 후보 제시</td><td>순위별 <b>선택 근거 문장</b> 생성</td><td class="mono">L-02</td><td class="mono">Bedrock</td><td><span class="tag a">A 가시화</span></td></tr>
+        <tr><td>⑧ 확정 기록</td><td>결정 근거 요약을 감사 로그로 남김</td><td class="mono">A-09 L-02</td><td class="mono">Bedrock</td><td><span class="tag a">A</span></td></tr>
+        <tr><td>⑨ 매입 검수</td><td>양식이 다른 세 문서를 교차 대조</td><td class="mono">L-11 L-05</td><td class="mono">Textract · Bedrock</td><td><span class="tag b">B</span></td></tr>
+        <tr><td>⑩ 사후 분석</td><td>단가 이상 감지 사유 · 마진 변동 알림 · 이력 질의</td><td class="mono">L-06 L-15</td><td class="mono">Bedrock</td><td><span class="tag b">B</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="prose">
+    Phase A만으로 <strong>AI 지점 8개, AWS AI 서비스 2종</strong>이 된다.
+    그중 <strong>화면에서 직접 보이는 것이 5개</strong>(① ② ④ ⑤ ⑦)다 — 지금은 2개다.
+  </p>
+</section>
+
+<footer>
+  적용 대상 문서 — <a href="해커톤_실행계획_2026-09.md">해커톤 실행계획</a> §3 컷 스크립트·§4 IN,
+  <a href="프로젝트_기획서_v2.md">프로젝트 기획서 v2</a> §7.3 LLM 사용 지점·§9 시나리오,
+  <a href="화면기획_프로토타입.html">화면기획 프로토타입</a> 음성 입력 표면.
+</footer>
+
+</div>

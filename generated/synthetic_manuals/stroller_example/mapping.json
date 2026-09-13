@@ -1,0 +1,246 @@
+{
+  "manual_id": "SYN-MAN-SYN-STROLLER-001",
+  "revision": "R1",
+  "product_id": "SYN-STROLLER-001",
+  "variant_id": "SYN-STROLLER-001-GREY",
+  "is_synthetic": true,
+  "market": "KR_DEMO",
+  "coverage_status": "partial",
+  "section_status": {
+    "S01": "partial",
+    "S02": "partial",
+    "S03": "missing",
+    "S04": "missing",
+    "S05": "partial",
+    "S06": "partial",
+    "S07": "partial",
+    "S08": "missing",
+    "S09": "missing",
+    "S10": "missing"
+  },
+  "missing_sections": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "S10"
+  ],
+  "manual_sha256": "d785521071908514f5924e68134e85d7bd767b98d7fedf680197e71815c7e76d",
+  "blocks": [
+    {
+      "block_id": "S01-B001",
+      "section": "S01",
+      "text": "좌석 모드 월령: 6 개월 이상.",
+      "fact_ids": [
+        "F0001"
+      ],
+      "locator": {
+        "char_start": 220,
+        "char_end": 238,
+        "section": "S01",
+        "line_start": 12
+      }
+    },
+    {
+      "block_id": "S01-B002",
+      "section": "S01",
+      "text": "좌석 모드 체중: 22 kg 이하.",
+      "fact_ids": [
+        "F0002"
+      ],
+      "locator": {
+        "char_start": 258,
+        "char_end": 277,
+        "section": "S01",
+        "line_start": 15
+      }
+    },
+    {
+      "block_id": "S01-B003",
+      "section": "S01",
+      "text": "좌석 모드 필수 조건: 혼자 앉을 수 있음.",
+      "fact_ids": [
+        "F0003"
+      ],
+      "locator": {
+        "char_start": 297,
+        "char_end": 321,
+        "section": "S01",
+        "line_start": 18
+      }
+    },
+    {
+      "block_id": "S06-B001",
+      "section": "S06",
+      "text": "체중이 22 kg을 초과하면 좌석 모드 사용을 중단하는 조건입니다.",
+      "fact_ids": [
+        "F0004"
+      ],
+      "locator": {
+        "char_start": 606,
+        "char_end": 643,
+        "section": "S06",
+        "line_start": 42
+      }
+    },
+    {
+      "block_id": "S01-B004",
+      "section": "S01",
+      "text": "같은 모드에 적힌 사용 조건은 모두 충족해야 합니다.",
+      "fact_ids": [
+        "F0005"
+      ],
+      "locator": {
+        "char_start": 341,
+        "char_end": 370,
+        "section": "S01",
+        "line_start": 21
+      }
+    },
+    {
+      "block_id": "S07-B001",
+      "section": "S07",
+      "text": "좌석 장착 제품 무게: 6.5 kg.",
+      "fact_ids": [
+        "F0006"
+      ],
+      "locator": {
+        "char_start": 677,
+        "char_end": 697,
+        "section": "S07",
+        "line_start": 47
+      }
+    },
+    {
+      "block_id": "S07-B002",
+      "section": "S07",
+      "text": "좌석 최대 하중: 22 kg.",
+      "fact_ids": [
+        "F0007"
+      ],
+      "locator": {
+        "char_start": 717,
+        "char_end": 733,
+        "section": "S07",
+        "line_start": 50
+      }
+    },
+    {
+      "block_id": "S07-B003",
+      "section": "S07",
+      "text": "바구니 최대 하중: 3 kg.",
+      "fact_ids": [
+        "F0008"
+      ],
+      "locator": {
+        "char_start": 753,
+        "char_end": 769,
+        "section": "S07",
+        "line_start": 53
+      }
+    },
+    {
+      "block_id": "S07-B004",
+      "section": "S07",
+      "text": "접힌 크기(가로 × 깊이 × 높이): 45 × 25 × 55 cm.",
+      "fact_ids": [
+        "F0009"
+      ],
+      "locator": {
+        "char_start": 789,
+        "char_end": 826,
+        "section": "S07",
+        "line_start": 56
+      }
+    },
+    {
+      "block_id": "S07-B005",
+      "section": "S07",
+      "text": "펼친 크기(가로 × 깊이 × 높이): 55 × 85 × 105 cm.",
+      "fact_ids": [
+        "F0010"
+      ],
+      "locator": {
+        "char_start": 846,
+        "char_end": 884,
+        "section": "S07",
+        "line_start": 59
+      }
+    },
+    {
+      "block_id": "S05-B001",
+      "section": "S05",
+      "text": "한 손 접기 기능: 지원합니다.",
+      "fact_ids": [
+        "F0011"
+      ],
+      "locator": {
+        "char_start": 513,
+        "char_end": 530,
+        "section": "S05",
+        "line_start": 34
+      }
+    },
+    {
+      "block_id": "S05-B002",
+      "section": "S05",
+      "text": "접힌 상태 자립 기능: 지원하지 않습니다.",
+      "fact_ids": [
+        "F0012"
+      ],
+      "locator": {
+        "char_start": 550,
+        "char_end": 573,
+        "section": "S05",
+        "line_start": 37
+      }
+    },
+    {
+      "block_id": "S01-B005",
+      "section": "S01",
+      "text": "신생아 구성: 지원하지 않습니다.",
+      "fact_ids": [
+        "F0013"
+      ],
+      "locator": {
+        "char_start": 390,
+        "char_end": 408,
+        "section": "S01",
+        "line_start": 24
+      }
+    },
+    {
+      "block_id": "S02-B001",
+      "section": "S02",
+      "text": "추가 구성품으로 등록된 항목이 없습니다. 내장 부품의 전체 목록을 뜻하지 않습니다.",
+      "fact_ids": [
+        "F0014"
+      ],
+      "locator": {
+        "char_start": 436,
+        "char_end": 482,
+        "section": "S02",
+        "line_start": 29
+      }
+    },
+    {
+      "block_id": "S07-B006",
+      "section": "S07",
+      "text": "등록된 호환 부품: 없음. 미등록 조합의 호환 여부는 미확인입니다.",
+      "fact_ids": [
+        "F0015"
+      ],
+      "locator": {
+        "char_start": 904,
+        "char_end": 941,
+        "section": "S07",
+        "line_start": 62
+      }
+    }
+  ]
+}

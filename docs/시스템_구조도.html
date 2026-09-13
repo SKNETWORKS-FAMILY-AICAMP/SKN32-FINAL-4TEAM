@@ -1,0 +1,739 @@
+<title>SKN32 4팀 시스템 구조도</title>
+<meta name="description" content="오버레이·분산 협상·Odoo 연동·부서별 동작을 한 장에 모은 아키텍처 구조도">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Serif:wght@600&display=swap">
+<style>
+  :root{
+    --paper:#EDF1F3; --surface:#FFFFFF; --surface-2:#F5F8F9;
+    --ink:#141A1E; --ink-2:#4C5962; --ink-3:#7B8891;
+    --line:#CFD8DD; --line-2:#E2E9EC;
+    --teal:#0E7068; --teal-soft:#DCEDEB;
+    --plum:#6B4761; --plum-soft:#EEE2EB;
+    --clay:#AC3A22; --clay-soft:#F8E1DA;
+    --amber:#8F6008; --amber-soft:#F7E8C9;
+    --sans:"IBM Plex Sans KR",ui-sans-serif,system-ui,"Malgun Gothic",sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --serif:"IBM Plex Serif",ui-serif,Georgia,serif;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --paper:#0F1317; --surface:#171C21; --surface-2:#1D242A;
+      --ink:#E3EAEE; --ink-2:#A3B0B9; --ink-3:#76838C;
+      --line:#2B343B; --line-2:#222A30;
+      --teal:#4FCFC2; --teal-soft:#11332F;
+      --plum:#C89CBB; --plum-soft:#31212C;
+      --clay:#EE8B6E; --clay-soft:#391E16;
+      --amber:#DDB264; --amber-soft:#32250E;
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#0F1317; --surface:#171C21; --surface-2:#1D242A;
+    --ink:#E3EAEE; --ink-2:#A3B0B9; --ink-3:#76838C;
+    --line:#2B343B; --line-2:#222A30;
+    --teal:#4FCFC2; --teal-soft:#11332F;
+    --plum:#C89CBB; --plum-soft:#31212C;
+    --clay:#EE8B6E; --clay-soft:#391E16;
+    --amber:#DDB264; --amber-soft:#32250E;
+  }
+
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:var(--sans); font-size:15px; line-height:1.7;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1200px; margin:0 auto; padding:0 28px 96px}
+
+  /* ── 헤더 ───────────────────────────── */
+  header.masthead{
+    border-bottom:1px solid var(--line);
+    padding:56px 0 28px; margin-bottom:44px;
+  }
+  .eyebrow{
+    font-family:var(--mono); font-size:11.5px; letter-spacing:.14em;
+    text-transform:uppercase; color:var(--ink-3); margin:0 0 14px;
+  }
+  h1{
+    font-family:var(--serif); font-weight:600; font-size:40px; line-height:1.2;
+    margin:0 0 16px; text-wrap:balance; letter-spacing:-.01em;
+  }
+  .lede{max-width:66ch; color:var(--ink-2); font-size:16px; margin:0}
+  .meta{
+    display:flex; flex-wrap:wrap; gap:8px 28px; margin-top:26px;
+    font-family:var(--mono); font-size:11.5px; color:var(--ink-3);
+  }
+  .meta b{color:var(--ink-2); font-weight:500}
+
+  /* ── 섹션 ───────────────────────────── */
+  section{margin:0 0 68px; scroll-margin-top:24px}
+  .sec-head{display:flex; align-items:baseline; gap:16px; margin-bottom:14px}
+  .sec-num{
+    font-family:var(--mono); font-size:12px; color:var(--teal);
+    letter-spacing:.08em; flex:none; padding-top:4px;
+  }
+  h2{font-family:var(--serif); font-weight:600; font-size:25px; margin:0; letter-spacing:-.005em}
+  .prose{max-width:68ch; color:var(--ink-2); margin:0 0 26px}
+  .prose + .prose{margin-top:-12px}
+  .prose strong{color:var(--ink); font-weight:600}
+  code{
+    font-family:var(--mono); font-size:.88em;
+    background:var(--surface-2); border:1px solid var(--line-2);
+    border-radius:3px; padding:1px 5px; color:var(--ink);
+  }
+
+  /* ── 그림 ───────────────────────────── */
+  figure{
+    margin:0 0 22px; background:var(--surface);
+    border:1px solid var(--line); border-radius:8px;
+    padding:22px 22px 0; overflow-x:auto;
+  }
+  figure svg{display:block; width:100%; min-width:760px; height:auto}
+  figcaption{
+    border-top:1px solid var(--line-2); margin-top:18px;
+    padding:13px 0 16px; font-size:12.5px; color:var(--ink-3);
+    max-width:none;
+  }
+  figcaption b{color:var(--ink-2); font-weight:500}
+
+  /* ── 표 ───────────────────────────── */
+  .tablewrap{overflow-x:auto; border:1px solid var(--line); border-radius:8px; background:var(--surface); margin-bottom:22px}
+  table{border-collapse:collapse; width:100%; min-width:660px; font-size:13.5px}
+  th,td{text-align:left; padding:11px 16px; border-bottom:1px solid var(--line-2); vertical-align:top}
+  thead th{
+    font-family:var(--mono); font-size:11px; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--ink-3); font-weight:500; background:var(--surface-2);
+    border-bottom:1px solid var(--line);
+  }
+  tbody tr:last-child td{border-bottom:none}
+  td.mono,th.mono{font-family:var(--mono); font-size:12px; font-variant-numeric:tabular-nums}
+  .know{color:var(--teal); font-weight:500}
+  .nope{color:var(--clay); font-weight:500}
+
+  /* ── 콜아웃 ───────────────────────────── */
+  .note{
+    border-left:3px solid var(--clay); background:var(--clay-soft);
+    padding:14px 18px; border-radius:0 6px 6px 0; margin:0 0 26px;
+    max-width:74ch; font-size:13.5px; color:var(--ink);
+  }
+  .note.human{border-left-color:var(--amber); background:var(--amber-soft)}
+  .note .lbl{
+    display:block; font-family:var(--mono); font-size:10.5px; letter-spacing:.1em;
+    text-transform:uppercase; color:var(--ink-2); margin-bottom:5px;
+  }
+
+  /* ── 목차 ───────────────────────────── */
+  nav.toc{
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
+    gap:1px; background:var(--line); border:1px solid var(--line);
+    border-radius:8px; overflow:hidden; margin-bottom:56px;
+  }
+  nav.toc a{
+    background:var(--surface); padding:14px 16px; text-decoration:none;
+    color:var(--ink); display:block;
+  }
+  nav.toc a:hover{background:var(--surface-2)}
+  nav.toc a:focus-visible{outline:2px solid var(--teal); outline-offset:-2px}
+  nav.toc .n{display:block; font-family:var(--mono); font-size:10.5px; color:var(--teal); letter-spacing:.1em; margin-bottom:3px}
+  nav.toc .t{font-size:13.5px; font-weight:500}
+
+  footer{border-top:1px solid var(--line); padding-top:22px; color:var(--ink-3); font-size:12.5px}
+  footer a{color:var(--ink-2)}
+
+  @media (max-width:720px){
+    .wrap{padding:0 18px 64px}
+    h1{font-size:31px}
+    figure{padding:16px 16px 0}
+  }
+  @media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style>
+
+<div class="wrap">
+
+<header class="masthead">
+  <p class="eyebrow">SK 네트웍스 Family AI 32기 · 4팀</p>
+  <h1>시스템 구조도</h1>
+  <p class="lede">
+    고객사 CRM 위에 얹히는 오버레이부터, 회사 경계를 넘는 분산 협상, Odoo 연동, 부서별 동작까지
+    다섯 개의 시점으로 나눠 그렸다. 각 그림은 <b>지금 저장소에 있는 코드의 실제 엔드포인트와 필드</b>를 따른다.
+  </p>
+  <div class="meta">
+    <span><b>작성</b> 2026-09-05</span>
+    <span><b>기준</b> 기획서 v2</span>
+    <span><b>노드</b> EC2 4대</span>
+    <span><b>모델</b> Amazon Bedrock</span>
+    <span><b>런타임</b> Strands Agents SDK</span>
+  </div>
+</header>
+
+<nav class="toc">
+  <a href="#s1"><span class="n">01 / 전체</span><span class="t">시스템 구성</span></a>
+  <a href="#s2"><span class="n">02 / 프로토콜</span><span class="t">바이어 ↔ 셀러 협상</span></a>
+  <a href="#s3"><span class="n">03 / 경계</span><span class="t">정보 경계와 네트워크</span></a>
+  <a href="#s4"><span class="n">04 / 연동</span><span class="t">고객사 CRM · Odoo</span></a>
+  <a href="#s5"><span class="n">05 / 업무</span><span class="t">부서별 동작</span></a>
+</nav>
+
+<!-- ══════════ 01 ══════════ -->
+<section id="s1">
+  <div class="sec-head"><span class="sec-num">01</span><h2>전체 시스템 구성</h2></div>
+  <p class="prose">
+    화면에서 시작해 아래로 내려가면 <strong>데스크톱 → 우리 서비스 → 거래 상대</strong> 순이고,
+    오른쪽으로 나가면 <strong>고객사 시스템</strong>이다. 색이 소속을 나타낸다 — 초록은 우리가 만드는 것,
+    자주는 고객사가 이미 쓰던 것, 회색은 거래 상대 회사의 것이다.
+  </p>
+  <p class="prose">
+    핵심은 <strong>같은 상자 안에 있느냐</strong>다. 셀러의 최저수용가는 셀러 상자 안에서만 존재하고,
+    바이어의 상한가는 브로커 상자 안에서 멈춘다. 이 두 값이 한 상자에서 만나는 순간
+    다회 라운드 협상은 계산상 불필요해지므로, 정보 비대칭을 배포 구조로 강제한다.
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 1040 790" role="img" aria-label="영업사원 데스크톱, Buyer 노드, Broker 노드, Seller 노드 2대, 고객사 Odoo, Amazon Bedrock으로 구성된 전체 시스템 구성도">
+      <defs>
+        <marker id="f1a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="var(--ink-2)"/>
+        </marker>
+        <marker id="f1d" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="var(--ink-3)"/>
+        </marker>
+      </defs>
+      <g font-family="IBM Plex Sans KR, sans-serif">
+
+        <!-- 범례 -->
+        <rect x="24" y="24" width="228" height="162" rx="6" fill="var(--surface-2)" stroke="var(--line)"/>
+        <text x="40" y="47" font-size="10.5" font-family="IBM Plex Mono, monospace" letter-spacing="1.2" fill="var(--ink-3)">범례</text>
+        <line x1="40" y1="70" x2="64" y2="70" stroke="var(--teal)" stroke-width="3"/>
+        <text x="74" y="74" font-size="11" fill="var(--ink-2)">우리 시스템</text>
+        <line x1="40" y1="92" x2="64" y2="92" stroke="var(--plum)" stroke-width="3"/>
+        <text x="74" y="96" font-size="11" fill="var(--ink-2)">고객사 시스템 (무수정)</text>
+        <line x1="40" y1="114" x2="64" y2="114" stroke="var(--ink-2)" stroke-width="3"/>
+        <text x="74" y="118" font-size="11" fill="var(--ink-2)">거래 상대 시스템</text>
+        <line x1="40" y1="136" x2="64" y2="136" stroke="var(--clay)" stroke-width="3"/>
+        <text x="74" y="140" font-size="11" fill="var(--ink-2)">비공개 정보 경계</text>
+        <line x1="40" y1="158" x2="64" y2="158" stroke="var(--ink-3)" stroke-width="1.5" stroke-dasharray="4 4"/>
+        <text x="74" y="162" font-size="11" fill="var(--ink-2)">모델 추론 호출</text>
+
+        <!-- 데스크톱 -->
+        <rect x="300" y="30" width="470" height="152" rx="8" fill="var(--surface)" stroke="var(--teal)" stroke-width="1.6"/>
+        <text x="316" y="52" font-size="11.5" fill="var(--ink-2)">영업사원 데스크톱 — 브라우저 한 창</text>
+        <rect x="314" y="64" width="268" height="102" rx="4" fill="var(--plum-soft)" stroke="var(--plum)"/>
+        <text x="328" y="92" font-size="12.5" font-weight="600" fill="var(--ink)">고객사 CRM 화면</text>
+        <text x="328" y="112" font-size="10.5" fill="var(--ink-2)">우리가 한 줄도 수정하지 않는다</text>
+        <rect x="590" y="64" width="166" height="102" rx="4" fill="var(--teal-soft)" stroke="var(--teal)"/>
+        <text x="604" y="92" font-size="12.5" font-weight="600" fill="var(--ink)">구역 대시보드</text>
+        <text x="604" y="112" font-size="10.5" fill="var(--ink-2)">협상 · 재고 · 확정</text>
+        <circle cx="558" cy="144" r="14" fill="var(--teal)"/>
+        <text x="558" y="148" font-size="9" font-family="IBM Plex Mono, monospace" text-anchor="middle" fill="var(--surface)">AI</text>
+
+        <!-- 데스크톱 → Buyer -->
+        <line x1="535" y1="182" x2="535" y2="220" stroke="var(--ink-2)" stroke-width="1.4" marker-end="url(#f1a)"/>
+        <text x="546" y="205" font-size="10" font-family="IBM Plex Mono, monospace" fill="var(--ink-3)">HTTP / SSE</text>
+
+        <!-- Buyer 노드 -->
+        <rect x="300" y="224" width="470" height="152" rx="8" fill="var(--surface)" stroke="var(--teal)" stroke-width="1.6"/>
+        <text x="316" y="249" font-size="12.5" font-weight="600" fill="var(--ink)">Buyer 노드</text>
+        <text x="404" y="249" font-size="10.5" font-family="IBM Plex Mono, monospace" fill="var(--ink-3)">EC2 #1 · :8000</text>
+        <rect x="314" y="260" width="216" height="58" rx="4" fill="var(--surface-2)" stroke="var(--line)"/>
+        <text x="328" y="282" font-size="12" fill="var(--ink)">영업 어시스턴트</text>
+        <text x="328" y="302" font-size="9.5" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">Strands Agents SDK</text>
+        <rect x="542" y="260" width="214" height="58" rx="4" fill="var(--surface-2)" stroke="var(--line)"/>
+        <text x="556" y="282" font-size="12" fill="var(--ink)">CRM 어댑터</text>
+        <text x="556" y="302" font-size="9.5" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">OdooJson2Client</text>
+        <text x="316" y="340" font-size="10.5" fill="var(--ink-2)">오버레이 · 대시보드 정적 서빙 + SSE 이벤트 푸시</text>
+        <text x="316" y="360" font-size="9.5" font-family="IBM Plex Mono, monospace" fill="var(--ink-3)">negotiate_procurement tool → Broker</text>
+
+        <!-- Buyer → Odoo -->
+        <line x1="772" y1="288" x2="852" y2="288" stroke="var(--plum)" stroke-width="1.4" marker-end="url(#f1a)"/>
+        <text x="812" y="278" font-size="10" font-family="IBM Plex Mono, monospace" text-anchor="middle" fill="var(--ink-3)">JSON-2</text>
+
+        <!-- Odoo -->
+        <rect x="856" y="224" width="174" height="152" rx="8" fill="var(--surface)" stroke="var(--plum)" stroke-width="1.6"/>
+        <text x="870" y="248" font-size="10.5" fill="var(--ink-3)">고객사 시스템</text>
+        <rect x="868" y="258" width="150" height="50" rx="4" fill="var(--plum-soft)" stroke="var(--plum)"/>
+        <text x="880" y="279" font-size="12" font-weight="600" fill="var(--ink)">Odoo 19</text>
+        <text x="880" y="297" font-size="9.5" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">:8069</text>
+        <rect x="868" y="316" width="150" height="46" rx="4" fill="var(--surface-2)" stroke="var(--line)"/>
+        <text x="880" y="336" font-size="11" fill="var(--ink)">PostgreSQL 16</text>
+        <text x="880" y="353" font-size="9.5" font-family="IBM Plex Mono, monospace" fill="var(--ink-3)">:5432 · 미개방</text>
+
+        <!-- Buyer → Broker -->
+        <line x1="535" y1="376" x2="535" y2="416" stroke="var(--ink-2)" stroke-width="1.4" marker-end="url(#f1a)"/>
+        <text x="546" y="393" font-size="9.5" font-family="IBM Plex Mono, monospace" fill="var(--ink-3)">POST /api/negotiate/start</text>
+        <text x="546" y="408" font-size="9.5" font-family="IBM Plex Mono, monospace" fill="var(--clay)">{ … cap_price }</text>
+
+        <!-- Broker -->
+        <rect x="340" y="420" width="390" height="120" rx="8" fill="var(--surface)" stroke="var(--teal)" stroke-width="1.6"/>
+        <text x="356" y="445" font-size="12.5" font-weight="600" fill="var(--ink)">Broker 노드</text>
+        <text x="444" y="445" font-size="10.5" font-family="IBM Plex Mono, monospace" fill="var(--ink-3)">EC2 #4 · :9000</text>
+        <text x="356" y="470" font-size="11" fill="var(--clay)">바이어 대행 판정 — cap_price 는 여기까지</text>
+        <text x="356" y="491" font-size="11" fill="var(--ink-2)">중앙 감사자 — 공개 정보만으로 위반 검증</text>
+        <text x="356" y="512" font-size="9.5" font-family="IBM Plex Mono, monospace" fill="var(--ink-3)">라운드 오케스트레이션 · MAX_ROUNDS = 3</text>
+
+        <!-- Broker → Sellers -->
+        <line x1="440" y1="540" x2="300" y2="586" stroke="var(--ink-2)" stroke-width="1.4" marker-end="url(#f1a)"/>
+        <line x1="630" y1="540" x2="768" y2="586" stroke="var(--ink-2)" stroke-width="1.4" marker-end="url(#f1a)"/>
+        <text x="535" y="570" font-size="10" font-family="IBM Plex Mono, monospace" text-anchor="middle" fill="var(--ink-3)">POST /api/offer · 라운드마다</text>
+
+        <!-- Seller 1 -->
+        <rect x="120" y="590" width="340" height="120" rx="8" fill="var(--surface)" stroke="var(--ink-2)" stroke-width="1.6"/>
+        <text x="136" y="615" font-size="12.5" font-weight="600" fill="var(--ink)">Seller 노드 #1</text>
+        <text x="240" y="615" font-size="10.5" font-family="IBM Plex Mono, monospace" fill="var(--ink-3)">EC2 #2 · :8000</text>
+        <text x="136" y="638" font-size="11" fill="var(--ink-2)">셀러 에이전트 + 셀러측 감사자</text>
+        <rect x="136" y="650" width="308" height="46" rx="4" fill="var(--clay-soft)" stroke="var(--clay)"/>
+        <text x="150" y="669" font-size="9.5" font-family="IBM Plex Mono, monospace" fill="var(--ink)">floor_price · 할인 정책 · 양보 규칙</text>
+        <text x="150" y="686" font-size="10" fill="var(--clay)">이 상자 밖으로 나가지 않는다</text>
+
+        <!-- Seller 2 -->
+        <rect x="580" y="590" width="340" height="120" rx="8" fill="var(--surface)" stroke="var(--ink-2)" stroke-width="1.6"/>
+        <text x="596" y="615" font-size="12.5" font-weight="600" fill="var(--ink)">Seller 노드 #2</text>
+        <text x="700" y="615" font-size="10.5" font-family="IBM Plex Mono, monospace" fill="var(--ink-3)">EC2 #3 · :8000</text>
+        <text x="596" y="638" font-size="11" fill="var(--ink-2)">셀러 에이전트 + 셀러측 감사자</text>
+        <rect x="596" y="650" width="308" height="46" rx="4" fill="var(--clay-soft)" stroke="var(--clay)"/>
+        <text x="610" y="669" font-size="9.5" font-family="IBM Plex Mono, monospace" fill="var(--ink)">floor_price · 할인 정책 · 양보 규칙</text>
+        <text x="610" y="686" font-size="10" fill="var(--clay)">이 상자 밖으로 나가지 않는다</text>
+
+        <!-- Bedrock 레일 -->
+        <polyline points="298,300 62,300 62,752 112,752" fill="none" stroke="var(--ink-3)" stroke-width="1.3" stroke-dasharray="4 4" marker-end="url(#f1d)"/>
+        <line x1="338" y1="470" x2="62" y2="470" stroke="var(--ink-3)" stroke-width="1.3" stroke-dasharray="4 4"/>
+        <circle cx="62" cy="470" r="3.5" fill="var(--ink-3)"/>
+        <text x="72" y="288" font-size="9.5" font-family="IBM Plex Mono, monospace" fill="var(--ink-3)">모델 추론</text>
+        <line x1="290" y1="712" x2="290" y2="730" stroke="var(--ink-3)" stroke-width="1.3" stroke-dasharray="4 4" marker-end="url(#f1d)"/>
+        <line x1="750" y1="712" x2="750" y2="730" stroke="var(--ink-3)" stroke-width="1.3" stroke-dasharray="4 4" marker-end="url(#f1d)"/>
+        <rect x="120" y="734" width="800" height="42" rx="6" fill="var(--surface-2)" stroke="var(--line)"/>
+        <text x="520" y="760" font-size="11.5" text-anchor="middle" fill="var(--ink-2)">Amazon Bedrock — 모든 에이전트의 모델 추론 (anthropic.claude-*)</text>
+      </g>
+    </svg>
+    <figcaption>
+      <b>그림 1.</b> 노드 4대와 두 개의 외부 시스템. Buyer 노드만 고객사 Odoo를 호출하고,
+      Seller 노드는 자기 회사 데이터만 본다. 브로커에는 <code>floor_price</code>가 도착하지 않고,
+      셀러에는 <code>cap_price</code>가 전달되지 않는다 — 두 값이 만나는 노드가 존재하지 않는다.
+    </figcaption>
+  </figure>
+</section>
+
+<!-- ══════════ 02 ══════════ -->
+<section id="s2">
+  <div class="sec-head"><span class="sec-num">02</span><h2>바이어 ↔ 셀러 협상 프로토콜</h2></div>
+  <p class="prose">
+    협상은 브로커가 <strong>라운드 단위로 활성 셀러 전원을 순차 호출</strong>하는 방식이다.
+    한 라운드 안에서 셀러 하나의 왕복이 끝나면 다음 셀러로 넘어가고, 거절된 셀러만 다음 라운드로 넘어간다.
+    최대 3라운드이며, 그 안에 합의가 없으면 <code>NO_DEAL</code>이다.
+  </p>
+  <p class="prose">
+    아래 그림은 셀러 #1의 한 라운드를 자세히 펼친 것이다. <strong>주목할 곳은 두 군데</strong> —
+    브로커가 셀러에게 보내는 요청에 상한가가 없고, 셀러가 돌려주는 응답 스키마에 최저수용가 자리가 없다.
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 1040 710" role="img" aria-label="Buyer 노드, Broker 노드, Seller 노드 두 대 사이의 협상 메시지 순서도. 상한가는 브로커에서, 최저수용가는 셀러에서 멈춘다">
+      <defs>
+        <marker id="f2a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="var(--ink-2)"/>
+        </marker>
+        <marker id="f2t" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="var(--teal)"/>
+        </marker>
+      </defs>
+      <g font-family="IBM Plex Sans KR, sans-serif">
+
+        <!-- 라운드 1 그룹 -->
+        <rect x="250" y="190" width="770" height="316" rx="6" fill="none" stroke="var(--line)" stroke-dasharray="3 3"/>
+        <rect x="250" y="190" width="188" height="24" rx="4" fill="var(--surface-2)" stroke="var(--line)"/>
+        <text x="262" y="207" font-size="10.5" font-weight="600" fill="var(--ink-2)">라운드 1 — 셀러별 순차 진행</text>
+
+        <!-- 헤더 -->
+        <rect x="26" y="24" width="188" height="40" rx="5" fill="var(--teal-soft)" stroke="var(--teal)"/>
+        <text x="120" y="49" font-size="12" font-weight="600" text-anchor="middle" fill="var(--ink)">Buyer 노드 · 대시보드</text>
+        <rect x="306" y="24" width="170" height="40" rx="5" fill="var(--teal-soft)" stroke="var(--teal)"/>
+        <text x="391" y="49" font-size="12" font-weight="600" text-anchor="middle" fill="var(--ink)">Broker 노드</text>
+        <rect x="610" y="24" width="160" height="40" rx="5" fill="var(--surface-2)" stroke="var(--ink-2)"/>
+        <text x="690" y="49" font-size="12" font-weight="600" text-anchor="middle" fill="var(--ink)">Seller #1</text>
+        <rect x="856" y="24" width="150" height="40" rx="5" fill="var(--surface-2)" stroke="var(--ink-2)"/>
+        <text x="931" y="49" font-size="12" font-weight="600" text-anchor="middle" fill="var(--ink)">Seller #2</text>
+
+        <!-- 생명선 -->
+        <line x1="120" y1="64" x2="120" y2="648" stroke="var(--line)" stroke-dasharray="4 5"/>
+        <line x1="391" y1="64" x2="391" y2="648" stroke="var(--line)" stroke-dasharray="4 5"/>
+        <line x1="690" y1="64" x2="690" y2="648" stroke="var(--line)" stroke-dasharray="4 5"/>
+        <line x1="931" y1="64" x2="931" y2="648" stroke="var(--line)" stroke-dasharray="4 5"/>
+
+        <!-- 시작 -->
+        <line x1="122" y1="102" x2="386" y2="102" stroke="var(--ink-2)" stroke-width="1.4" marker-end="url(#f2a)"/>
+        <text x="130" y="94" font-size="10.5" font-family="IBM Plex Mono, monospace" fill="var(--ink)">POST /api/negotiate/start</text>
+        <text x="130" y="118" font-size="9.5" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">{ item, qty, spec, priority, cap_price }</text>
+
+        <!-- cap 경계 -->
+        <rect x="300" y="136" width="252" height="34" rx="4" fill="var(--clay-soft)" stroke="var(--clay)"/>
+        <text x="312" y="157" font-size="10.5" fill="var(--clay)">cap_price 는 이 노드 밖으로 나가지 않는다</text>
+
+        <!-- 요청 -->
+        <line x1="393" y1="240" x2="686" y2="240" stroke="var(--ink-2)" stroke-width="1.4" marker-end="url(#f2a)"/>
+        <text x="401" y="232" font-size="10.5" font-family="IBM Plex Mono, monospace" fill="var(--ink)">POST /api/offer</text>
+        <text x="401" y="256" font-size="9.5" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">{ txid, item, qty, spec, round_no,</text>
+        <text x="401" y="270" font-size="9.5" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">  last_reject_price, max_rounds }</text>
+        <text x="401" y="286" font-size="9.5" font-family="IBM Plex Mono, monospace" fill="var(--clay)">← cap_price 없음</text>
+
+        <!-- 셀러 처리 -->
+        <rect x="583" y="300" width="214" height="92" rx="4" fill="var(--surface-2)" stroke="var(--line)"/>
+        <text x="595" y="320" font-size="10" fill="var(--ink)">① 스크리닝 (재고 · 납기 · MOQ)</text>
+        <text x="595" y="338" font-size="10" fill="var(--ink)">② 양보곡선으로 가격 산출</text>
+        <text x="595" y="356" font-size="10" fill="var(--clay)">③ 셀러측 감사 — floor 위반 보정</text>
+        <text x="595" y="374" font-size="10" fill="var(--ink)">④ 대량구매할인 적용</text>
+
+        <!-- Seller2 주석 -->
+        <rect x="846" y="300" width="170" height="92" rx="4" fill="var(--surface-2)" stroke="var(--line)" stroke-dasharray="3 3"/>
+        <text x="858" y="322" font-size="10.5" font-weight="600" fill="var(--ink)">Seller #2</text>
+        <text x="858" y="342" font-size="10" fill="var(--ink-2)">같은 라운드에서</text>
+        <text x="858" y="358" font-size="10" fill="var(--ink-2)">동일 절차를 반복</text>
+        <text x="858" y="378" font-size="10" fill="var(--ink-3)">(브로커가 순차 호출)</text>
+
+        <!-- 응답 -->
+        <line x1="688" y1="414" x2="395" y2="414" stroke="var(--ink-2)" stroke-width="1.4" marker-end="url(#f2a)"/>
+        <text x="401" y="406" font-size="9.5" font-family="IBM Plex Mono, monospace" fill="var(--ink)">200 { price, available, spec_score, trust_score }</text>
+        <text x="401" y="430" font-size="9.5" font-family="IBM Plex Mono, monospace" fill="var(--clay)">← 응답 스키마에 floor_price 자리가 없음</text>
+
+        <!-- 브로커 판정 -->
+        <rect x="300" y="444" width="216" height="50" rx="4" fill="var(--surface-2)" stroke="var(--line)"/>
+        <text x="312" y="464" font-size="10" fill="var(--ink)">바이어 대행 판정 (cap_price)</text>
+        <text x="312" y="482" font-size="10" fill="var(--ink)">+ 중앙 감사자 검증</text>
+
+        <!-- 라운드 2·3 -->
+        <rect x="250" y="522" width="770" height="48" rx="6" fill="var(--surface-2)" stroke="var(--line)"/>
+        <text x="266" y="542" font-size="10.5" fill="var(--ink-2)">라운드 2 · 3 — 거절된 셀러에게만 <tspan font-family="IBM Plex Mono, monospace" fill="var(--ink)">last_reject_price</tspan> 를 실어 재요청한다.</text>
+        <text x="266" y="560" font-size="10.5" fill="var(--ink-2)">3라운드 안에 합의가 없으면 <tspan font-family="IBM Plex Mono, monospace" fill="var(--clay)">NO_DEAL</tspan>, 조건을 만족하는 셀러가 애초에 없으면 <tspan font-family="IBM Plex Mono, monospace" fill="var(--clay)">NO_MATCH</tspan>.</text>
+
+        <!-- 합의 -->
+        <line x1="393" y1="598" x2="686" y2="598" stroke="var(--teal)" stroke-width="1.6" marker-end="url(#f2t)"/>
+        <text x="401" y="590" font-size="10.5" font-family="IBM Plex Mono, monospace" fill="var(--teal)">ACCEPT</text>
+        <line x1="389" y1="636" x2="124" y2="636" stroke="var(--teal)" stroke-width="1.6" marker-end="url(#f2t)"/>
+        <text x="132" y="628" font-size="9.5" font-family="IBM Plex Mono, monospace" fill="var(--ink)">SETTLED { seller_id, price, spec_score, approval: PENDING }</text>
+
+        <!-- 사람 확정 -->
+        <rect x="26" y="654" width="360" height="46" rx="4" fill="var(--amber-soft)" stroke="var(--amber)"/>
+        <text x="38" y="674" font-size="10.5" fill="var(--ink)">대시보드 후보 순위표 → 사람이 확정</text>
+        <text x="38" y="691" font-size="9.5" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">record_decision — 확정자 · 시각 · 근거</text>
+      </g>
+    </svg>
+    <figcaption>
+      <b>그림 2.</b> 한 라운드의 왕복. 셀러의 4단계 중 <b>③ 셀러측 감사</b>는 응답을 만들기 전에 실행되므로,
+      정책을 위반한 제안은 애초에 네트워크를 타지 않는다. 브로커의 판정은 <code>cap_price</code>를 아는
+      유일한 지점이고, 그 값은 로그에도 기록하지 않는다.
+    </figcaption>
+  </figure>
+
+  <div class="note">
+    <span class="lbl">왜 이 구조여야 하는가</span>
+    양측 유보가격을 모두 아는 주체가 하나라도 있으면, 합의점은 한 번의 계산으로 나온다.
+    그러면 라운드를 도는 협상은 연출이 된다. <strong>정보 비대칭이 협상 프로토콜의 성립 조건</strong>이며,
+    그래서 이 프로젝트는 그것을 프롬프트가 아니라 <strong>배포 경계</strong>로 보장한다.
+  </div>
+</section>
+
+<!-- ══════════ 03 ══════════ -->
+<section id="s3">
+  <div class="sec-head"><span class="sec-num">03</span><h2>정보 경계와 네트워크</h2></div>
+  <p class="prose">
+    각 노드가 무엇을 알고 무엇을 모르는지가 이 시스템의 계약이다. 아래 표의 &ldquo;모르는 것&rdquo; 열은
+    설계 의도가 아니라 <strong>코드에서 확인 가능한 사실</strong>이다.
+  </p>
+
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr><th>노드</th><th>아는 것</th><th>모르는 것</th><th class="mono">근거</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><b>Buyer</b><br><span style="color:var(--ink-3);font-size:12px">EC2 #1</span></td>
+          <td class="know">자사 상한가 · 재고 · 고객 이력 · Odoo 전체</td>
+          <td class="nope">셀러 최저수용가 · 셀러 내부 정책</td>
+          <td class="mono">buyer_service.py</td>
+        </tr>
+        <tr>
+          <td><b>Broker</b><br><span style="color:var(--ink-3);font-size:12px">EC2 #4</span></td>
+          <td class="know">공개 정보 · 제출된 제안 · 바이어 상한가(판정용)</td>
+          <td class="nope">셀러 최저수용가 — <b>수신 자체를 안 함</b></td>
+          <td class="mono">broker_service.py</td>
+        </tr>
+        <tr>
+          <td><b>Seller ×2</b><br><span style="color:var(--ink-3);font-size:12px">EC2 #2 · #3</span></td>
+          <td class="know">자사 최저수용가 · 재고 · 양보 정책 · 할인 규칙</td>
+          <td class="nope">바이어 상한가 · 타 셀러의 조건</td>
+          <td class="mono">seller_service.py</td>
+        </tr>
+        <tr>
+          <td><b>Odoo</b><br><span style="color:var(--ink-3);font-size:12px">고객사</span></td>
+          <td class="know">거래처 · 품목 · 재고 · 주문 · 확정 이력</td>
+          <td class="nope">협상 과정 · 양측 유보가격</td>
+          <td class="mono">integrations/odoo/</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="prose">
+    이 경계는 주장이 아니라 <strong>검증 절차가 있는 사실</strong>이다. 브로커 노드에서
+    <code>grep -i floor</code>를 돌리면 0건이어야 하고, 같은 명령을 셀러 노드에서 돌리면
+    나오는 것이 정상이다. 두 결과를 나란히 놓는 것이 발표의 마지막 장면이다.
+  </p>
+
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr><th>노드</th><th class="mono">포트</th><th>대상</th><th>비고</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Buyer</td><td class="mono">8000</td><td>브라우저 · VPC 내부</td><td>오버레이 · 대시보드 · API · SSE</td></tr>
+        <tr><td>Broker</td><td class="mono">9000</td><td>VPC 내부만</td><td>Odoo · PostgreSQL 없음. t2.micro로 충분</td></tr>
+        <tr><td>Seller ×2</td><td class="mono">8000</td><td>VPC 내부만</td><td><code>/api/offer</code> 수신</td></tr>
+        <tr><td>Odoo</td><td class="mono">8069</td><td>VPC 내부 · 데모용 외부</td><td>Buyer / Seller 노드에 각각 동거</td></tr>
+        <tr><td>PostgreSQL</td><td class="mono">5432</td><td><b>열지 않음</b></td><td>Odoo 컨테이너에서만 접근</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr><th class="mono">엔드포인트</th><th>노드</th><th>역할</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="mono">POST /api/request</td><td>Buyer</td><td>대시보드 → 브로커로 협상 위임</td></tr>
+        <tr><td class="mono">POST /api/negotiate/start</td><td>Broker</td><td>라운드 오케스트레이션 시작</td></tr>
+        <tr><td class="mono">GET&nbsp;&nbsp;/api/negotiate/{txid}/log</td><td>Broker</td><td>거래별 원문 로그 조회 (JSONL)</td></tr>
+        <tr><td class="mono">POST /api/offer</td><td>Seller</td><td>라운드별 제안 생성 — 셀러측 감사 포함</td></tr>
+        <tr><td class="mono">POST /api/seller/config</td><td>Seller</td><td>판매사 프로필 교체 (데모 준비용)</td></tr>
+        <tr><td class="mono">GET&nbsp;&nbsp;/api/integrations/odoo/health</td><td>Buyer · Seller</td><td>Odoo 연결 · 버전 · 권한 점검</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ══════════ 04 ══════════ -->
+<section id="s4">
+  <div class="sec-head"><span class="sec-num">04</span><h2>고객사 CRM 연동</h2></div>
+  <p class="prose">
+    Odoo는 <strong>고객사가 이미 쓰던 시스템</strong>이다. 애드온을 설치하지 않고, 소스와 화면을 수정하지 않는다.
+    어시스턴트의 tool이 어댑터를 거쳐 JSON-2 API를 호출하는 한 방향뿐이며,
+    Phase A에서 쓰기는 <code>record_decision</code> 한 건이다.
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 1040 400" role="img" aria-label="어시스턴트 tool이 CRM 어댑터를 거쳐 Odoo 19의 표준 모델을 JSON-2 API로 호출하는 구조">
+      <defs>
+        <marker id="f4a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="var(--ink-2)"/>
+        </marker>
+        <marker id="f4m" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="var(--amber)"/>
+        </marker>
+      </defs>
+      <g font-family="IBM Plex Sans KR, sans-serif">
+
+        <text x="24" y="32" font-size="11" fill="var(--ink-3)">Buyer 노드 — 어시스턴트 tool</text>
+        <rect x="24" y="46" width="264" height="36" rx="4" fill="var(--surface-2)" stroke="var(--line)"/>
+        <text x="38" y="69" font-size="10.5" font-family="IBM Plex Mono, monospace" fill="var(--ink)">get_partner_history</text>
+        <rect x="24" y="90" width="264" height="36" rx="4" fill="var(--surface-2)" stroke="var(--line)"/>
+        <text x="38" y="113" font-size="10.5" font-family="IBM Plex Mono, monospace" fill="var(--ink)">get_product_and_stock</text>
+        <rect x="24" y="134" width="264" height="36" rx="4" fill="var(--teal-soft)" stroke="var(--teal)"/>
+        <text x="38" y="157" font-size="10.5" font-family="IBM Plex Mono, monospace" fill="var(--ink)">get_available_to_promise</text>
+        <rect x="24" y="178" width="264" height="36" rx="4" fill="var(--surface-2)" stroke="var(--line)"/>
+        <text x="38" y="201" font-size="10.5" font-family="IBM Plex Mono, monospace" fill="var(--ink)">get_sale_orders</text>
+        <rect x="24" y="222" width="264" height="36" rx="4" fill="var(--amber-soft)" stroke="var(--amber)"/>
+        <text x="38" y="245" font-size="10.5" font-family="IBM Plex Mono, monospace" fill="var(--ink)">record_decision</text>
+
+        <text x="24" y="292" font-size="10.5" fill="var(--amber)">Phase A 는 조회 전용 + 확정 기록 1건</text>
+        <text x="24" y="312" font-size="10.5" fill="var(--ink-2)">Odoo 애드온 설치 없음 · 소스 무수정</text>
+
+        <line x1="292" y1="150" x2="352" y2="150" stroke="var(--ink-2)" stroke-width="1.4" marker-end="url(#f4a)"/>
+
+        <!-- 어댑터 -->
+        <rect x="356" y="46" width="288" height="222" rx="8" fill="var(--surface)" stroke="var(--teal)" stroke-width="1.6"/>
+        <text x="372" y="72" font-size="12.5" font-weight="600" fill="var(--ink)">CRM 어댑터</text>
+        <text x="372" y="92" font-size="9.5" font-family="IBM Plex Mono, monospace" fill="var(--ink-3)">app/integrations/odoo/</text>
+        <rect x="370" y="106" width="260" height="94" rx="4" fill="var(--surface-2)" stroke="var(--line)"/>
+        <text x="382" y="128" font-size="9.5" font-family="IBM Plex Mono, monospace" fill="var(--ink)">POST {base}/json/2/{model}/{method}</text>
+        <text x="382" y="148" font-size="9.5" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">Authorization: bearer &lt;API 키&gt;</text>
+        <text x="382" y="167" font-size="9.5" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">X-Odoo-Database: &lt;db&gt;</text>
+        <text x="382" y="186" font-size="9.5" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">Accept: application/json</text>
+        <text x="372" y="224" font-size="10.5" fill="var(--ink-2)">인터페이스만 지키면 다른 CRM 어댑터로 교체</text>
+        <text x="372" y="246" font-size="10" font-family="IBM Plex Mono, monospace" fill="var(--ink-3)">Salesforce · 더존 · 이카운트 …</text>
+
+        <line x1="648" y1="128" x2="708" y2="128" stroke="var(--ink-2)" stroke-width="1.4" marker-end="url(#f4a)"/>
+        <text x="678" y="118" font-size="10" text-anchor="middle" fill="var(--ink-3)">읽기</text>
+        <line x1="648" y1="212" x2="708" y2="212" stroke="var(--amber)" stroke-width="1.6" marker-end="url(#f4m)"/>
+        <text x="678" y="202" font-size="10" text-anchor="middle" fill="var(--amber)">쓰기 1건</text>
+
+        <!-- Odoo 모델 -->
+        <text x="712" y="32" font-size="11" fill="var(--ink-3)">고객사 Odoo 19 — 표준 모델</text>
+        <rect x="712" y="46" width="304" height="36" rx="4" fill="var(--plum-soft)" stroke="var(--plum)"/>
+        <text x="726" y="69" font-size="10.5" font-family="IBM Plex Mono, monospace" fill="var(--ink)">res.partner</text>
+        <text x="880" y="69" font-size="10" fill="var(--ink-2)">거래처 · 신뢰도 산출 근거</text>
+        <rect x="712" y="90" width="304" height="36" rx="4" fill="var(--plum-soft)" stroke="var(--plum)"/>
+        <text x="726" y="113" font-size="10.5" font-family="IBM Plex Mono, monospace" fill="var(--ink)">product.template</text>
+        <text x="880" y="113" font-size="10" fill="var(--ink-2)">품목 · 사양</text>
+        <rect x="712" y="134" width="304" height="36" rx="4" fill="var(--plum-soft)" stroke="var(--plum)"/>
+        <text x="726" y="157" font-size="10.5" font-family="IBM Plex Mono, monospace" fill="var(--ink)">stock.quant</text>
+        <text x="880" y="157" font-size="10" fill="var(--ink-2)">현재고 · 예약 · 입고예정</text>
+        <rect x="712" y="178" width="304" height="36" rx="4" fill="var(--plum-soft)" stroke="var(--plum)"/>
+        <text x="726" y="201" font-size="10.5" font-family="IBM Plex Mono, monospace" fill="var(--ink)">sale.order</text>
+        <text x="880" y="201" font-size="10" fill="var(--ink-2)">견적 · 수주</text>
+        <rect x="712" y="222" width="304" height="36" rx="4" fill="var(--plum-soft)" stroke="var(--plum)"/>
+        <text x="726" y="245" font-size="10.5" font-family="IBM Plex Mono, monospace" fill="var(--ink)">purchase.order</text>
+        <text x="880" y="245" font-size="10" fill="var(--ink-2)">발주 (Phase B)</text>
+
+        <line x1="864" y1="262" x2="864" y2="292" stroke="var(--plum)" stroke-width="1.4" marker-end="url(#f4a)"/>
+        <rect x="712" y="296" width="304" height="52" rx="6" fill="var(--surface-2)" stroke="var(--line)"/>
+        <text x="864" y="320" font-size="11" text-anchor="middle" fill="var(--ink)">PostgreSQL 16</text>
+        <text x="864" y="338" font-size="9.5" font-family="IBM Plex Mono, monospace" text-anchor="middle" fill="var(--ink-3)">:5432 — 컨테이너 밖으로 열지 않음</text>
+      </g>
+    </svg>
+    <figcaption>
+      <b>그림 3.</b> Odoo는 표준 모델만 쓴다. 어댑터가 한 겹 있기 때문에
+      <code>get_partner_history</code> 같은 tool 시그니처를 그대로 둔 채 다른 CRM으로 갈아끼울 수 있다 —
+      &ldquo;Odoo 전용&rdquo;이 아니라 <b>Odoo가 첫 번째 어댑터</b>다.
+    </figcaption>
+  </figure>
+</section>
+
+<!-- ══════════ 05 ══════════ -->
+<section id="s5">
+  <div class="sec-head"><span class="sec-num">05</span><h2>부서별 동작</h2></div>
+  <p class="prose">
+    하나의 거래는 다섯 단계를 지나며, 단계마다 다른 부서가 붙는다.
+    아래는 <strong>단계(가로) × 역할(세로)</strong> 매트릭스다. 맨 아래 줄이 에이전트가 하는 일이고,
+    그 위 네 줄이 사람이 하는 일이다.
+  </p>
+  <p class="prose">
+    읽는 법은 간단하다 — <strong>호박색 점이 붙은 칸이 사람의 확정 지점</strong>이다.
+    에이전트 줄에는 호박색 점이 하나도 없다.
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 1180 596" role="img" aria-label="소요 발생부터 확정 기록까지 5단계에 걸쳐 영업, 재고, 구매, 승인권자, AI 에이전트가 각각 무엇을 하는지 보여주는 매트릭스. 사람의 확정 지점에는 호박색 표시가 붙는다">
+      <g font-family="IBM Plex Sans KR, sans-serif">
+
+        <!-- 단계 헤더 -->
+        <rect x="196" y="26" width="188" height="38" rx="4" fill="var(--surface-2)" stroke="var(--line)"/>
+        <text x="290" y="50" font-size="11.5" font-weight="600" text-anchor="middle" fill="var(--ink)">① 소요 발생</text>
+        <rect x="392" y="26" width="188" height="38" rx="4" fill="var(--surface-2)" stroke="var(--line)"/>
+        <text x="486" y="50" font-size="11.5" font-weight="600" text-anchor="middle" fill="var(--ink)">② 표준 조건 게이트</text>
+        <rect x="588" y="26" width="188" height="38" rx="4" fill="var(--surface-2)" stroke="var(--line)"/>
+        <text x="682" y="50" font-size="11.5" font-weight="600" text-anchor="middle" fill="var(--ink)">③ 협상 · 발주안</text>
+        <rect x="784" y="26" width="188" height="38" rx="4" fill="var(--surface-2)" stroke="var(--line)"/>
+        <text x="878" y="50" font-size="11.5" font-weight="600" text-anchor="middle" fill="var(--ink)">④ 검토 · 승인</text>
+        <rect x="980" y="26" width="188" height="38" rx="4" fill="var(--surface-2)" stroke="var(--line)"/>
+        <text x="1074" y="50" font-size="11.5" font-weight="600" text-anchor="middle" fill="var(--ink)">⑤ 확정 · 기록</text>
+
+        <!-- 행 1: 영업 -->
+        <text x="24" y="106" font-size="12.5" font-weight="600" fill="var(--ink)">영업 담당자</text>
+        <text x="24" y="126" font-size="10" fill="var(--ink-3)">견적 · 수주 확정</text>
+        <rect x="196" y="74" width="188" height="82" rx="4" fill="var(--surface)" stroke="var(--line)"/>
+        <text x="210" y="102" font-size="10.5" fill="var(--ink)">CRM 기회 → 견적 작성</text>
+        <text x="210" y="122" font-size="10.5" fill="var(--ink-2)">캐릭터 알림 수신</text>
+        <text x="210" y="140" font-size="9.5" font-family="IBM Plex Mono, monospace" fill="var(--ink-3)">ATP 부족 감지</text>
+        <line x1="392" y1="115" x2="580" y2="115" stroke="var(--line-2)" stroke-dasharray="3 4"/>
+        <line x1="588" y1="115" x2="776" y2="115" stroke="var(--line-2)" stroke-dasharray="3 4"/>
+        <rect x="784" y="74" width="188" height="82" rx="4" fill="var(--surface)" stroke="var(--line)"/>
+        <text x="798" y="102" font-size="10.5" fill="var(--ink)">예상 마진 확인</text>
+        <text x="798" y="122" font-size="10.5" fill="var(--ink-2)">납기 실현 가능성</text>
+        <rect x="980" y="74" width="188" height="82" rx="4" fill="var(--surface)" stroke="var(--amber)" stroke-width="1.6"/>
+        <circle cx="1152" cy="90" r="4.5" fill="var(--amber)"/>
+        <text x="994" y="102" font-size="10.5" font-weight="600" fill="var(--ink)">견적 확정 · 수주</text>
+        <text x="994" y="122" font-size="10" fill="var(--ink-2)">확정자 · 시각 기록</text>
+
+        <!-- 행 2: 재고 -->
+        <text x="24" y="200" font-size="12.5" font-weight="600" fill="var(--ink)">재고 담당자</text>
+        <text x="24" y="220" font-size="10" fill="var(--ink-3)">재고 조정 확정</text>
+        <rect x="196" y="168" width="188" height="82" rx="4" fill="var(--surface)" stroke="var(--line)"/>
+        <text x="210" y="196" font-size="10.5" fill="var(--ink)">재주문 기준선 미달</text>
+        <text x="210" y="216" font-size="10.5" fill="var(--ink-2)">보충 소요 발생</text>
+        <rect x="392" y="168" width="188" height="82" rx="4" fill="var(--surface)" stroke="var(--line)"/>
+        <text x="406" y="196" font-size="10.5" fill="var(--ink)">ATP 산출 근거 제공</text>
+        <text x="406" y="216" font-size="10.5" fill="var(--ink-2)">현재고 · 예약 · 입고예정</text>
+        <line x1="588" y1="209" x2="776" y2="209" stroke="var(--line-2)" stroke-dasharray="3 4"/>
+        <line x1="784" y1="209" x2="972" y2="209" stroke="var(--line-2)" stroke-dasharray="3 4"/>
+        <rect x="980" y="168" width="188" height="82" rx="4" fill="var(--surface)" stroke="var(--amber)" stroke-width="1.6"/>
+        <circle cx="1152" cy="184" r="4.5" fill="var(--amber)"/>
+        <text x="994" y="196" font-size="10.5" font-weight="600" fill="var(--ink)">재고 조정 확정</text>
+
+        <!-- 행 3: 구매 -->
+        <text x="24" y="294" font-size="12.5" font-weight="600" fill="var(--ink)">구매 담당자</text>
+        <text x="24" y="314" font-size="10" fill="var(--ink-3)">발주 · 매입 단가 확정</text>
+        <rect x="196" y="262" width="188" height="82" rx="4" fill="var(--surface)" stroke="var(--line)"/>
+        <text x="210" y="290" font-size="10.5" fill="var(--ink)">소요 접수</text>
+        <text x="210" y="310" font-size="10.5" fill="var(--ink-2)">수주 · 보충 · 단가 이상</text>
+        <rect x="392" y="262" width="188" height="82" rx="4" fill="var(--surface)" stroke="var(--line)"/>
+        <text x="406" y="290" font-size="10.5" fill="var(--ink)">게이트 판정 결과 확인</text>
+        <text x="406" y="310" font-size="10.5" fill="var(--ink-2)">표준 / 예외 분기</text>
+        <rect x="588" y="262" width="188" height="82" rx="4" fill="var(--surface)" stroke="var(--line)"/>
+        <text x="602" y="290" font-size="10.5" fill="var(--ink)">표준 → 발주안 확인</text>
+        <text x="602" y="310" font-size="10.5" fill="var(--ink-2)">예외 → 협상 발동</text>
+        <rect x="784" y="262" width="188" height="82" rx="4" fill="var(--surface)" stroke="var(--line)"/>
+        <text x="798" y="290" font-size="10.5" fill="var(--ink)">후보 순위 검토</text>
+        <text x="798" y="310" font-size="10.5" fill="var(--ink-2)">낙찰안 선택</text>
+        <rect x="980" y="262" width="188" height="82" rx="4" fill="var(--surface)" stroke="var(--amber)" stroke-width="1.6"/>
+        <circle cx="1152" cy="278" r="4.5" fill="var(--amber)"/>
+        <text x="994" y="290" font-size="10.5" font-weight="600" fill="var(--ink)">발주 확정</text>
+        <text x="994" y="310" font-size="10" fill="var(--ink-2)">발주서는 사람이 송부</text>
+
+        <!-- 행 4: 승인권자 -->
+        <text x="24" y="388" font-size="12.5" font-weight="600" fill="var(--ink)">승인권자</text>
+        <text x="24" y="408" font-size="10" fill="var(--ink-3)">한도 초과 건</text>
+        <line x1="196" y1="397" x2="384" y2="397" stroke="var(--line-2)" stroke-dasharray="3 4"/>
+        <line x1="392" y1="397" x2="580" y2="397" stroke="var(--line-2)" stroke-dasharray="3 4"/>
+        <line x1="588" y1="397" x2="776" y2="397" stroke="var(--line-2)" stroke-dasharray="3 4"/>
+        <rect x="784" y="356" width="188" height="82" rx="4" fill="var(--surface)" stroke="var(--amber)" stroke-width="1.6"/>
+        <circle cx="956" cy="372" r="4.5" fill="var(--amber)"/>
+        <text x="798" y="384" font-size="10.5" font-weight="600" fill="var(--ink)">2단계 정식 승인</text>
+        <text x="798" y="404" font-size="10" fill="var(--ink-2)">초과 항목 · 폭 제시</text>
+        <text x="798" y="422" font-size="9.5" font-family="IBM Plex Mono, monospace" fill="var(--ink-3)">+5% / +3일 / 500만원</text>
+        <line x1="980" y1="397" x2="1168" y2="397" stroke="var(--line-2)" stroke-dasharray="3 4"/>
+
+        <!-- 행 5: 에이전트 -->
+        <text x="24" y="482" font-size="12.5" font-weight="600" fill="var(--teal)">AI 에이전트</text>
+        <text x="24" y="502" font-size="10" fill="var(--ink-3)">안(案)만 생성</text>
+        <rect x="196" y="450" width="188" height="82" rx="4" fill="var(--teal-soft)" stroke="var(--teal)"/>
+        <text x="210" y="478" font-size="10.5" fill="var(--ink)">BOM 전개 · 납기 역산</text>
+        <text x="210" y="498" font-size="10.5" fill="var(--ink-2)">단가 이상 감지</text>
+        <rect x="392" y="450" width="188" height="82" rx="4" fill="var(--teal-soft)" stroke="var(--teal)"/>
+        <text x="406" y="478" font-size="10.5" fill="var(--ink)">수량 · 납기 · 총액</text>
+        <text x="406" y="498" font-size="10.5" fill="var(--ink-2)">3조건 게이트 판정</text>
+        <rect x="588" y="450" width="188" height="82" rx="4" fill="var(--teal-soft)" stroke="var(--teal)"/>
+        <text x="602" y="478" font-size="10.5" fill="var(--ink)">셀러 에이전트 협상</text>
+        <text x="602" y="498" font-size="10.5" fill="var(--ink-2)">2계층 감사자 검증</text>
+        <rect x="784" y="450" width="188" height="82" rx="4" fill="var(--teal-soft)" stroke="var(--teal)"/>
+        <text x="798" y="478" font-size="10.5" fill="var(--ink)">다속성 점수화 · 순위</text>
+        <text x="798" y="498" font-size="10.5" fill="var(--ink-2)">근거 문장 생성</text>
+        <rect x="980" y="450" width="188" height="82" rx="4" fill="var(--teal-soft)" stroke="var(--teal)"/>
+        <text x="994" y="478" font-size="10.5" fill="var(--ink)">확정 이력 기록</text>
+        <text x="994" y="498" font-size="9.5" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">record_decision</text>
+
+        <!-- 범례 -->
+        <circle cx="204" cy="566" r="4.5" fill="var(--amber)"/>
+        <text x="216" y="570" font-size="11" fill="var(--ink-2)">사람이 확정하는 지점 — 이 표시 없이 성립하는 거래는 없다</text>
+        <rect x="700" y="560" width="14" height="12" rx="2" fill="var(--teal-soft)" stroke="var(--teal)"/>
+        <text x="722" y="570" font-size="11" fill="var(--ink-2)">에이전트가 만드는 것은 전부 안(案)이며, 실행 권한을 갖지 않는다</text>
+      </g>
+    </svg>
+    <figcaption>
+      <b>그림 4.</b> 다섯 단계 × 다섯 역할. ①의 세 갈래(수주 · 재고 보충 · 단가 이상)가 모두 ②의 같은 게이트로 들어오고,
+      ③에서 표준과 예외로 갈렸다가 ⑤에서 다시 하나의 기록 체계로 수렴한다.
+      협상 여부와 무관하게 같은 로그·리포트가 쌓인다.
+    </figcaption>
+  </figure>
+
+  <div class="note human">
+    <span class="lbl">권한 통제는 프롬프트가 아니라 tool 목록으로 한다</span>
+    발주서 송부 · 견적서 송부 · 대금 지급 · 계약 확정에 해당하는 tool은
+    <strong>에이전트에게 아예 부여하지 않는다.</strong> &ldquo;하지 마라&rdquo;고 지시하는 것이 아니라
+    할 수 있는 수단 자체를 주지 않으므로, 오작동해도 대외 행위가 발생할 수 없다.
+  </div>
+</section>
+
+<footer>
+  상세 설계는 <a href="프로젝트_기획서_v2.md">프로젝트 기획서 v2</a>,
+  배포 절차는 <a href="RUNBOOK.md">RUNBOOK</a>,
+  해커톤 범위는 <a href="해커톤_실행계획_2026-09.md">해커톤 실행계획</a>을 본다.
+</footer>
+
+</div>

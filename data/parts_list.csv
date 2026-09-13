@@ -1,0 +1,85 @@
+# 데모용 부품 데이터 수집 마스터 리스트 (8개 부품군, 중복 없음)
+#
+# 열 설명
+#   type            : cpu | mainboard | ram | gpu | ssd | psu | case | cooler
+#   name            : 부품명 (고유, 중복 금지)
+#   brand           : 제조사 (소문자)
+#   fields_needed   : 이 부품에서 채워야 할 스펙 필드 (| 로 구분) - 사람이 채우는 기준
+#   spec_url        : 공식 스펙 페이지 (검증된 것만 채움)
+#   cpu_support_url : (mainboard) CPU 지원 목록 페이지
+#
+# 자동 크롤링 대상 : cpu / mainboard / gpu 만 (build_specs.py)
+#   - Intel CPU : ARK .../specifications.html URL 넣으면 socket/tdp 자동
+#   - ASUS/ASRock 메인보드 : URL 채워둠 (ASRock 정적 추출 잘 됨)
+#   - MSI/GIGABYTE 메인보드 : 403(WAF) -> 빈칸, --render 필요
+#   - NVIDIA GPU : 개별 페이지(5080/5090)만 있고 SUPER/Ti/중급은 -family 페이지 (값 섞임 -> 검수)
+#   - AMD CPU/GPU : 연결 차단 -> 전부 수기
+# ram / ssd / psu / case / cooler : 크롤러 미지원 -> 전부 수기 (fields_needed 참고)
+type,name,brand,fields_needed,spec_url,cpu_support_url
+
+# ============ CPU (10) ============
+cpu,Intel Core i5-14400F,intel,socket|tdp_w|mem_type|perf_tier,,
+cpu,Intel Core i5-14600K,intel,socket|tdp_w|mem_type|perf_tier,https://www.intel.com/content/www/us/en/products/sku/230493/intel-core-i514600k-processor-24m-cache-up-to-5-30-ghz/specifications.html,
+cpu,Intel Core i7-14700K,intel,socket|tdp_w|mem_type|perf_tier,,
+cpu,Intel Core Ultra 7 265K,intel,socket|tdp_w|mem_type|perf_tier,,
+cpu,Intel Core Ultra 9 285K,intel,socket|tdp_w|mem_type|perf_tier,,
+cpu,AMD Ryzen 5 7600,amd,socket|tdp_w|mem_type|perf_tier,,
+cpu,AMD Ryzen 7 7700,amd,socket|tdp_w|mem_type|perf_tier,,
+cpu,AMD Ryzen 7 9800X3D,amd,socket|tdp_w|mem_type|perf_tier,,
+cpu,AMD Ryzen 9 9950X,amd,socket|tdp_w|mem_type|perf_tier,,
+cpu,AMD Ryzen 5 5600,amd,socket|tdp_w|mem_type|perf_tier,,
+
+# ============ MAINBOARD (10) ============
+mainboard,ASUS PRIME B760M-A WIFI,asus,socket|chipset|form_factor|mem_type|max_gpu_len_mm|min_bios_note,https://www.asus.com/motherboards-components/motherboards/prime/prime-b760m-a-wifi/techspec/,https://www.asus.com/motherboards-components/motherboards/prime/prime-b760m-a-wifi/helpdesk_cpu/
+mainboard,ASUS ROG STRIX Z790-E GAMING WIFI,asus,socket|chipset|form_factor|mem_type|max_gpu_len_mm|min_bios_note,https://www.asus.com/motherboards-components/motherboards/rog-strix/rog-strix-z790-e-gaming-wifi/techspec/,
+mainboard,MSI MAG B760 TOMAHAWK WIFI,msi,socket|chipset|form_factor|mem_type|max_gpu_len_mm|min_bios_note,,
+mainboard,MSI MAG Z890 TOMAHAWK WIFI,msi,socket|chipset|form_factor|mem_type|max_gpu_len_mm|min_bios_note,,
+mainboard,ASRock B860M Pro RS,asrock,socket|chipset|form_factor|mem_type|max_gpu_len_mm|min_bios_note,https://www.asrock.com/mb/Intel/B860M%20Pro%20RS/Specification.asp,
+mainboard,ASUS TUF GAMING B650-PLUS WIFI,asus,socket|chipset|form_factor|mem_type|max_gpu_len_mm|min_bios_note,https://www.asus.com/motherboards-components/motherboards/tuf-gaming/tuf-gaming-b650-plus-wifi/techspec/,
+mainboard,MSI MAG B850 TOMAHAWK WIFI,msi,socket|chipset|form_factor|mem_type|max_gpu_len_mm|min_bios_note,,
+mainboard,ASRock X870E Taichi,asrock,socket|chipset|form_factor|mem_type|max_gpu_len_mm|min_bios_note,https://www.asrock.com/mb/AMD/X870E%20Taichi/Specification.asp,
+mainboard,ASRock B550M Pro RS,asrock,socket|chipset|form_factor|mem_type|max_gpu_len_mm|min_bios_note,https://www.asrock.com/mb/AMD/B550M%20Pro%20RS/Specification.asp,
+mainboard,GIGABYTE B650 AORUS ELITE AX,gigabyte,socket|chipset|form_factor|mem_type|max_gpu_len_mm|min_bios_note,,
+
+# ============ RAM (5) ============
+ram,Samsung DDR5-5600 32GB (2x16),samsung,mem_type|speed|capacity_gb|kit,,
+ram,G.Skill Trident Z5 RGB DDR5-6000 CL30 32GB (2x16),gskill,mem_type|speed|capacity_gb|kit,,
+ram,G.Skill Flare X5 DDR5-6000 CL36 32GB (2x16),gskill,mem_type|speed|capacity_gb|kit,,
+ram,Samsung DDR4-3200 16GB (2x8),samsung,mem_type|speed|capacity_gb|kit,,
+ram,G.Skill Ripjaws V DDR4-3600 32GB (2x16),gskill,mem_type|speed|capacity_gb|kit,,
+
+# ============ GPU (9) ============
+gpu,NVIDIA GeForce RTX 4060,nvidia,tgp_w|length_mm|slots|power_connector|vram_gb|perf_tier,https://www.nvidia.com/en-us/geforce/graphics-cards/40-series/rtx-4060-4060ti/,
+gpu,NVIDIA GeForce RTX 4070 SUPER,nvidia,tgp_w|length_mm|slots|power_connector|vram_gb|perf_tier,https://www.nvidia.com/en-us/geforce/graphics-cards/40-series/rtx-4070-family/,
+gpu,NVIDIA GeForce RTX 4070 Ti SUPER,nvidia,tgp_w|length_mm|slots|power_connector|vram_gb|perf_tier,https://www.nvidia.com/en-us/geforce/graphics-cards/40-series/rtx-4070-family/,
+gpu,NVIDIA GeForce RTX 5070 Ti,nvidia,tgp_w|length_mm|slots|power_connector|vram_gb|perf_tier,https://www.nvidia.com/en-us/geforce/graphics-cards/50-series/rtx-5070-family/,
+gpu,NVIDIA GeForce RTX 5080,nvidia,tgp_w|length_mm|slots|power_connector|vram_gb|perf_tier,https://www.nvidia.com/en-us/geforce/graphics-cards/50-series/rtx-5080/,
+gpu,NVIDIA GeForce RTX 5090,nvidia,tgp_w|length_mm|slots|power_connector|vram_gb|perf_tier,https://www.nvidia.com/en-us/geforce/graphics-cards/50-series/rtx-5090/,
+gpu,AMD Radeon RX 7600,amd,tgp_w|length_mm|slots|power_connector|vram_gb|perf_tier,,
+gpu,AMD Radeon RX 7800 XT,amd,tgp_w|length_mm|slots|power_connector|vram_gb|perf_tier,,
+gpu,AMD Radeon RX 9070 XT,amd,tgp_w|length_mm|slots|power_connector|vram_gb|perf_tier,,
+
+# ============ SSD (4) ============
+ssd,Samsung 990 PRO 1TB,samsung,interface|form|capacity_gb,,
+ssd,Samsung 990 PRO 2TB,samsung,interface|form|capacity_gb,,
+ssd,WD Black SN770 1TB,wd,interface|form|capacity_gb,,
+ssd,Crucial MX500 1TB,crucial,interface|form|capacity_gb,,
+
+# ============ PSU (5) ============
+psu,Corsair RM650e,corsair,wattage|plus_rating|form|connectors,,
+psu,Corsair RM750e,corsair,wattage|plus_rating|form|connectors,,
+psu,Corsair RM850e,corsair,wattage|plus_rating|form|connectors,,
+psu,MSI MPG A1000G PCIE5,msi,wattage|plus_rating|form|connectors,,
+psu,Corsair SF750,corsair,wattage|plus_rating|form|connectors,,
+
+# ============ CASE (4) ============
+case,Fractal Design North,fractal,mobo_form_support|max_gpu_len_mm|max_cooler_height_mm,,
+case,NZXT H5 Flow,nzxt,mobo_form_support|max_gpu_len_mm|max_cooler_height_mm,,
+case,Cooler Master NR200P MAX,coolermaster,mobo_form_support|max_gpu_len_mm|max_cooler_height_mm,,
+case,ASUS Prime AP201,asus,mobo_form_support|max_gpu_len_mm|max_cooler_height_mm,,
+
+# ============ COOLER (4) ============
+cooler,Thermalright Peerless Assassin 120 SE,thermalright,cooler_type|socket_support|height_mm|radiator_mm,,
+cooler,Noctua NH-D15,noctua,cooler_type|socket_support|height_mm|radiator_mm,,
+cooler,Arctic Liquid Freezer III 360,arctic,cooler_type|socket_support|height_mm|radiator_mm,,
+cooler,DeepCool AK400,deepcool,cooler_type|socket_support|height_mm|radiator_mm,,

@@ -1,0 +1,452 @@
+{
+  "ASUS ROG MAXIMUS Z790 HERO": {
+    "type": "mainboard",
+    "fields": {
+      "form_factor": {
+        "value": "ITX",
+        "unit": "",
+        "source_url": "https://www.asus.com/motherboards-components/motherboards/rog-maximus/rog-maximus-z790-hero/techspec/",
+        "source_type": "mainboard_spec",
+        "method": "text-regex",
+        "confidence": 0.7,
+        "fetched_at": "2026-09-08T06:35:36+00:00",
+        "raw": "ASUS Global Skip to content Accessibility help Gaming Business Environment AI Mobile / Handhelds Laptops Displays / Desktops Motherboards / Components Networking / IoT / Servers Accessories Support Su"
+      }
+    },
+    "min_bios": []
+  },
+  "ASUS ROG STRIX Z790-E GAMING WIFI": {
+    "type": "mainboard",
+    "fields": {
+      "form_factor": {
+        "value": "ITX",
+        "unit": "",
+        "source_url": "https://www.asus.com/motherboards-components/motherboards/rog-strix/rog-strix-z790-e-gaming-wifi/techspec/",
+        "source_type": "mainboard_spec",
+        "method": "text-regex",
+        "confidence": 0.7,
+        "fetched_at": "2026-09-08T06:35:41+00:00",
+        "raw": "ASUS Global Skip to content Accessibility help Gaming Business Environment AI Mobile / Handhelds Laptops Displays / Desktops Motherboards / Components Networking / IoT / Servers Accessories Support Su"
+      }
+    },
+    "min_bios": []
+  },
+  "ASUS TUF GAMING Z790-PLUS WIFI": {
+    "type": "mainboard",
+    "fields": {
+      "socket": {
+        "value": "LGA1700",
+        "unit": "",
+        "source_url": "https://www.asus.com/motherboards-components/motherboards/tuf-gaming/tuf-gaming-z790-plus-wifi/techspec/",
+        "source_type": "mainboard_spec",
+        "method": "text-regex",
+        "confidence": 0.75,
+        "fetched_at": "2026-09-08T06:35:45+00:00",
+        "raw": "790-PLUS WIFI News & Updates CPU Intel® Socket LGA1700 for Intel® Core™ 14th & 13th Gen Processors, Intel® Core™ 12th Gen, Pentium® Gold and Celeron® Processors* Supports Intel ® Turbo Boost Technolog"
+      },
+      "form_factor": {
+        "value": "ATX",
+        "unit": "",
+        "source_url": "https://www.asus.com/motherboards-components/motherboards/tuf-gaming/tuf-gaming-z790-plus-wifi/techspec/",
+        "source_type": "mainboard_spec",
+        "method": "text-regex",
+        "confidence": 0.7,
+        "fetched_at": "2026-09-08T06:35:45+00:00",
+        "raw": "ystem Windows ® 11, Windows ® 10 64-bit Form Factor ATX Form Factor 12 inch x 9.6 inch ( 30.5 cm x 24.4 cm ) Products certified by the Federal Communications Commission and Industry Canada will be dis"
+      }
+    },
+    "min_bios": []
+  },
+  "ASUS PRIME Z790-P WIFI": {
+    "type": "mainboard",
+    "fields": {
+      "socket": {
+        "value": "LGA1700",
+        "unit": "",
+        "source_url": "https://www.asus.com/motherboards-components/motherboards/prime/prime-z790-p-wifi/techspec/",
+        "source_type": "mainboard_spec",
+        "method": "text-regex",
+        "confidence": 0.75,
+        "fetched_at": "2026-09-08T06:35:45+00:00",
+        "raw": " Z790-P WIFI News & Updates CPU Intel ® Socket LGA1700 for Intel ® Core™ 14 th & 13 th Gen Processors, Intel ® Core™ 12 th Gen, Pentium ® Gold and Celeron ® Processors* Supports Intel ® Turbo Boost Te"
+      },
+      "form_factor": {
+        "value": "ATX",
+        "unit": "",
+        "source_url": "https://www.asus.com/motherboards-components/motherboards/prime/prime-z790-p-wifi/techspec/",
+        "source_type": "mainboard_spec",
+        "method": "text-regex",
+        "confidence": 0.7,
+        "fetched_at": "2026-09-08T06:35:45+00:00",
+        "raw": "ystem Windows ® 11, Windows ® 10 64-bit Form Factor ATX Form Factor 12 inch x 9.2 inch ( 30.5 cm x 23.4 cm ) Products certified by the Federal Communications Commission and Industry Canada will be dis"
+      }
+    },
+    "min_bios": []
+  },
+  "ASUS PRIME B760M-A WIFI": {
+    "type": "mainboard",
+    "fields": {
+      "socket": {
+        "value": "LGA1700",
+        "unit": "",
+        "source_url": "https://www.asus.com/motherboards-components/motherboards/prime/prime-b760m-a-wifi/techspec/",
+        "source_type": "mainboard_spec",
+        "method": "text-regex",
+        "confidence": 0.75,
+        "fetched_at": "2026-09-08T06:35:45+00:00",
+        "raw": "B760M-A WIFI News & Updates CPU Intel ® Socket LGA1700 for Intel ® Core™ 14 th & 13 th Gen Processors, Intel ® Core™ 12 th Gen, Pentium ® Gold and Celeron ® Processors* Supports Intel ® Turbo Boost Te"
+      },
+      "form_factor": {
+        "value": "mATX",
+        "unit": "",
+        "source_url": "https://www.asus.com/motherboards-components/motherboards/prime/prime-b760m-a-wifi/techspec/",
+        "source_type": "mainboard_spec",
+        "method": "text-regex",
+        "confidence": 0.7,
+        "fetched_at": "2026-09-08T06:35:45+00:00",
+        "raw": "ystem Windows ® 11, Windows ® 10 64-bit Form Factor mATX Form Factor 9.6 inch x 9.6 inch ( 24.4 cm x 24.4 cm ) Products certified by the Federal Communications Commission and Industry Canada will be d"
+      }
+    },
+    "min_bios": []
+  },
+  "ASUS TUF GAMING B760-PLUS WIFI": {
+    "type": "mainboard",
+    "fields": {
+      "socket": {
+        "value": "LGA1700",
+        "unit": "",
+        "source_url": "https://www.asus.com/motherboards-components/motherboards/tuf-gaming/tuf-gaming-b760-plus-wifi/techspec/",
+        "source_type": "mainboard_spec",
+        "method": "text-regex",
+        "confidence": 0.75,
+        "fetched_at": "2026-09-08T06:35:45+00:00",
+        "raw": "760-PLUS WIFI News & Updates CPU Intel® Socket LGA1700 for Intel® Core™ 14th & 13th Gen Processors, Intel® Core™ 12th Gen, Pentium® Gold and Celeron® Processors* Supports Intel ® Turbo Boost Technolog"
+      },
+      "form_factor": {
+        "value": "ATX",
+        "unit": "",
+        "source_url": "https://www.asus.com/motherboards-components/motherboards/tuf-gaming/tuf-gaming-b760-plus-wifi/techspec/",
+        "source_type": "mainboard_spec",
+        "method": "text-regex",
+        "confidence": 0.7,
+        "fetched_at": "2026-09-08T06:35:45+00:00",
+        "raw": "ystem Windows ® 11, Windows ® 10 64-bit Form Factor ATX Form Factor 12 inch x 9.6 inch ( 30.5 cm x 24.4 cm ) Products certified by the Federal Communications Commission and Industry Canada will be dis"
+      }
+    },
+    "min_bios": []
+  },
+  "ASUS PRIME B760M-K": {
+    "type": "mainboard",
+    "fields": {
+      "socket": {
+        "value": "LGA1700",
+        "unit": "",
+        "source_url": "https://www.asus.com/motherboards-components/motherboards/prime/prime-b760m-k/techspec/",
+        "source_type": "mainboard_spec",
+        "method": "text-regex",
+        "confidence": 0.75,
+        "fetched_at": "2026-09-08T06:35:45+00:00",
+        "raw": "RIME B760M-K News & Updates CPU Intel ® Socket LGA1700 for Intel ® Core TM 14 th & 13 th Gen Processors, Intel ® Core TM 12 th Gen, Pentium ® Gold and Celeron ® Processors* Supports Intel ® Turbo Boos"
+      },
+      "form_factor": {
+        "value": "mATX",
+        "unit": "",
+        "source_url": "https://www.asus.com/motherboards-components/motherboards/prime/prime-b760m-k/techspec/",
+        "source_type": "mainboard_spec",
+        "method": "text-regex",
+        "confidence": 0.7,
+        "fetched_at": "2026-09-08T06:35:45+00:00",
+        "raw": "ystem Windows ® 11, Windows ® 10 64-bit Form Factor mATX Form Factor 9.6 inch x 8.3 inch (24.4cm x 21.1cm) Products certified by the Federal Communications Commission and Industry Canada will be distr"
+      }
+    },
+    "min_bios": []
+  },
+  "ASUS ROG STRIX Z890-E GAMING WIFI": {
+    "type": "mainboard",
+    "fields": {
+      "form_factor": {
+        "value": "ITX",
+        "unit": "",
+        "source_url": "https://www.asus.com/motherboards-components/motherboards/rog-strix/rog-strix-z890-e-gaming-wifi/techspec/",
+        "source_type": "mainboard_spec",
+        "method": "text-regex",
+        "confidence": 0.7,
+        "fetched_at": "2026-09-08T06:35:45+00:00",
+        "raw": "ASUS Global Skip to content Accessibility help Gaming Business Environment AI Mobile / Handhelds Laptops Displays / Desktops Motherboards / Components Networking / IoT / Servers Accessories Support Su"
+      }
+    },
+    "min_bios": []
+  },
+  "ASUS TUF GAMING Z890-PLUS WIFI": {
+    "type": "mainboard",
+    "fields": {
+      "socket": {
+        "value": "LGA1851",
+        "unit": "",
+        "source_url": "https://www.asus.com/motherboards-components/motherboards/tuf-gaming/tuf-gaming-z890-plus-wifi/techspec/",
+        "source_type": "mainboard_spec",
+        "method": "text-regex",
+        "confidence": 0.55,
+        "fetched_at": "2026-09-08T06:35:49+00:00",
+        "raw": "(page-wide unique socket token)"
+      },
+      "form_factor": {
+        "value": "ATX",
+        "unit": "",
+        "source_url": "https://www.asus.com/motherboards-components/motherboards/tuf-gaming/tuf-gaming-z890-plus-wifi/techspec/",
+        "source_type": "mainboard_spec",
+        "method": "text-regex",
+        "confidence": 0.7,
+        "fetched_at": "2026-09-08T06:35:49+00:00",
+        "raw": "rating System Windows 11 (22H2 & later) Form Factor ATX Form Factor 12 inch x 9.6 inch ( 30.5 cm x 24.4 cm ) Products certified by the Federal Communications Commission and Industry Canada will be dis"
+      }
+    },
+    "min_bios": []
+  },
+  "ASUS PRIME B860M-A WIFI": {
+    "type": "mainboard",
+    "fields": {
+      "socket": {
+        "value": "LGA1851",
+        "unit": "",
+        "source_url": "https://www.asus.com/motherboards-components/motherboards/prime/prime-b860m-a-wifi/techspec/",
+        "source_type": "mainboard_spec",
+        "method": "text-regex",
+        "confidence": 0.55,
+        "fetched_at": "2026-09-08T06:35:49+00:00",
+        "raw": "(page-wide unique socket token)"
+      },
+      "form_factor": {
+        "value": "mATX",
+        "unit": "",
+        "source_url": "https://www.asus.com/motherboards-components/motherboards/prime/prime-b860m-a-wifi/techspec/",
+        "source_type": "mainboard_spec",
+        "method": "text-regex",
+        "confidence": 0.7,
+        "fetched_at": "2026-09-08T06:35:49+00:00",
+        "raw": "later), Windows 10 64-bit(21H2 & later) Form Factor micro-ATX Form Factor 9.6 inch x 9.6 inch (24.4 cm x 24.4 cm) Products certified by the Federal Communications Commission and Industry Canada will b"
+      }
+    },
+    "min_bios": []
+  },
+  "ASUS ROG CROSSHAIR X870E HERO": {
+    "type": "mainboard",
+    "fields": {
+      "form_factor": {
+        "value": "ITX",
+        "unit": "",
+        "source_url": "https://www.asus.com/motherboards-components/motherboards/rog-crosshair/rog-crosshair-x870e-hero/techspec/",
+        "source_type": "mainboard_spec",
+        "method": "text-regex",
+        "confidence": 0.7,
+        "fetched_at": "2026-09-08T06:35:49+00:00",
+        "raw": "ASUS Global Skip to content Accessibility help Gaming Business Environment AI Mobile / Handhelds Laptops Displays / Desktops Motherboards / Components Networking / IoT / Servers Accessories Support Su"
+      }
+    },
+    "min_bios": []
+  },
+  "ASUS ROG STRIX X870E-E GAMING WIFI": {
+    "type": "mainboard",
+    "fields": {
+      "form_factor": {
+        "value": "ITX",
+        "unit": "",
+        "source_url": "https://www.asus.com/motherboards-components/motherboards/rog-strix/rog-strix-x870e-e-gaming-wifi/techspec/",
+        "source_type": "mainboard_spec",
+        "method": "text-regex",
+        "confidence": 0.7,
+        "fetched_at": "2026-09-08T06:35:53+00:00",
+        "raw": "ASUS Global Skip to content Accessibility help Gaming Business Environment AI Mobile / Handhelds Laptops Displays / Desktops Motherboards / Components Networking / IoT / Servers Accessories Support Su"
+      }
+    },
+    "min_bios": []
+  },
+  "ASUS TUF GAMING X870-PLUS WIFI": {
+    "type": "mainboard",
+    "fields": {
+      "socket": {
+        "value": "AM5",
+        "unit": "",
+        "source_url": "https://www.asus.com/motherboards-components/motherboards/tuf-gaming/tuf-gaming-x870-plus-wifi/techspec/",
+        "source_type": "mainboard_spec",
+        "method": "text-regex",
+        "confidence": 0.75,
+        "fetched_at": "2026-09-08T06:35:56+00:00",
+        "raw": "UF GAMING X870-PLUS WIFI News & Updates Socket AM5, Please visit our GLOBAL website to check and download the latest updates. CPU AMD Socket AM5 for AMD Ryzen ™ 9000 & 8000 & 7000 Series Desktop Proce"
+      },
+      "form_factor": {
+        "value": "ATX",
+        "unit": "",
+        "source_url": "https://www.asus.com/motherboards-components/motherboards/tuf-gaming/tuf-gaming-x870-plus-wifi/techspec/",
+        "source_type": "mainboard_spec",
+        "method": "text-regex",
+        "confidence": 0.7,
+        "fetched_at": "2026-09-08T06:35:56+00:00",
+        "raw": "start guide Operating System Windows 11 Form Factor ATX Form Factor 12 inch x 9.6 inch ( 30.5 cm x 24.4 cm ) Products certified by the Federal Communications Commission and Industry Canada will be dis"
+      }
+    },
+    "min_bios": []
+  },
+  "ASUS PRIME X870-P WIFI": {
+    "type": "mainboard",
+    "fields": {
+      "socket": {
+        "value": "AM5",
+        "unit": "",
+        "source_url": "https://www.asus.com/motherboards-components/motherboards/prime/prime-x870-p-wifi/techspec/",
+        "source_type": "mainboard_spec",
+        "method": "text-regex",
+        "confidence": 0.75,
+        "fetched_at": "2026-09-08T06:35:56+00:00",
+        "raw": " Model PRIME X870-P WIFI News & Updates Socket AM5, Please visit our GLOBAL website to check and download the latest updates. CPU AMD Socket AM5 for AMD Ryzen ™ 9000 & 8000 & 7000 Series Desktop Proce"
+      },
+      "form_factor": {
+        "value": "ATX",
+        "unit": "",
+        "source_url": "https://www.asus.com/motherboards-components/motherboards/prime/prime-x870-p-wifi/techspec/",
+        "source_type": "mainboard_spec",
+        "method": "text-regex",
+        "confidence": 0.7,
+        "fetched_at": "2026-09-08T06:35:56+00:00",
+        "raw": "start guide Operating System Windows 11 Form Factor ATX Form Factor 12 inch x 9.6 inch ( 30.5 cm x 24.4 cm ) Products certified by the Federal Communications Commission and Industry Canada will be dis"
+      }
+    },
+    "min_bios": []
+  },
+  "ASUS ROG STRIX B850-E GAMING WIFI": {
+    "type": "mainboard",
+    "fields": {
+      "form_factor": {
+        "value": "ITX",
+        "unit": "",
+        "source_url": "https://www.asus.com/motherboards-components/motherboards/rog-strix/rog-strix-b850-e-gaming-wifi/techspec/",
+        "source_type": "mainboard_spec",
+        "method": "text-regex",
+        "confidence": 0.7,
+        "fetched_at": "2026-09-08T06:35:57+00:00",
+        "raw": "ASUS Global Skip to content Accessibility help Gaming Business Environment AI Mobile / Handhelds Laptops Displays / Desktops Motherboards / Components Networking / IoT / Servers Accessories Support Su"
+      }
+    },
+    "min_bios": []
+  },
+  "ASUS TUF GAMING B850-PLUS WIFI": {
+    "type": "mainboard",
+    "fields": {
+      "socket": {
+        "value": "AM5",
+        "unit": "",
+        "source_url": "https://www.asus.com/motherboards-components/motherboards/tuf-gaming/tuf-gaming-b850-plus-wifi/techspec/",
+        "source_type": "mainboard_spec",
+        "method": "text-regex",
+        "confidence": 0.75,
+        "fetched_at": "2026-09-08T06:36:00+00:00",
+        "raw": "UF GAMING B850-PLUS WIFI News & Updates Socket AM5, Please visit our GLOBAL website to check and download the latest updates. CPU AMD Socket AM5 for AMD Ryzen™ 9000 & 8000 & 7000 Series Desktop Proces"
+      },
+      "form_factor": {
+        "value": "ATX",
+        "unit": "",
+        "source_url": "https://www.asus.com/motherboards-components/motherboards/tuf-gaming/tuf-gaming-b850-plus-wifi/techspec/",
+        "source_type": "mainboard_spec",
+        "method": "text-regex",
+        "confidence": 0.7,
+        "fetched_at": "2026-09-08T06:36:00+00:00",
+        "raw": "start guide Operating System Windows 11 Form Factor ATX Form Factor 12 inch x 9.6 inch ( 30.5 cm x 24.4 cm ) Products certified by the Federal Communications Commission and Industry Canada will be dis"
+      }
+    },
+    "min_bios": []
+  },
+  "ASUS PRIME B850M-A WIFI": {
+    "type": "mainboard",
+    "fields": {
+      "socket": {
+        "value": "AM5",
+        "unit": "",
+        "source_url": "https://www.asus.com/motherboards-components/motherboards/prime/prime-b850m-a-wifi/techspec/",
+        "source_type": "mainboard_spec",
+        "method": "text-regex",
+        "confidence": 0.75,
+        "fetched_at": "2026-09-08T06:36:00+00:00",
+        "raw": "Model PRIME B850M-A WIFI News & Updates Socket AM5, Please visit our GLOBAL website to check and download the latest updates. CPU AMD Socket AM5 for AMD Ryzen™ 9000 & 8000 & 7000 Series Desktop Proces"
+      },
+      "form_factor": {
+        "value": "mATX",
+        "unit": "",
+        "source_url": "https://www.asus.com/motherboards-components/motherboards/prime/prime-b850m-a-wifi/techspec/",
+        "source_type": "mainboard_spec",
+        "method": "text-regex",
+        "confidence": 0.7,
+        "fetched_at": "2026-09-08T06:36:00+00:00",
+        "raw": " System Windows® 11, Windows® 10 64-bit Form Factor mATX Form Factor 9.6 inch x 9.6 inch (24.4 cm x 24.4 cm) Products certified by the Federal Communications Commission and Industry Canada will be dis"
+      }
+    },
+    "min_bios": []
+  },
+  "ASUS ROG STRIX B650E-F GAMING WIFI": {
+    "type": "mainboard",
+    "fields": {
+      "form_factor": {
+        "value": "ITX",
+        "unit": "",
+        "source_url": "https://www.asus.com/motherboards-components/motherboards/rog-strix/rog-strix-b650e-f-gaming-wifi/techspec/",
+        "source_type": "mainboard_spec",
+        "method": "text-regex",
+        "confidence": 0.7,
+        "fetched_at": "2026-09-08T06:36:00+00:00",
+        "raw": "ASUS Global Skip to content Accessibility help Gaming Business Environment AI Mobile / Handhelds Laptops Displays / Desktops Motherboards / Components Networking / IoT / Servers Accessories Support Su"
+      }
+    },
+    "min_bios": []
+  },
+  "ASUS TUF GAMING B650-PLUS WIFI": {
+    "type": "mainboard",
+    "fields": {
+      "socket": {
+        "value": "AM5",
+        "unit": "",
+        "source_url": "https://www.asus.com/motherboards-components/motherboards/tuf-gaming/tuf-gaming-b650-plus-wifi/techspec/",
+        "source_type": "mainboard_spec",
+        "method": "text-regex",
+        "confidence": 0.75,
+        "fetched_at": "2026-09-08T06:36:04+00:00",
+        "raw": "UF GAMING B650-PLUS WIFI News & Updates Socket AM5 CPU AMD Socket AM5 for AMD Ryzen™ 9000 & 8000 & 7000 Series Desktop Processors* * Refer to www.asus.com for CPU support list. Chipset AMD B650 Memory"
+      },
+      "form_factor": {
+        "value": "ATX",
+        "unit": "",
+        "source_url": "https://www.asus.com/motherboards-components/motherboards/tuf-gaming/tuf-gaming-b650-plus-wifi/techspec/",
+        "source_type": "mainboard_spec",
+        "method": "text-regex",
+        "confidence": 0.7,
+        "fetched_at": "2026-09-08T06:36:04+00:00",
+        "raw": "g System Windows® 11 Windows® 10 64-bit Form Factor ATX Form Factor 12 inch x 9.6 inch ( 30.5 cm x 24.4 cm ) Products certified by the Federal Communications Commission and Industry Canada will be dis"
+      }
+    },
+    "min_bios": []
+  },
+  "ASUS PRIME A620M-E": {
+    "type": "mainboard",
+    "fields": {
+      "socket": {
+        "value": "AM5",
+        "unit": "",
+        "source_url": "https://www.asus.com/motherboards-components/motherboards/prime/prime-a620m-e/techspec/",
+        "source_type": "mainboard_spec",
+        "method": "text-regex",
+        "confidence": 0.75,
+        "fetched_at": "2026-09-08T06:36:04+00:00",
+        "raw": "0M-E Model PRIME A620M-E News & Updates Socket AM5 CPU AMD Socket AM5 for AMD Ryzen™ 9000 & 8000 & 7000 Series Desktop Processors* Supports up to AMD 120W CPU * Refer to www.asus.com for CPU support l"
+      },
+      "form_factor": {
+        "value": "mATX",
+        "unit": "",
+        "source_url": "https://www.asus.com/motherboards-components/motherboards/prime/prime-a620m-e/techspec/",
+        "source_type": "mainboard_spec",
+        "method": "text-regex",
+        "confidence": 0.7,
+        "fetched_at": "2026-09-08T06:36:04+00:00",
+        "raw": "ystem Windows ® 11, Windows ® 10 64-bit Form Factor micro-ATX Form Factor 8.9 inch x 8.7 inch (22.6 cm x 22.1 cm) Products certified by the Federal Communications Commission and Industry Canada will b"
+      }
+    },
+    "min_bios": []
+  }
+}

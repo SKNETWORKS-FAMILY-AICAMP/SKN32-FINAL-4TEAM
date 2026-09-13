@@ -1,0 +1,26 @@
+# 로컬 개발용 PostgreSQL 16 + pgvector.
+# RDS/Aurora PostgreSQL 16 과 동일한 마이그레이션이 적용된다 (db/migrate.py).
+#   docker compose up -d
+#   DATABASE_URL=postgresql://truefit:truefit@localhost:5432/truefit python db/migrate.py up
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: truefit
+      POSTGRES_PASSWORD: truefit
+      POSTGRES_DB: truefit
+      # 데이터 저장은 UTC (표시만 앱에서 Asia/Seoul 변환)
+      TZ: UTC
+      PGTZ: UTC
+    ports:
+      - "5432:5432"
+    volumes:
+      - truefit_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U truefit -d truefit"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  truefit_pgdata:

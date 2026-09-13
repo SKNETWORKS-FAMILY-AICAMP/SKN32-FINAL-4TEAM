@@ -1,0 +1,24 @@
+{
+  "generator_version": "1.0.0",
+  "template_version": "1.0.0",
+  "is_synthetic": true,
+  "product_sha256": "eb88f7c03ee77ceaa94a91e4357afd4a37f82df6b589e3dad4cadfc44f2eee34",
+  "references_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+  "profile_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+  "manual_count": 1,
+  "dataset_meta": {
+    "version": "1.0",
+    "seed": 42,
+    "scenario_id": "SYN-CASE-001"
+  },
+  "llm_used": false,
+  "files": {
+    "facts.jsonl": "fa2f2b3950a11c350ea93b651d6a7ecdc08a7a1e23c55df6710922aef2cf9f6a",
+    "manual.md": "d785521071908514f5924e68134e85d7bd767b98d7fedf680197e71815c7e76d",
+    "mapping.json": "295d3ec9d16ca0a022a9787fd28ed1e0aa69dcde911db88155e79e5d58568295",
+    "product.snapshot.json": "e8c68cd2c1b6e79eff5b256df1d578dd17d54fb4ad619a02bef683f52709ae94",
+    "profile.snapshot.json": "38e0b9de817f645c4bec37c0d4a3e58baecccb040f5718dc069a72c7385a0bed",
+    "references.snapshot.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "validation.json": "a911c6b92a8a92012dae431fe0f9fca47794de8f05d8c547b832a5f38a5d36e0"
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "scenario": "computer_pass",
+  "category": "computer",
+  "mode": "build",
+  "input_text": "배그랑 FC24 QHD로 돌리고 싶어. 200만원 정도 생각해.",
+  "mock_slot_fill": {
+    "confirmed": {
+      "purpose": "game",
+      "budget_max": 2000000,
+      "games": ["배틀그라운드", "FC24"],
+      "resolution": "QHD_165"
+    },
+    "assumed": {
+      "assembly": "service",
+      "noise_sensitive": false,
+      "brand_pref": "none"
+    },
+    "assumed_reason": {
+      "assembly": "조립 방식 언급 없음 — 대행 가정",
+      "noise_sensitive": "소음 언급 없음"
+    },
+    "missing": []
+  },
+  "verify": {
+    "mode": "set",
+    "rounds": [
+      {
+        "confidence": 86,
+        "gray_axes": ["RAM QVL"],
+        "issues": [
+          {
+            "axis": "전력 여유",
+            "penalty": 4,
+            "judge": "경미",
+            "prosecutor": "GPU 트랜지언트 스파이크 고려 시 850W 권장 구간에 근접합니다.",
+            "defender": "상시부하 420W로 정격의 55%, 트랜지언트 마진도 이슈 사례집 기준 충분합니다."
+          },
+          {
+            "axis": "CPU↔GPU 병목",
+            "penalty": 6,
+            "judge": "경미",
+            "prosecutor": "QHD에서 두 게임 모두 GPU 바운드지만 1% 로우는 CPU 의존이 있습니다.",
+            "defender": "선정 CPU tier가 밸런스 프로파일 목표(5.5) 이상이라 병목 영향 미미합니다."
+          }
+        ]
+      }
+    ]
+  },
+  "corpus": [
+    {
+      "domain": "computer", "axis": "전력 여유",
+      "text": "동세대 상위 GPU는 순간 전력 스파이크가 정격 대비 1.8배까지 관측된 사례가 있어 정격 여유 40% 이상을 권장.",
+      "source_url": "https://example.com/issue-notes/psu-transient", "collected_at": "2026-08-20"
+    },
+    {
+      "domain": "computer", "axis": "CPU↔GPU 병목",
+      "text": "QHD 165Hz 게이밍에서 CPU tier가 GPU tier보다 2단계 이내면 평균 프레임 손실 5% 미만.",
+      "source_url": "https://example.com/bench-notes/qhd-balance", "collected_at": "2026-08-22"
+    }
+  ]
+}

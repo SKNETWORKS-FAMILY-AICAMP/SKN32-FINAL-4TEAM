@@ -1,0 +1,5914 @@
+[
+  {
+    "product_key": "intel-core-i5-14400f",
+    "product_name": "Intel Core i5-14400F",
+    "category": "cpu",
+    "brand": "intel",
+    "total_reviews": 423,
+    "removed_count": 28,
+    "cleanse_ratio": 0.066,
+    "orig_rating": 4.16,
+    "cleaned_rating": 3.76,
+    "rating_dist": {
+      "labels": [
+        5,
+        4,
+        3,
+        2,
+        1
+      ],
+      "before_pct": [
+        61,
+        21,
+        7,
+        5,
+        6
+      ],
+      "after_pct": [
+        49,
+        25,
+        11,
+        6,
+        9
+      ]
+    },
+    "axis_scores": {
+      "게임성능": {
+        "label": "긍정",
+        "pct": 90,
+        "n": 149
+      },
+      "발열": {
+        "label": "부정",
+        "pct": 50,
+        "n": 151
+      },
+      "번들쿨러": {
+        "label": "부정",
+        "pct": 40,
+        "n": 128
+      },
+      "전력효율": {
+        "label": "긍정",
+        "pct": 76,
+        "n": 100
+      }
+    },
+    "top_summaries": [
+      {
+        "axis": "번들쿨러",
+        "sentiment": "부정",
+        "text": "기본 쿨러로는 부족해 사제 쿨러 교체가 사실상 필수라는 후기가 많습니다.",
+        "source_label": "쇼핑몰B",
+        "source_type": "marketplace",
+        "source_url": "https://example.com/mall-b/review",
+        "collected_at": "2026-08-12",
+        "orig_refs": [
+          119298,
+          119380,
+          120041,
+          120224
+        ]
+      },
+      {
+        "axis": "게임성능",
+        "sentiment": "긍정",
+        "text": "게임 위주 사용에서는 상위 라인업과 체감 차이가 크지 않다는 후기가 많습니다.",
+        "source_label": "커뮤니티A",
+        "source_type": "community",
+        "source_url": "https://example.com/community-a/thread",
+        "collected_at": "2026-08-28",
+        "orig_refs": [
+          119406,
+          119798
+        ]
+      },
+      {
+        "axis": "전력효율",
+        "sentiment": "긍정",
+        "text": "아이들·게임 전력이 낮아 조용하고 발열 관리가 쉽다는 반응이 많습니다.",
+        "source_label": "커뮤니티A",
+        "source_type": "community",
+        "source_url": "https://example.com/community-a/thread",
+        "collected_at": "2026-08-19",
+        "orig_refs": [
+          120009,
+          120544
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "label": "쇼핑몰B",
+        "type": "marketplace",
+        "url": "https://example.com/mall-b/review"
+      },
+      {
+        "label": "커뮤니티A",
+        "type": "community",
+        "url": "https://example.com/community-a/thread"
+      }
+    ],
+    "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
+    "collected_at": "2026-09-01"
+  },
+  {
+    "product_key": "intel-core-i5-14600k",
+    "product_name": "Intel Core i5-14600K",
+    "category": "cpu",
+    "brand": "intel",
+    "total_reviews": 1311,
+    "removed_count": 279,
+    "cleanse_ratio": 0.213,
+    "orig_rating": 4.53,
+    "cleaned_rating": 4.15,
+    "rating_dist": {
+      "labels": [
+        5,
+        4,
+        3,
+        2,
+        1
+      ],
+      "before_pct": [
+        55,
+        25,
+        8,
+        6,
+        6
+      ],
+      "after_pct": [
+        44,
+        29,
+        11,
+        7,
+        9
+      ]
+    },
+    "axis_scores": {
+      "게임성능": {
+        "label": "긍정",
+        "pct": 87,
+        "n": 292
+      },
+      "발열": {
+        "label": "부정",
+        "pct": 55,
+        "n": 313
+      },
+      "번들쿨러": {
+        "label": "부정",
+        "pct": 60,
+        "n": 333
+      },
+      "전력효율": {
+        "label": "긍정",
+        "pct": 83,
+        "n": 589
+      }
+    },
+    "top_summaries": [
+      {
+        "axis": "발열",
+        "sentiment": "부정",
+        "text": "장시간 풀로드 시 온도가 90도 근처까지 올라 쿨러를 신경 써야 한다는 지적이 반복됩니다.",
+        "source_label": "쇼핑몰B",
+        "source_type": "marketplace",
+        "source_url": "https://example.com/mall-b/review",
+        "collected_at": "2026-08-16",
+        "orig_refs": [
+          119185,
+          119983,
+          120441
+        ]
+      },
+      {
+        "axis": "게임성능",
+        "sentiment": "긍정",
+        "text": "게임 위주 사용에서는 상위 라인업과 체감 차이가 크지 않다는 후기가 많습니다.",
+        "source_label": "유튜브D",
+        "source_type": "youtube",
+        "source_url": "https://example.com/youtube-d/watch",
+        "collected_at": "2026-08-19",
+        "orig_refs": [
+          119394,
+          119894,
+          120426
+        ]
+      },
+      {
+        "axis": "전력효율",
+        "sentiment": "긍정",
+        "text": "아이들·게임 전력이 낮아 조용하고 발열 관리가 쉽다는 반응이 많습니다.",
+        "source_label": "유튜브D",
+        "source_type": "youtube",
+        "source_url": "https://example.com/youtube-d/watch",
+        "collected_at": "2026-08-28",
+        "orig_refs": [
+          120014,
+          120323
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "label": "쇼핑몰B",
+        "type": "marketplace",
+        "url": "https://example.com/mall-b/review"
+      },
+      {
+        "label": "유튜브D",
+        "type": "youtube",
+        "url": "https://example.com/youtube-d/watch"
+      }
+    ],
+    "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
+    "collected_at": "2026-09-01"
+  },
+  {
+    "product_key": "intel-core-i7-14700k",
+    "product_name": "Intel Core i7-14700K",
+    "category": "cpu",
+    "brand": "intel",
+    "total_reviews": 1541,
+    "removed_count": 333,
+    "cleanse_ratio": 0.216,
+    "orig_rating": 4.28,
+    "cleaned_rating": 3.98,
+    "rating_dist": {
+      "labels": [
+        5,
+        4,
+        3,
+        2,
+        1
+      ],
+      "before_pct": [
+        60,
+        26,
+        9,
+        7,
+        1
+      ],
+      "after_pct": [
+        46,
+        30,
+        13,
+        8,
+        4
+      ]
+    },
+    "axis_scores": {
+      "게임성능": {
+        "label": "긍정",
+        "pct": 64,
+        "n": 316
+      },
+      "발열": {
+        "label": "긍정",
+        "pct": 75,
+        "n": 466
+      },
+      "번들쿨러": {
+        "label": "부정",
+        "pct": 48,
+        "n": 355
+      },
+      "전력효율": {
+        "label": "긍정",
+        "pct": 75,
+        "n": 456
+      }
+    },
+    "top_summaries": [
+      {
+        "axis": "발열",
+        "sentiment": "긍정",
+        "text": "전력 제한만 걸어두면 온도와 소음이 확실히 잡힌다는 후기가 많습니다.",
+        "source_label": "블로그C",
+        "source_type": "blog",
+        "source_url": "https://example.com/blog-c/post",
+        "collected_at": "2026-08-13",
+        "orig_refs": [
+          119088,
+          119185,
+          120336,
+          120455
+        ]
+      },
+      {
+        "axis": "게임성능",
+        "sentiment": "긍정",
+        "text": "동급에서 프레임이 잘 뽑히고 1% 로우도 안정적이라는 평이 반복됩니다.",
+        "source_label": "유튜브D",
+        "source_type": "youtube",
+        "source_url": "https://example.com/youtube-d/watch",
+        "collected_at": "2026-08-24",
+        "orig_refs": [
+          119165,
+          119365,
+          119906
+        ]
+      },
+      {
+        "axis": "전력효율",
+        "sentiment": "긍정",
+        "text": "아이들·게임 전력이 낮아 조용하고 발열 관리가 쉽다는 반응이 많습니다.",
+        "source_label": "쇼핑몰B",
+        "source_type": "marketplace",
+        "source_url": "https://example.com/mall-b/review",
+        "collected_at": "2026-08-22",
+        "orig_refs": [
+          119366,
+          120010
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "label": "블로그C",
+        "type": "blog",
+        "url": "https://example.com/blog-c/post"
+      },
+      {
+        "label": "쇼핑몰B",
+        "type": "marketplace",
+        "url": "https://example.com/mall-b/review"
+      },
+      {
+        "label": "유튜브D",
+        "type": "youtube",
+        "url": "https://example.com/youtube-d/watch"
+      }
+    ],
+    "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
+    "collected_at": "2026-09-01"
+  },
+  {
+    "product_key": "intel-core-ultra-7-265k",
+    "product_name": "Intel Core Ultra 7 265K",
+    "category": "cpu",
+    "brand": "intel",
+    "total_reviews": 150,
+    "removed_count": 12,
+    "cleanse_ratio": 0.079,
+    "orig_rating": 4.24,
+    "cleaned_rating": 3.89,
+    "rating_dist": {
+      "labels": [
+        5,
+        4,
+        3,
+        2,
+        1
+      ],
+      "before_pct": [
+        62,
+        26,
+        7,
+        3,
+        2
+      ],
+      "after_pct": [
+        52,
+        30,
+        10,
+        4,
+        4
+      ]
+    },
+    "axis_scores": {
+      "게임성능": {
+        "label": "부정",
+        "pct": 45,
+        "n": 63
+      },
+      "발열": {
+        "label": "부정",
+        "pct": 52,
+        "n": 35
+      },
+      "번들쿨러": {
+        "label": "부정",
+        "pct": 45,
+        "n": 21
+      },
+      "전력효율": {
+        "label": "긍정",
+        "pct": 84,
+        "n": 60
+      }
+    },
+    "top_summaries": [
+      {
+        "axis": "발열",
+        "sentiment": "긍정",
+        "text": "전력 제한만 걸어두면 온도와 소음이 확실히 잡힌다는 후기가 많습니다.",
+        "source_label": "쇼핑몰B",
+        "source_type": "marketplace",
+        "source_url": "https://example.com/mall-b/review",
+        "collected_at": "2026-08-13",
+        "orig_refs": [
+          119091,
+          119298,
+          119575,
+          120372
+        ]
+      },
+      {
+        "axis": "전력효율",
+        "sentiment": "긍정",
+        "text": "아이들·게임 전력이 낮아 조용하고 발열 관리가 쉽다는 반응이 많습니다.",
+        "source_label": "커뮤니티A",
+        "source_type": "community",
+        "source_url": "https://example.com/community-a/thread",
+        "collected_at": "2026-08-29",
+        "orig_refs": [
+          119220,
+          119905,
+          120029
+        ]
+      },
+      {
+        "axis": "게임성능",
+        "sentiment": "긍정",
+        "text": "동급에서 프레임이 잘 뽑히고 1% 로우도 안정적이라는 평이 반복됩니다.",
+        "source_label": "쇼핑몰B",
+        "source_type": "marketplace",
+        "source_url": "https://example.com/mall-b/review",
+        "collected_at": "2026-08-28",
+        "orig_refs": [
+          119731,
+          120001,
+          120191
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "label": "쇼핑몰B",
+        "type": "marketplace",
+        "url": "https://example.com/mall-b/review"
+      },
+      {
+        "label": "커뮤니티A",
+        "type": "community",
+        "url": "https://example.com/community-a/thread"
+      }
+    ],
+    "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
+    "collected_at": "2026-09-01"
+  },
+  {
+    "product_key": "intel-core-ultra-9-285k",
+    "product_name": "Intel Core Ultra 9 285K",
+    "category": "cpu",
+    "brand": "intel",
+    "total_reviews": 301,
+    "removed_count": 23,
+    "cleanse_ratio": 0.078,
+    "orig_rating": 4.21,
+    "cleaned_rating": 4.05,
+    "rating_dist": {
+      "labels": [
+        5,
+        4,
+        3,
+        2,
+        1
+      ],
+      "before_pct": [
+        58,
+        22,
+        9,
+        6,
+        5
+      ],
+      "after_pct": [
+        43,
+        27,
+        13,
+        8,
+        9
+      ]
+    },
+    "axis_scores": {
+      "게임성능": {
+        "label": "긍정",
+        "pct": 73,
+        "n": 100
+      },
+      "발열": {
+        "label": "부정",
+        "pct": 58,
+        "n": 129
+      },
+      "번들쿨러": {
+        "label": "부정",
+        "pct": 46,
+        "n": 132
+      },
+      "전력효율": {
+        "label": "긍정",
+        "pct": 92,
+        "n": 92
+      }
+    },
+    "top_summaries": [
+      {
+        "axis": "전력효율",
+        "sentiment": "긍정",
+        "text": "아이들·게임 전력이 낮아 조용하고 발열 관리가 쉽다는 반응이 많습니다.",
+        "source_label": "커뮤니티A",
+        "source_type": "community",
+        "source_url": "https://example.com/community-a/thread",
+        "collected_at": "2026-08-13",
+        "orig_refs": [
+          119136,
+          119212,
+          119684
+        ]
+      },
+      {
+        "axis": "게임성능",
+        "sentiment": "긍정",
+        "text": "동급에서 프레임이 잘 뽑히고 1% 로우도 안정적이라는 평이 반복됩니다.",
+        "source_label": "블로그C",
+        "source_type": "blog",
+        "source_url": "https://example.com/blog-c/post",
+        "collected_at": "2026-08-23",
+        "orig_refs": [
+          119612,
+          120222,
+          120528
+        ]
+      },
+      {
+        "axis": "발열",
+        "sentiment": "부정",
+        "text": "장시간 풀로드 시 온도가 90도 근처까지 올라 쿨러를 신경 써야 한다는 지적이 반복됩니다.",
+        "source_label": "블로그C",
+        "source_type": "blog",
+        "source_url": "https://example.com/blog-c/post",
+        "collected_at": "2026-08-29",
+        "orig_refs": [
+          119059,
+          119230,
+          120089
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "label": "블로그C",
+        "type": "blog",
+        "url": "https://example.com/blog-c/post"
+      },
+      {
+        "label": "커뮤니티A",
+        "type": "community",
+        "url": "https://example.com/community-a/thread"
+      }
+    ],
+    "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
+    "collected_at": "2026-09-01"
+  },
+  {
+    "product_key": "amd-ryzen-5-7600",
+    "product_name": "AMD Ryzen 5 7600",
+    "category": "cpu",
+    "brand": "amd",
+    "total_reviews": 490,
+    "removed_count": 113,
+    "cleanse_ratio": 0.23,
+    "orig_rating": 4.73,
+    "cleaned_rating": 4.32,
+    "rating_dist": {
+      "labels": [
+        5,
+        4,
+        3,
+        2,
+        1
+      ],
+      "before_pct": [
+        60,
+        20,
+        7,
+        5,
+        8
+      ],
+      "after_pct": [
+        45,
+        25,
+        11,
+        7,
+        12
+      ]
+    },
+    "axis_scores": {
+      "게임성능": {
+        "label": "긍정",
+        "pct": 61,
+        "n": 218
+      },
+      "발열": {
+        "label": "긍정",
+        "pct": 65,
+        "n": 182
+      },
+      "번들쿨러": {
+        "label": "부정",
+        "pct": 44,
+        "n": 82
+      },
+      "전력효율": {
+        "label": "긍정",
+        "pct": 64,
+        "n": 83
+      }
+    },
+    "top_summaries": [
+      {
+        "axis": "게임성능",
+        "sentiment": "긍정",
+        "text": "게임 위주 사용에서는 상위 라인업과 체감 차이가 크지 않다는 후기가 많습니다.",
+        "source_label": "커뮤니티A",
+        "source_type": "community",
+        "source_url": "https://example.com/community-a/thread",
+        "collected_at": "2026-08-16",
+        "orig_refs": [
+          119124,
+          119300,
+          119510,
+          119819
+        ]
+      },
+      {
+        "axis": "번들쿨러",
+        "sentiment": "부정",
+        "text": "기본 쿨러로는 부족해 사제 쿨러 교체가 사실상 필수라는 후기가 많습니다.",
+        "source_label": "유튜브D",
+        "source_type": "youtube",
+        "source_url": "https://example.com/youtube-d/watch",
+        "collected_at": "2026-08-20",
+        "orig_refs": [
+          119802,
+          119956,
+          120212,
+          120351
+        ]
+      },
+      {
+        "axis": "발열",
+        "sentiment": "부정",
+        "text": "장시간 풀로드 시 온도가 90도 근처까지 올라 쿨러를 신경 써야 한다는 지적이 반복됩니다.",
+        "source_label": "유튜브D",
+        "source_type": "youtube",
+        "source_url": "https://example.com/youtube-d/watch",
+        "collected_at": "2026-08-20",
+        "orig_refs": [
+          119966,
+          120073,
+          120190,
+          120502
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "label": "유튜브D",
+        "type": "youtube",
+        "url": "https://example.com/youtube-d/watch"
+      },
+      {
+        "label": "커뮤니티A",
+        "type": "community",
+        "url": "https://example.com/community-a/thread"
+      }
+    ],
+    "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
+    "collected_at": "2026-09-01"
+  },
+  {
+    "product_key": "amd-ryzen-7-7700",
+    "product_name": "AMD Ryzen 7 7700",
+    "category": "cpu",
+    "brand": "amd",
+    "total_reviews": 331,
+    "removed_count": 26,
+    "cleanse_ratio": 0.078,
+    "orig_rating": 4.21,
+    "cleaned_rating": 3.99,
+    "rating_dist": {
+      "labels": [
+        5,
+        4,
+        3,
+        2,
+        1
+      ],
+      "before_pct": [
+        56,
+        20,
+        12,
+        5,
+        7
+      ],
+      "after_pct": [
+        39,
+        26,
+        17,
+        7,
+        11
+      ]
+    },
+    "axis_scores": {
+      "게임성능": {
+        "label": "긍정",
+        "pct": 85,
+        "n": 146
+      },
+      "발열": {
+        "label": "부정",
+        "pct": 59,
+        "n": 43
+      },
+      "번들쿨러": {
+        "label": "부정",
+        "pct": 44,
+        "n": 51
+      },
+      "전력효율": {
+        "label": "긍정",
+        "pct": 82,
+        "n": 138
+      }
+    },
+    "top_summaries": [
+      {
+        "axis": "게임성능",
+        "sentiment": "긍정",
+        "text": "동급에서 프레임이 잘 뽑히고 1% 로우도 안정적이라는 평이 반복됩니다.",
+        "source_label": "블로그C",
+        "source_type": "blog",
+        "source_url": "https://example.com/blog-c/post",
+        "collected_at": "2026-08-29",
+        "orig_refs": [
+          119520,
+          119589,
+          119596
+        ]
+      },
+      {
+        "axis": "전력효율",
+        "sentiment": "긍정",
+        "text": "아이들·게임 전력이 낮아 조용하고 발열 관리가 쉽다는 반응이 많습니다.",
+        "source_label": "쇼핑몰B",
+        "source_type": "marketplace",
+        "source_url": "https://example.com/mall-b/review",
+        "collected_at": "2026-08-31",
+        "orig_refs": [
+          119223,
+          120534
+        ]
+      },
+      {
+        "axis": "번들쿨러",
+        "sentiment": "부정",
+        "text": "기본 쿨러로는 부족해 사제 쿨러 교체가 사실상 필수라는 후기가 많습니다.",
+        "source_label": "커뮤니티A",
+        "source_type": "community",
+        "source_url": "https://example.com/community-a/thread",
+        "collected_at": "2026-08-23",
+        "orig_refs": [
+          119075,
+          119469,
+          120255,
+          120259
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "label": "블로그C",
+        "type": "blog",
+        "url": "https://example.com/blog-c/post"
+      },
+      {
+        "label": "쇼핑몰B",
+        "type": "marketplace",
+        "url": "https://example.com/mall-b/review"
+      },
+      {
+        "label": "커뮤니티A",
+        "type": "community",
+        "url": "https://example.com/community-a/thread"
+      }
+    ],
+    "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
+    "collected_at": "2026-09-01"
+  },
+  {
+    "product_key": "amd-ryzen-7-9800x3d",
+    "product_name": "AMD Ryzen 7 9800X3D",
+    "category": "cpu",
+    "brand": "amd",
+    "total_reviews": 1559,
+    "removed_count": 143,
+    "cleanse_ratio": 0.092,
+    "orig_rating": 4.53,
+    "cleaned_rating": 4.32,
+    "rating_dist": {
+      "labels": [
+        5,
+        4,
+        3,
+        2,
+        1
+      ],
+      "before_pct": [
+        62,
+        23,
+        10,
+        5,
+        1
+      ],
+      "after_pct": [
+        49,
+        28,
+        14,
+        6,
+        4
+      ]
+    },
+    "axis_scores": {
+      "게임성능": {
+        "label": "긍정",
+        "pct": 83,
+        "n": 631
+      },
+      "발열": {
+        "label": "부정",
+        "pct": 41,
+        "n": 699
+      },
+      "번들쿨러": {
+        "label": "부정",
+        "pct": 44,
+        "n": 702
+      },
+      "전력효율": {
+        "label": "긍정",
+        "pct": 78,
+        "n": 596
+      }
+    },
+    "top_summaries": [
+      {
+        "axis": "발열",
+        "sentiment": "긍정",
+        "text": "전력 제한만 걸어두면 온도와 소음이 확실히 잡힌다는 후기가 많습니다.",
+        "source_label": "쇼핑몰B",
+        "source_type": "marketplace",
+        "source_url": "https://example.com/mall-b/review",
+        "collected_at": "2026-08-30",
+        "orig_refs": [
+          119307,
+          119494,
+          120178,
+          120471
+        ]
+      },
+      {
+        "axis": "게임성능",
+        "sentiment": "긍정",
+        "text": "동급에서 프레임이 잘 뽑히고 1% 로우도 안정적이라는 평이 반복됩니다.",
+        "source_label": "유튜브D",
+        "source_type": "youtube",
+        "source_url": "https://example.com/youtube-d/watch",
+        "collected_at": "2026-08-15",
+        "orig_refs": [
+          119377,
+          119772,
+          120303,
+          120457
+        ]
+      },
+      {
+        "axis": "전력효율",
+        "sentiment": "긍정",
+        "text": "아이들·게임 전력이 낮아 조용하고 발열 관리가 쉽다는 반응이 많습니다.",
+        "source_label": "블로그C",
+        "source_type": "blog",
+        "source_url": "https://example.com/blog-c/post",
+        "collected_at": "2026-08-25",
+        "orig_refs": [
+          119128,
+          119574,
+          120117,
+          120234
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "label": "블로그C",
+        "type": "blog",
+        "url": "https://example.com/blog-c/post"
+      },
+      {
+        "label": "쇼핑몰B",
+        "type": "marketplace",
+        "url": "https://example.com/mall-b/review"
+      },
+      {
+        "label": "유튜브D",
+        "type": "youtube",
+        "url": "https://example.com/youtube-d/watch"
+      }
+    ],
+    "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
+    "collected_at": "2026-09-01"
+  },
+  {
+    "product_key": "amd-ryzen-9-9950x",
+    "product_name": "AMD Ryzen 9 9950X",
+    "category": "cpu",
+    "brand": "amd",
+    "total_reviews": 548,
+    "removed_count": 44,
+    "cleanse_ratio": 0.08,
+    "orig_rating": 4.35,
+    "cleaned_rating": 4.01,
+    "rating_dist": {
+      "labels": [
+        5,
+        4,
+        3,
+        2,
+        1
+      ],
+      "before_pct": [
+        63,
+        23,
+        7,
+        3,
+        4
+      ],
+      "after_pct": [
+        50,
+        28,
+        11,
+        4,
+        7
+      ]
+    },
+    "axis_scores": {
+      "게임성능": {
+        "label": "긍정",
+        "pct": 63,
+        "n": 225
+      },
+      "발열": {
+        "label": "부정",
+        "pct": 49,
+        "n": 240
+      },
+      "번들쿨러": {
+        "label": "부정",
+        "pct": 50,
+        "n": 154
+      },
+      "전력효율": {
+        "label": "부정",
+        "pct": 44,
+        "n": 102
+      }
+    },
+    "top_summaries": [
+      {
+        "axis": "발열",
+        "sentiment": "긍정",
+        "text": "전력 제한만 걸어두면 온도와 소음이 확실히 잡힌다는 후기가 많습니다.",
+        "source_label": "쇼핑몰B",
+        "source_type": "marketplace",
+        "source_url": "https://example.com/mall-b/review",
+        "collected_at": "2026-08-21",
+        "orig_refs": [
+          119411,
+          119608
+        ]
+      },
+      {
+        "axis": "게임성능",
+        "sentiment": "긍정",
+        "text": "동급에서 프레임이 잘 뽑히고 1% 로우도 안정적이라는 평이 반복됩니다.",
+        "source_label": "유튜브D",
+        "source_type": "youtube",
+        "source_url": "https://example.com/youtube-d/watch",
+        "collected_at": "2026-08-22",
+        "orig_refs": [
+          119628,
+          120038
+        ]
+      },
+      {
+        "axis": "전력효율",
+        "sentiment": "긍정",
+        "text": "아이들·게임 전력이 낮아 조용하고 발열 관리가 쉽다는 반응이 많습니다.",
+        "source_label": "쇼핑몰B",
+        "source_type": "marketplace",
+        "source_url": "https://example.com/mall-b/review",
+        "collected_at": "2026-08-21",
+        "orig_refs": [
+          119589,
+          120017,
+          120212,
+          120404
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "label": "쇼핑몰B",
+        "type": "marketplace",
+        "url": "https://example.com/mall-b/review"
+      },
+      {
+        "label": "유튜브D",
+        "type": "youtube",
+        "url": "https://example.com/youtube-d/watch"
+      }
+    ],
+    "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
+    "collected_at": "2026-09-01"
+  },
+  {
+    "product_key": "amd-ryzen-5-5600",
+    "product_name": "AMD Ryzen 5 5600",
+    "category": "cpu",
+    "brand": "amd",
+    "total_reviews": 569,
+    "removed_count": 68,
+    "cleanse_ratio": 0.12,
+    "orig_rating": 4.63,
+    "cleaned_rating": 4.16,
+    "rating_dist": {
+      "labels": [
+        5,
+        4,
+        3,
+        2,
+        1
+      ],
+      "before_pct": [
+        56,
+        23,
+        9,
+        4,
+        8
+      ],
+      "after_pct": [
+        47,
+        26,
+        12,
+        5,
+        10
+      ]
+    },
+    "axis_scores": {
+      "게임성능": {
+        "label": "부정",
+        "pct": 52,
+        "n": 158
+      },
+      "발열": {
+        "label": "부정",
+        "pct": 43,
+        "n": 90
+      },
+      "번들쿨러": {
+        "label": "부정",
+        "pct": 52,
+        "n": 111
+      },
+      "전력효율": {
+        "label": "긍정",
+        "pct": 90,
+        "n": 157
+      }
+    },
+    "top_summaries": [
+      {
+        "axis": "발열",
+        "sentiment": "긍정",
+        "text": "전력 제한만 걸어두면 온도와 소음이 확실히 잡힌다는 후기가 많습니다.",
+        "source_label": "블로그C",
+        "source_type": "blog",
+        "source_url": "https://example.com/blog-c/post",
+        "collected_at": "2026-08-23",
+        "orig_refs": [
+          119061,
+          119836
+        ]
+      },
+      {
+        "axis": "번들쿨러",
+        "sentiment": "부정",
+        "text": "기본 쿨러로는 부족해 사제 쿨러 교체가 사실상 필수라는 후기가 많습니다.",
+        "source_label": "블로그C",
+        "source_type": "blog",
+        "source_url": "https://example.com/blog-c/post",
+        "collected_at": "2026-08-29",
+        "orig_refs": [
+          119890,
+          120081,
+          120477
+        ]
+      },
+      {
+        "axis": "게임성능",
+        "sentiment": "긍정",
+        "text": "동급에서 프레임이 잘 뽑히고 1% 로우도 안정적이라는 평이 반복됩니다.",
+        "source_label": "유튜브D",
+        "source_type": "youtube",
+        "source_url": "https://example.com/youtube-d/watch",
+        "collected_at": "2026-08-23",
+        "orig_refs": [
+          119535,
+          120473
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "label": "블로그C",
+        "type": "blog",
+        "url": "https://example.com/blog-c/post"
+      },
+      {
+        "label": "유튜브D",
+        "type": "youtube",
+        "url": "https://example.com/youtube-d/watch"
+      }
+    ],
+    "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
+    "collected_at": "2026-09-01"
+  },
+  {
+    "product_key": "asus-prime-b760m-a-wifi",
+    "product_name": "ASUS PRIME B760M-A WIFI",
+    "category": "mainboard",
+    "brand": "asus",
+    "total_reviews": 1024,
+    "removed_count": 190,
+    "cleanse_ratio": 0.186,
+    "orig_rating": 4.53,
+    "cleaned_rating": 4.1,
+    "rating_dist": {
+      "labels": [
+        5,
+        4,
+        3,
+        2,
+        1
+      ],
+      "before_pct": [
+        60,
+        25,
+        11,
+        7,
+        1
+      ],
+      "after_pct": [
+        45,
+        29,
+        14,
+        8,
+        4
+      ]
+    },
+    "axis_scores": {
+      "BIOS안정성": {
+        "label": "부정",
+        "pct": 55,
+        "n": 345
+      },
+      "VRM발열": {
+        "label": "긍정",
+        "pct": 65,
+        "n": 345
+      },
+      "부팅/POST": {
+        "label": "부정",
+        "pct": 53,
+        "n": 232
+      },
+      "부가기능": {
+        "label": "긍정",
+        "pct": 79,
+        "n": 415
+      }
+    },
+    "top_summaries": [
+      {
+        "axis": "부가기능",
+        "sentiment": "긍정",
+        "text": "내장 Wi-Fi·후면 USB 구성이 넉넉해 확장에 불편이 없다는 평이 많습니다.",
+        "source_label": "블로그C",
+        "source_type": "blog",
+        "source_url": "https://example.com/blog-c/post",
+        "collected_at": "2026-08-23",
+        "orig_refs": [
+          119658,
+          119915,
+          120403,
+          120418
+        ]
+      },
+      {
+        "axis": "BIOS안정성",
+        "sentiment": "긍정",
+        "text": "최근 BIOS는 안정적이고 설정 항목도 직관적이라는 후기가 많습니다.",
+        "source_label": "블로그C",
+        "source_type": "blog",
+        "source_url": "https://example.com/blog-c/post",
+        "collected_at": "2026-08-23",
+        "orig_refs": [
+          119337,
+          119473
+        ]
+      },
+      {
+        "axis": "VRM발열",
+        "sentiment": "긍정",
+        "text": "고전력 CPU에서도 전원부 온도가 안정적이라는 측정 후기가 많습니다.",
+        "source_label": "유튜브D",
+        "source_type": "youtube",
+        "source_url": "https://example.com/youtube-d/watch",
+        "collected_at": "2026-08-29",
+        "orig_refs": [
+          119142,
+          120512
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "label": "블로그C",
+        "type": "blog",
+        "url": "https://example.com/blog-c/post"
+      },
+      {
+        "label": "유튜브D",
+        "type": "youtube",
+        "url": "https://example.com/youtube-d/watch"
+      }
+    ],
+    "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
+    "collected_at": "2026-09-01"
+  },
+  {
+    "product_key": "asus-rog-strix-z790-e-gaming-wifi",
+    "product_name": "ASUS ROG STRIX Z790-E GAMING WIFI",
+    "category": "mainboard",
+    "brand": "asus",
+    "total_reviews": 192,
+    "removed_count": 29,
+    "cleanse_ratio": 0.15,
+    "orig_rating": 4.19,
+    "cleaned_rating": 3.89,
+    "rating_dist": {
+      "labels": [
+        5,
+        4,
+        3,
+        2,
+        1
+      ],
+      "before_pct": [
+        52,
+        22,
+        9,
+        3,
+        14
+      ],
+      "after_pct": [
+        42,
+        26,
+        12,
+        4,
+        16
+      ]
+    },
+    "axis_scores": {
+      "BIOS안정성": {
+        "label": "부정",
+        "pct": 59,
+        "n": 39
+      },
+      "VRM발열": {
+        "label": "부정",
+        "pct": 50,
+        "n": 39
+      },
+      "부팅/POST": {
+        "label": "긍정",
+        "pct": 75,
+        "n": 78
+      },
+      "부가기능": {
+        "label": "긍정",
+        "pct": 65,
+        "n": 80
+      }
+    },
+    "top_summaries": [
+      {
+        "axis": "부가기능",
+        "sentiment": "긍정",
+        "text": "내장 Wi-Fi·후면 USB 구성이 넉넉해 확장에 불편이 없다는 평이 많습니다.",
+        "source_label": "블로그C",
+        "source_type": "blog",
+        "source_url": "https://example.com/blog-c/post",
+        "collected_at": "2026-09-01",
+        "orig_refs": [
+          119755,
+          119962,
+          120015,
+          120224
+        ]
+      },
+      {
+        "axis": "VRM발열",
+        "sentiment": "긍정",
+        "text": "고전력 CPU에서도 전원부 온도가 안정적이라는 측정 후기가 많습니다.",
+        "source_label": "쇼핑몰B",
+        "source_type": "marketplace",
+        "source_url": "https://example.com/mall-b/review",
+        "collected_at": "2026-09-01",
+        "orig_refs": [
+          119640,
+          119925
+        ]
+      },
+      {
+        "axis": "BIOS안정성",
+        "sentiment": "긍정",
+        "text": "최근 BIOS는 안정적이고 설정 항목도 직관적이라는 후기가 많습니다.",
+        "source_label": "커뮤니티A",
+        "source_type": "community",
+        "source_url": "https://example.com/community-a/thread",
+        "collected_at": "2026-08-12",
+        "orig_refs": [
+          119741,
+          120035,
+          120061,
+          120302
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "label": "블로그C",
+        "type": "blog",
+        "url": "https://example.com/blog-c/post"
+      },
+      {
+        "label": "쇼핑몰B",
+        "type": "marketplace",
+        "url": "https://example.com/mall-b/review"
+      },
+      {
+        "label": "커뮤니티A",
+        "type": "community",
+        "url": "https://example.com/community-a/thread"
+      }
+    ],
+    "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
+    "collected_at": "2026-09-01"
+  },
+  {
+    "product_key": "msi-mag-b760-tomahawk-wifi",
+    "product_name": "MSI MAG B760 TOMAHAWK WIFI",
+    "category": "mainboard",
+    "brand": "msi",
+    "total_reviews": 966,
+    "removed_count": 131,
+    "cleanse_ratio": 0.136,
+    "orig_rating": 4.16,
+    "cleaned_rating": 3.86,
+    "rating_dist": {
+      "labels": [
+        5,
+        4,
+        3,
+        2,
+        1
+      ],
+      "before_pct": [
+        63,
+        22,
+        12,
+        5,
+        1
+      ],
+      "after_pct": [
+        49,
+        26,
+        16,
+        6,
+        4
+      ]
+    },
+    "axis_scores": {
+      "BIOS안정성": {
+        "label": "부정",
+        "pct": 55,
+        "n": 399
+      },
+      "VRM발열": {
+        "label": "긍정",
+        "pct": 89,
+        "n": 171
+      },
+      "부팅/POST": {
+        "label": "부정",
+        "pct": 50,
+        "n": 145
+      },
+      "부가기능": {
+        "label": "긍정",
+        "pct": 63,
+        "n": 423
+      }
+    },
+    "top_summaries": [
+      {
+        "axis": "BIOS안정성",
+        "sentiment": "긍정",
+        "text": "최근 BIOS는 안정적이고 설정 항목도 직관적이라는 후기가 많습니다.",
+        "source_label": "커뮤니티A",
+        "source_type": "community",
+        "source_url": "https://example.com/community-a/thread",
+        "collected_at": "2026-08-13",
+        "orig_refs": [
+          119582,
+          119875,
+          119895,
+          120075
+        ]
+      },
+      {
+        "axis": "부가기능",
+        "sentiment": "긍정",
+        "text": "내장 Wi-Fi·후면 USB 구성이 넉넉해 확장에 불편이 없다는 평이 많습니다.",
+        "source_label": "쇼핑몰B",
+        "source_type": "marketplace",
+        "source_url": "https://example.com/mall-b/review",
+        "collected_at": "2026-08-24",
+        "orig_refs": [
+          119304,
+          120104
+        ]
+      },
+      {
+        "axis": "VRM발열",
+        "sentiment": "긍정",
+        "text": "고전력 CPU에서도 전원부 온도가 안정적이라는 측정 후기가 많습니다.",
+        "source_label": "블로그C",
+        "source_type": "blog",
+        "source_url": "https://example.com/blog-c/post",
+        "collected_at": "2026-08-15",
+        "orig_refs": [
+          119830,
+          119914
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "label": "블로그C",
+        "type": "blog",
+        "url": "https://example.com/blog-c/post"
+      },
+      {
+        "label": "쇼핑몰B",
+        "type": "marketplace",
+        "url": "https://example.com/mall-b/review"
+      },
+      {
+        "label": "커뮤니티A",
+        "type": "community",
+        "url": "https://example.com/community-a/thread"
+      }
+    ],
+    "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
+    "collected_at": "2026-09-01"
+  },
+  {
+    "product_key": "msi-mag-z890-tomahawk-wifi",
+    "product_name": "MSI MAG Z890 TOMAHAWK WIFI",
+    "category": "mainboard",
+    "brand": "msi",
+    "total_reviews": 642,
+    "removed_count": 98,
+    "cleanse_ratio": 0.153,
+    "orig_rating": 4.39,
+    "cleaned_rating": 3.96,
+    "rating_dist": {
+      "labels": [
+        5,
+        4,
+        3,
+        2,
+        1
+      ],
+      "before_pct": [
+        64,
+        24,
+        12,
+        6,
+        1
+      ],
+      "after_pct": [
+        44,
+        28,
+        16,
+        7,
+        5
+      ]
+    },
+    "axis_scores": {
+      "BIOS안정성": {
+        "label": "긍정",
+        "pct": 67,
+        "n": 98
+      },
+      "VRM발열": {
+        "label": "긍정",
+        "pct": 69,
+        "n": 129
+      },
+      "부팅/POST": {
+        "label": "긍정",
+        "pct": 85,
+        "n": 251
+      },
+      "부가기능": {
+        "label": "긍정",
+        "pct": 91,
+        "n": 143
+      }
+    },
+    "top_summaries": [
+      {
+        "axis": "VRM발열",
+        "sentiment": "긍정",
+        "text": "고전력 CPU에서도 전원부 온도가 안정적이라는 측정 후기가 많습니다.",
+        "source_label": "커뮤니티A",
+        "source_type": "community",
+        "source_url": "https://example.com/community-a/thread",
+        "collected_at": "2026-08-15",
+        "orig_refs": [
+          119065,
+          119769,
+          120339,
+          120347
+        ]
+      },
+      {
+        "axis": "BIOS안정성",
+        "sentiment": "부정",
+        "text": "출고 BIOS로는 최신 세대 CPU 인식이 안 돼 별도 업데이트가 필요했다는 사례가 있습니다.",
+        "source_label": "쇼핑몰B",
+        "source_type": "marketplace",
+        "source_url": "https://example.com/mall-b/review",
+        "collected_at": "2026-08-18",
+        "orig_refs": [
+          119368,
+          119516,
+          119687,
+          120002
+        ]
+      },
+      {
+        "axis": "부가기능",
+        "sentiment": "긍정",
+        "text": "내장 Wi-Fi·후면 USB 구성이 넉넉해 확장에 불편이 없다는 평이 많습니다.",
+        "source_label": "유튜브D",
+        "source_type": "youtube",
+        "source_url": "https://example.com/youtube-d/watch",
+        "collected_at": "2026-08-21",
+        "orig_refs": [
+          119236,
+          119857
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "label": "쇼핑몰B",
+        "type": "marketplace",
+        "url": "https://example.com/mall-b/review"
+      },
+      {
+        "label": "유튜브D",
+        "type": "youtube",
+        "url": "https://example.com/youtube-d/watch"
+      },
+      {
+        "label": "커뮤니티A",
+        "type": "community",
+        "url": "https://example.com/community-a/thread"
+      }
+    ],
+    "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
+    "collected_at": "2026-09-01"
+  },
+  {
+    "product_key": "asrock-b860m-pro-rs",
+    "product_name": "ASRock B860M Pro RS",
+    "category": "mainboard",
+    "brand": "asrock",
+    "total_reviews": 669,
+    "removed_count": 118,
+    "cleanse_ratio": 0.177,
+    "orig_rating": 4.61,
+    "cleaned_rating": 4.2,
+    "rating_dist": {
+      "labels": [
+        5,
+        4,
+        3,
+        2,
+        1
+      ],
+      "before_pct": [
+        55,
+        25,
+        12,
+        3,
+        5
+      ],
+      "after_pct": [
+        43,
+        29,
+        16,
+        4,
+        8
+      ]
+    },
+    "axis_scores": {
+      "BIOS안정성": {
+        "label": "긍정",
+        "pct": 59,
+        "n": 202
+      },
+      "VRM발열": {
+        "label": "부정",
+        "pct": 44,
+        "n": 159
+      },
+      "부팅/POST": {
+        "label": "부정",
+        "pct": 53,
+        "n": 263
+      },
+      "부가기능": {
+        "label": "긍정",
+        "pct": 81,
+        "n": 111
+      }
+    },
+    "top_summaries": [
+      {
+        "axis": "BIOS안정성",
+        "sentiment": "부정",
+        "text": "출고 BIOS로는 최신 세대 CPU 인식이 안 돼 별도 업데이트가 필요했다는 사례가 있습니다.",
+        "source_label": "커뮤니티A",
+        "source_type": "community",
+        "source_url": "https://example.com/community-a/thread",
+        "collected_at": "2026-08-22",
+        "orig_refs": [
+          119998,
+          120156,
+          120483,
+          120504
+        ]
+      },
+      {
+        "axis": "부가기능",
+        "sentiment": "긍정",
+        "text": "내장 Wi-Fi·후면 USB 구성이 넉넉해 확장에 불편이 없다는 평이 많습니다.",
+        "source_label": "커뮤니티A",
+        "source_type": "community",
+        "source_url": "https://example.com/community-a/thread",
+        "collected_at": "2026-08-12",
+        "orig_refs": [
+          119460,
+          120040,
+          120183,
+          120231
+        ]
+      },
+      {
+        "axis": "VRM발열",
+        "sentiment": "긍정",
+        "text": "고전력 CPU에서도 전원부 온도가 안정적이라는 측정 후기가 많습니다.",
+        "source_label": "커뮤니티A",
+        "source_type": "community",
+        "source_url": "https://example.com/community-a/thread",
+        "collected_at": "2026-08-15",
+        "orig_refs": [
+          119060,
+          119260
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "label": "커뮤니티A",
+        "type": "community",
+        "url": "https://example.com/community-a/thread"
+      }
+    ],
+    "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
+    "collected_at": "2026-09-01"
+  },
+  {
+    "product_key": "asus-tuf-gaming-b650-plus-wifi",
+    "product_name": "ASUS TUF GAMING B650-PLUS WIFI",
+    "category": "mainboard",
+    "brand": "asus",
+    "total_reviews": 580,
+    "removed_count": 95,
+    "cleanse_ratio": 0.163,
+    "orig_rating": 4.31,
+    "cleaned_rating": 4.14,
+    "rating_dist": {
+      "labels": [
+        5,
+        4,
+        3,
+        2,
+        1
+      ],
+      "before_pct": [
+        61,
+        27,
+        12,
+        5,
+        1
+      ],
+      "after_pct": [
+        47,
+        29,
+        14,
+        6,
+        4
+      ]
+    },
+    "axis_scores": {
+      "BIOS안정성": {
+        "label": "부정",
+        "pct": 57,
+        "n": 238
+      },
+      "VRM발열": {
+        "label": "긍정",
+        "pct": 87,
+        "n": 138
+      },
+      "부팅/POST": {
+        "label": "부정",
+        "pct": 60,
+        "n": 133
+      },
+      "부가기능": {
+        "label": "긍정",
+        "pct": 58,
+        "n": 78
+      }
+    },
+    "top_summaries": [
+      {
+        "axis": "VRM발열",
+        "sentiment": "긍정",
+        "text": "고전력 CPU에서도 전원부 온도가 안정적이라는 측정 후기가 많습니다.",
+        "source_label": "쇼핑몰B",
+        "source_type": "marketplace",
+        "source_url": "https://example.com/mall-b/review",
+        "collected_at": "2026-08-12",
+        "orig_refs": [
+          119198,
+          119943
+        ]
+      },
+      {
+        "axis": "BIOS안정성",
+        "sentiment": "긍정",
+        "text": "최근 BIOS는 안정적이고 설정 항목도 직관적이라는 후기가 많습니다.",
+        "source_label": "유튜브D",
+        "source_type": "youtube",
+        "source_url": "https://example.com/youtube-d/watch",
+        "collected_at": "2026-08-24",
+        "orig_refs": [
+          119367,
+          119915,
+          120122
+        ]
+      },
+      {
+        "axis": "부팅/POST",
+        "sentiment": "부정",
+        "text": "메모리 4개 장착 시 첫 POST가 오래 걸린다는 언급이 반복됩니다.",
+        "source_label": "커뮤니티A",
+        "source_type": "community",
+        "source_url": "https://example.com/community-a/thread",
+        "collected_at": "2026-08-18",
+        "orig_refs": [
+          119488,
+          119807,
+          120436
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "label": "쇼핑몰B",
+        "type": "marketplace",
+        "url": "https://example.com/mall-b/review"
+      },
+      {
+        "label": "유튜브D",
+        "type": "youtube",
+        "url": "https://example.com/youtube-d/watch"
+      },
+      {
+        "label": "커뮤니티A",
+        "type": "community",
+        "url": "https://example.com/community-a/thread"
+      }
+    ],
+    "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
+    "collected_at": "2026-09-01"
+  },
+  {
+    "product_key": "msi-mag-b850-tomahawk-wifi",
+    "product_name": "MSI MAG B850 TOMAHAWK WIFI",
+    "category": "mainboard",
+    "brand": "msi",
+    "total_reviews": 1354,
+    "removed_count": 265,
+    "cleanse_ratio": 0.196,
+    "orig_rating": 4.49,
+    "cleaned_rating": 4.32,
+    "rating_dist": {
+      "labels": [
+        5,
+        4,
+        3,
+        2,
+        1
+      ],
+      "before_pct": [
+        63,
+        23,
+        12,
+        3,
+        1
+      ],
+      "after_pct": [
+        53,
+        25,
+        15,
+        4,
+        3
+      ]
+    },
+    "axis_scores": {
+      "BIOS안정성": {
+        "label": "부정",
+        "pct": 39,
+        "n": 600
+      },
+      "VRM발열": {
+        "label": "긍정",
+        "pct": 68,
+        "n": 483
+      },
+      "부팅/POST": {
+        "label": "긍정",
+        "pct": 59,
+        "n": 173
+      },
+      "부가기능": {
+        "label": "긍정",
+        "pct": 62,
+        "n": 237
+      }
+    },
+    "top_summaries": [
+      {
+        "axis": "VRM발열",
+        "sentiment": "긍정",
+        "text": "고전력 CPU에서도 전원부 온도가 안정적이라는 측정 후기가 많습니다.",
+        "source_label": "블로그C",
+        "source_type": "blog",
+        "source_url": "https://example.com/blog-c/post",
+        "collected_at": "2026-08-22",
+        "orig_refs": [
+          119596,
+          120007,
+          120030,
+          120488
+        ]
+      },
+      {
+        "axis": "BIOS안정성",
+        "sentiment": "긍정",
+        "text": "최근 BIOS는 안정적이고 설정 항목도 직관적이라는 후기가 많습니다.",
+        "source_label": "유튜브D",
+        "source_type": "youtube",
+        "source_url": "https://example.com/youtube-d/watch",
+        "collected_at": "2026-08-18",
+        "orig_refs": [
+          119928,
+          120074
+        ]
+      },
+      {
+        "axis": "부가기능",
+        "sentiment": "긍정",
+        "text": "내장 Wi-Fi·후면 USB 구성이 넉넉해 확장에 불편이 없다는 평이 많습니다.",
+        "source_label": "블로그C",
+        "source_type": "blog",
+        "source_url": "https://example.com/blog-c/post",
+        "collected_at": "2026-08-25",
+        "orig_refs": [
+          119136,
+          119572,
+          119684,
+          119981
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "label": "블로그C",
+        "type": "blog",
+        "url": "https://example.com/blog-c/post"
+      },
+      {
+        "label": "유튜브D",
+        "type": "youtube",
+        "url": "https://example.com/youtube-d/watch"
+      }
+    ],
+    "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
+    "collected_at": "2026-09-01"
+  },
+  {
+    "product_key": "asrock-x870e-taichi",
+    "product_name": "ASRock X870E Taichi",
+    "category": "mainboard",
+    "brand": "asrock",
+    "total_reviews": 335,
+    "removed_count": 52,
+    "cleanse_ratio": 0.156,
+    "orig_rating": 4.62,
+    "cleaned_rating": 4.19,
+    "rating_dist": {
+      "labels": [
+        5,
+        4,
+        3,
+        2,
+        1
+      ],
+      "before_pct": [
+        54,
+        20,
+        10,
+        5,
+        11
+      ],
+      "after_pct": [
+        37,
+        26,
+        15,
+        7,
+        15
+      ]
+    },
+    "axis_scores": {
+      "BIOS안정성": {
+        "label": "부정",
+        "pct": 38,
+        "n": 59
+      },
+      "VRM발열": {
+        "label": "긍정",
+        "pct": 85,
+        "n": 88
+      },
+      "부팅/POST": {
+        "label": "부정",
+        "pct": 39,
+        "n": 146
+      },
+      "부가기능": {
+        "label": "긍정",
+        "pct": 64,
+        "n": 45
+      }
+    },
+    "top_summaries": [
+      {
+        "axis": "부가기능",
+        "sentiment": "긍정",
+        "text": "내장 Wi-Fi·후면 USB 구성이 넉넉해 확장에 불편이 없다는 평이 많습니다.",
+        "source_label": "커뮤니티A",
+        "source_type": "community",
+        "source_url": "https://example.com/community-a/thread",
+        "collected_at": "2026-08-17",
+        "orig_refs": [
+          119880,
+          120321
+        ]
+      },
+      {
+        "axis": "부팅/POST",
+        "sentiment": "부정",
+        "text": "메모리 4개 장착 시 첫 POST가 오래 걸린다는 언급이 반복됩니다.",
+        "source_label": "쇼핑몰B",
+        "source_type": "marketplace",
+        "source_url": "https://example.com/mall-b/review",
+        "collected_at": "2026-08-23",
+        "orig_refs": [
+          119287,
+          119384,
+          119685,
+          119954
+        ]
+      },
+      {
+        "axis": "BIOS안정성",
+        "sentiment": "부정",
+        "text": "출고 BIOS로는 최신 세대 CPU 인식이 안 돼 별도 업데이트가 필요했다는 사례가 있습니다.",
+        "source_label": "블로그C",
+        "source_type": "blog",
+        "source_url": "https://example.com/blog-c/post",
+        "collected_at": "2026-08-13",
+        "orig_refs": [
+          119852,
+          120327,
+          120456,
+          120537
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "label": "블로그C",
+        "type": "blog",
+        "url": "https://example.com/blog-c/post"
+      },
+      {
+        "label": "쇼핑몰B",
+        "type": "marketplace",
+        "url": "https://example.com/mall-b/review"
+      },
+      {
+        "label": "커뮤니티A",
+        "type": "community",
+        "url": "https://example.com/community-a/thread"
+      }
+    ],
+    "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
+    "collected_at": "2026-09-01"
+  },
+  {
+    "product_key": "asrock-b550m-pro-rs",
+    "product_name": "ASRock B550M Pro RS",
+    "category": "mainboard",
+    "brand": "asrock",
+    "total_reviews": 272,
+    "removed_count": 34,
+    "cleanse_ratio": 0.125,
+    "orig_rating": 4.65,
+    "cleaned_rating": 4.2,
+    "rating_dist": {
+      "labels": [
+        5,
+        4,
+        3,
+        2,
+        1
+      ],
+      "before_pct": [
+        59,
+        24,
+        11,
+        4,
+        2
+      ],
+      "after_pct": [
+        46,
+        29,
+        15,
+        5,
+        5
+      ]
+    },
+    "axis_scores": {
+      "BIOS안정성": {
+        "label": "긍정",
+        "pct": 76,
+        "n": 87
+      },
+      "VRM발열": {
+        "label": "긍정",
+        "pct": 91,
+        "n": 89
+      },
+      "부팅/POST": {
+        "label": "부정",
+        "pct": 42,
+        "n": 116
+      },
+      "부가기능": {
+        "label": "긍정",
+        "pct": 78,
+        "n": 47
+      }
+    },
+    "top_summaries": [
+      {
+        "axis": "부팅/POST",
+        "sentiment": "부정",
+        "text": "메모리 4개 장착 시 첫 POST가 오래 걸린다는 언급이 반복됩니다.",
+        "source_label": "쇼핑몰B",
+        "source_type": "marketplace",
+        "source_url": "https://example.com/mall-b/review",
+        "collected_at": "2026-08-26",
+        "orig_refs": [
+          119398,
+          119697,
+          119744,
+          120128
+        ]
+      },
+      {
+        "axis": "BIOS안정성",
+        "sentiment": "부정",
+        "text": "출고 BIOS로는 최신 세대 CPU 인식이 안 돼 별도 업데이트가 필요했다는 사례가 있습니다.",
+        "source_label": "쇼핑몰B",
+        "source_type": "marketplace",
+        "source_url": "https://example.com/mall-b/review",
+        "collected_at": "2026-08-20",
+        "orig_refs": [
+          119718,
+          119984,
+          120089,
+          120281
+        ]
+      },
+      {
+        "axis": "부가기능",
+        "sentiment": "긍정",
+        "text": "내장 Wi-Fi·후면 USB 구성이 넉넉해 확장에 불편이 없다는 평이 많습니다.",
+        "source_label": "커뮤니티A",
+        "source_type": "community",
+        "source_url": "https://example.com/community-a/thread",
+        "collected_at": "2026-08-31",
+        "orig_refs": [
+          120188,
+          120403
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "label": "쇼핑몰B",
+        "type": "marketplace",
+        "url": "https://example.com/mall-b/review"
+      },
+      {
+        "label": "커뮤니티A",
+        "type": "community",
+        "url": "https://example.com/community-a/thread"
+      }
+    ],
+    "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
+    "collected_at": "2026-09-01"
+  },
+  {
+    "product_key": "gigabyte-b650-aorus-elite-ax",
+    "product_name": "GIGABYTE B650 AORUS ELITE AX",
+    "category": "mainboard",
+    "brand": "gigabyte",
+    "total_reviews": 552,
+    "removed_count": 129,
+    "cleanse_ratio": 0.233,
+    "orig_rating": 4.66,
+    "cleaned_rating": 4.21,
+    "rating_dist": {
+      "labels": [
+        5,
+        4,
+        3,
+        2,
+        1
+      ],
+      "before_pct": [
+        55,
+        27,
+        11,
+        6,
+        1
+      ],
+      "after_pct": [
+        41,
+        32,
+        15,
+        7,
+        5
+      ]
+    },
+    "axis_scores": {
+      "BIOS안정성": {
+        "label": "부정",
+        "pct": 62,
+        "n": 246
+      },
+      "VRM발열": {
+        "label": "긍정",
+        "pct": 88,
+        "n": 131
+      },
+      "부팅/POST": {
+        "label": "부정",
+        "pct": 60,
+        "n": 161
+      },
+      "부가기능": {
+        "label": "긍정",
+        "pct": 68,
+        "n": 112
+      }
+    },
+    "top_summaries": [
+      {
+        "axis": "부팅/POST",
+        "sentiment": "부정",
+        "text": "메모리 4개 장착 시 첫 POST가 오래 걸린다는 언급이 반복됩니다.",
+        "source_label": "블로그C",
+        "source_type": "blog",
+        "source_url": "https://example.com/blog-c/post",
+        "collected_at": "2026-08-25",
+        "orig_refs": [
+          119354,
+          119472,
+          120202
+        ]
+      },
+      {
+        "axis": "VRM발열",
+        "sentiment": "긍정",
+        "text": "고전력 CPU에서도 전원부 온도가 안정적이라는 측정 후기가 많습니다.",
+        "source_label": "커뮤니티A",
+        "source_type": "community",
+        "source_url": "https://example.com/community-a/thread",
+        "collected_at": "2026-08-21",
+        "orig_refs": [
+          119266,
+          120325
+        ]
+      },
+      {
+        "axis": "부가기능",
+        "sentiment": "긍정",
+        "text": "내장 Wi-Fi·후면 USB 구성이 넉넉해 확장에 불편이 없다는 평이 많습니다.",
+        "source_label": "커뮤니티A",
+        "source_type": "community",
+        "source_url": "https://example.com/community-a/thread",
+        "collected_at": "2026-08-28",
+        "orig_refs": [
+          119625,
+          120048,
+          120362
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "label": "블로그C",
+        "type": "blog",
+        "url": "https://example.com/blog-c/post"
+      },
+      {
+        "label": "커뮤니티A",
+        "type": "community",
+        "url": "https://example.com/community-a/thread"
+      }
+    ],
+    "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
+    "collected_at": "2026-09-01"
+  },
+  {
+    "product_key": "samsung-ddr5-5600-32gb-2x16",
+    "product_name": "Samsung DDR5-5600 32GB (2x16)",
+    "category": "ram",
+    "brand": "samsung",
+    "total_reviews": 636,
+    "removed_count": 71,
+    "cleanse_ratio": 0.112,
+    "orig_rating": 4.62,
+    "cleaned_rating": 4.26,
+    "rating_dist": {
+      "labels": [
+        5,
+        4,
+        3,
+        2,
+        1
+      ],
+      "before_pct": [
+        64,
+        25,
+        8,
+        3,
+        1
+      ],
+      "after_pct": [
+        51,
+        29,
+        12,
+        4,
+        4
+      ]
+    },
+    "axis_scores": {
+      "호환성": {
+        "label": "부정",
+        "pct": 51,
+        "n": 185
+      },
+      "안정성": {
+        "label": "긍정",
+        "pct": 83,
+        "n": 141
+      },
+      "오버클럭": {
+        "label": "긍정",
+        "pct": 89,
+        "n": 274
+      },
+      "방열판높이": {
+        "label": "부정",
+        "pct": 47,
+        "n": 189
+      }
+    },
+    "top_summaries": [
+      {
+        "axis": "호환성",
+        "sentiment": "부정",
+        "text": "일부 메인보드에서 EXPO/XMP 프로파일이 한 번에 안 잡혀 BIOS 업데이트가 필요했다는 후기가 있습니다.",
+        "source_label": "커뮤니티A",
+        "source_type": "community",
+        "source_url": "https://example.com/community-a/thread",
+        "collected_at": "2026-08-21",
+        "orig_refs": [
+          119710,
+          120139,
+          120467,
+          120541
+        ]
+      },
+      {
+        "axis": "방열판높이",
+        "sentiment": "부정",
+        "text": "방열판이 높아 대형 공랭 쿨러와 간섭될 수 있다는 지적이 있습니다.",
+        "source_label": "블로그C",
+        "source_type": "blog",
+        "source_url": "https://example.com/blog-c/post",
+        "collected_at": "2026-08-21",
+        "orig_refs": [
+          119335,
+          119667,
+          119685,
+          119895
+        ]
+      },
+      {
+        "axis": "안정성",
+        "sentiment": "긍정",
+        "text": "정격·프로파일 모두 장기간 오류 없이 돌아간다는 평이 많습니다.",
+        "source_label": "커뮤니티A",
+        "source_type": "community",
+        "source_url": "https://example.com/community-a/thread",
+        "collected_at": "2026-08-29",
+        "orig_refs": [
+          119431,
+          119459,
+          119789,
+          120081
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "label": "블로그C",
+        "type": "blog",
+        "url": "https://example.com/blog-c/post"
+      },
+      {
+        "label": "커뮤니티A",
+        "type": "community",
+        "url": "https://example.com/community-a/thread"
+      }
+    ],
+    "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
+    "collected_at": "2026-09-01"
+  },
+  {
+    "product_key": "g-skill-trident-z5-rgb-ddr5-6000-cl30-32gb-2x16",
+    "product_name": "G.Skill Trident Z5 RGB DDR5-6000 CL30 32GB (2x16)",
+    "category": "ram",
+    "brand": "gskill",
+    "total_reviews": 816,
+    "removed_count": 71,
+    "cleanse_ratio": 0.087,
+    "orig_rating": 4.58,
+    "cleaned_rating": 4.42,
+    "rating_dist": {
+      "labels": [
+        5,
+        4,
+        3,
+        2,
+        1
+      ],
+      "before_pct": [
+        56,
+        24,
+        12,
+        3,
+        5
+      ],
+      "after_pct": [
+        44,
+        28,
+        16,
+        4,
+        8
+      ]
+    },
+    "axis_scores": {
+      "호환성": {
+        "label": "부정",
+        "pct": 62,
+        "n": 205
+      },
+      "안정성": {
+        "label": "긍정",
+        "pct": 78,
+        "n": 138
+      },
+      "오버클럭": {
+        "label": "긍정",
+        "pct": 62,
+        "n": 236
+      },
+      "방열판높이": {
+        "label": "부정",
+        "pct": 48,
+        "n": 128
+      }
+    },
+    "top_summaries": [
+      {
+        "axis": "방열판높이",
+        "sentiment": "부정",
+        "text": "방열판이 높아 대형 공랭 쿨러와 간섭될 수 있다는 지적이 있습니다.",
+        "source_label": "유튜브D",
+        "source_type": "youtube",
+        "source_url": "https://example.com/youtube-d/watch",
+        "collected_at": "2026-08-29",
+        "orig_refs": [
+          119388,
+          120110
+        ]
+      },
+      {
+        "axis": "오버클럭",
+        "sentiment": "긍정",
+        "text": "표기 클럭보다 조금 더 올려도 안정적이었다는 후기가 있습니다.",
+        "source_label": "블로그C",
+        "source_type": "blog",
+        "source_url": "https://example.com/blog-c/post",
+        "collected_at": "2026-08-23",
+        "orig_refs": [
+          119701,
+          119859,
+          120034
+        ]
+      },
+      {
+        "axis": "호환성",
+        "sentiment": "긍정",
+        "text": "메인보드 QVL에 올라 있어 설정 없이 바로 잡혔다는 후기가 많습니다.",
+        "source_label": "쇼핑몰B",
+        "source_type": "marketplace",
+        "source_url": "https://example.com/mall-b/review",
+        "collected_at": "2026-08-20",
+        "orig_refs": [
+          119135,
+          119315,
+          119404,
+          120078
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "label": "블로그C",
+        "type": "blog",
+        "url": "https://example.com/blog-c/post"
+      },
+      {
+        "label": "쇼핑몰B",
+        "type": "marketplace",
+        "url": "https://example.com/mall-b/review"
+      },
+      {
+        "label": "유튜브D",
+        "type": "youtube",
+        "url": "https://example.com/youtube-d/watch"
+      }
+    ],
+    "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
+    "collected_at": "2026-09-01"
+  },
+  {
+    "product_key": "g-skill-flare-x5-ddr5-6000-cl36-32gb-2x16",
+    "product_name": "G.Skill Flare X5 DDR5-6000 CL36 32GB (2x16)",
+    "category": "ram",
+    "brand": "gskill",
+    "total_reviews": 615,
+    "removed_count": 103,
+    "cleanse_ratio": 0.167,
+    "orig_rating": 4.73,
+    "cleaned_rating": 4.2,
+    "rating_dist": {
+      "labels": [
+        5,
+        4,
+        3,
+        2,
+        1
+      ],
+      "before_pct": [
+        61,
+        27,
+        12,
+        5,
+        1
+      ],
+      "after_pct": [
+        42,
+        31,
+        16,
+        7,
+        5
+      ]
+    },
+    "axis_scores": {
+      "호환성": {
+        "label": "부정",
+        "pct": 43,
+        "n": 238
+      },
+      "안정성": {
+        "label": "부정",
+        "pct": 51,
+        "n": 83
+      },
+      "오버클럭": {
+        "label": "긍정",
+        "pct": 72,
+        "n": 233
+      },
+      "방열판높이": {
+        "label": "긍정",
+        "pct": 89,
+        "n": 130
+      }
+    },
+    "top_summaries": [
+      {
+        "axis": "안정성",
+        "sentiment": "긍정",
+        "text": "정격·프로파일 모두 장기간 오류 없이 돌아간다는 평이 많습니다.",
+        "source_label": "블로그C",
+        "source_type": "blog",
+        "source_url": "https://example.com/blog-c/post",
+        "collected_at": "2026-08-24",
+        "orig_refs": [
+          119841,
+          120143,
+          120273,
+          120467
+        ]
+      },
+      {
+        "axis": "호환성",
+        "sentiment": "긍정",
+        "text": "메인보드 QVL에 올라 있어 설정 없이 바로 잡혔다는 후기가 많습니다.",
+        "source_label": "유튜브D",
+        "source_type": "youtube",
+        "source_url": "https://example.com/youtube-d/watch",
+        "collected_at": "2026-08-17",
+        "orig_refs": [
+          119060,
+          119342,
+          119830,
+          120222
+        ]
+      },
+      {
+        "axis": "오버클럭",
+        "sentiment": "긍정",
+        "text": "표기 클럭보다 조금 더 올려도 안정적이었다는 후기가 있습니다.",
+        "source_label": "유튜브D",
+        "source_type": "youtube",
+        "source_url": "https://example.com/youtube-d/watch",
+        "collected_at": "2026-08-22",
+        "orig_refs": [
+          119337,
+          119377,
+          119681,
+          120543
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "label": "블로그C",
+        "type": "blog",
+        "url": "https://example.com/blog-c/post"
+      },
+      {
+        "label": "유튜브D",
+        "type": "youtube",
+        "url": "https://example.com/youtube-d/watch"
+      }
+    ],
+    "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
+    "collected_at": "2026-09-01"
+  },
+  {
+    "product_key": "samsung-ddr4-3200-16gb-2x8",
+    "product_name": "Samsung DDR4-3200 16GB (2x8)",
+    "category": "ram",
+    "brand": "samsung",
+    "total_reviews": 668,
+    "removed_count": 106,
+    "cleanse_ratio": 0.159,
+    "orig_rating": 4.18,
+    "cleaned_rating": 3.66,
+    "rating_dist": {
+      "labels": [
+        5,
+        4,
+        3,
+        2,
+        1
+      ],
+      "before_pct": [
+        56,
+        23,
+        9,
+        4,
+        8
+      ],
+      "after_pct": [
+        44,
+        27,
+        13,
+        5,
+        11
+      ]
+    },
+    "axis_scores": {
+      "호환성": {
+        "label": "부정",
+        "pct": 56,
+        "n": 117
+      },
+      "안정성": {
+        "label": "긍정",
+        "pct": 83,
+        "n": 182
+      },
+      "오버클럭": {
+        "label": "긍정",
+        "pct": 58,
+        "n": 144
+      },
+      "방열판높이": {
+        "label": "긍정",
+        "pct": 68,
+        "n": 279
+      }
+    },
+    "top_summaries": [
+      {
+        "axis": "호환성",
+        "sentiment": "긍정",
+        "text": "메인보드 QVL에 올라 있어 설정 없이 바로 잡혔다는 후기가 많습니다.",
+        "source_label": "커뮤니티A",
+        "source_type": "community",
+        "source_url": "https://example.com/community-a/thread",
+        "collected_at": "2026-08-19",
+        "orig_refs": [
+          119144,
+          120296
+        ]
+      },
+      {
+        "axis": "오버클럭",
+        "sentiment": "긍정",
+        "text": "표기 클럭보다 조금 더 올려도 안정적이었다는 후기가 있습니다.",
+        "source_label": "블로그C",
+        "source_type": "blog",
+        "source_url": "https://example.com/blog-c/post",
+        "collected_at": "2026-08-21",
+        "orig_refs": [
+          119779,
+          119813,
+          120281
+        ]
+      },
+      {
+        "axis": "방열판높이",
+        "sentiment": "부정",
+        "text": "방열판이 높아 대형 공랭 쿨러와 간섭될 수 있다는 지적이 있습니다.",
+        "source_label": "유튜브D",
+        "source_type": "youtube",
+        "source_url": "https://example.com/youtube-d/watch",
+        "collected_at": "2026-09-01",
+        "orig_refs": [
+          120047,
+          120048
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "label": "블로그C",
+        "type": "blog",
+        "url": "https://example.com/blog-c/post"
+      },
+      {
+        "label": "유튜브D",
+        "type": "youtube",
+        "url": "https://example.com/youtube-d/watch"
+      },
+      {
+        "label": "커뮤니티A",
+        "type": "community",
+        "url": "https://example.com/community-a/thread"
+      }
+    ],
+    "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
+    "collected_at": "2026-09-01"
+  },
+  {
+    "product_key": "g-skill-ripjaws-v-ddr4-3600-32gb-2x16",
+    "product_name": "G.Skill Ripjaws V DDR4-3600 32GB (2x16)",
+    "category": "ram",
+    "brand": "gskill",
+    "total_reviews": 348,
+    "removed_count": 66,
+    "cleanse_ratio": 0.191,
+    "orig_rating": 4.34,
+    "cleaned_rating": 4.19,
+    "rating_dist": {
+      "labels": [
+        5,
+        4,
+        3,
+        2,
+        1
+      ],
+      "before_pct": [
+        52,
+        24,
+        7,
+        3,
+        14
+      ],
+      "after_pct": [
+        35,
+        30,
+        12,
+        5,
+        18
+      ]
+    },
+    "axis_scores": {
+      "호환성": {
+        "label": "긍정",
+        "pct": 60,
+        "n": 125
+      },
+      "안정성": {
+        "label": "긍정",
+        "pct": 70,
+        "n": 72
+      },
+      "오버클럭": {
+        "label": "부정",
+        "pct": 43,
+        "n": 71
+      },
+      "방열판높이": {
+        "label": "부정",
+        "pct": 52,
+        "n": 56
+      }
+    },
+    "top_summaries": [
+      {
+        "axis": "방열판높이",
+        "sentiment": "부정",
+        "text": "방열판이 높아 대형 공랭 쿨러와 간섭될 수 있다는 지적이 있습니다.",
+        "source_label": "유튜브D",
+        "source_type": "youtube",
+        "source_url": "https://example.com/youtube-d/watch",
+        "collected_at": "2026-08-25",
+        "orig_refs": [
+          120025,
+          120358
+        ]
+      },
+      {
+        "axis": "호환성",
+        "sentiment": "긍정",
+        "text": "메인보드 QVL에 올라 있어 설정 없이 바로 잡혔다는 후기가 많습니다.",
+        "source_label": "유튜브D",
+        "source_type": "youtube",
+        "source_url": "https://example.com/youtube-d/watch",
+        "collected_at": "2026-08-28",
+        "orig_refs": [
+          119598,
+          119608,
+          119950
+        ]
+      },
+      {
+        "axis": "오버클럭",
+        "sentiment": "긍정",
+        "text": "표기 클럭보다 조금 더 올려도 안정적이었다는 후기가 있습니다.",
+        "source_label": "커뮤니티A",
+        "source_type": "community",
+        "source_url": "https://example.com/community-a/thread",
+        "collected_at": "2026-08-12",
+        "orig_refs": [
+          119563,
+          119779,
+          120328,
+          120555
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "label": "유튜브D",
+        "type": "youtube",
+        "url": "https://example.com/youtube-d/watch"
+      },
+      {
+        "label": "커뮤니티A",
+        "type": "community",
+        "url": "https://example.com/community-a/thread"
+      }
+    ],
+    "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
+    "collected_at": "2026-09-01"
+  },
+  {
+    "product_key": "nvidia-geforce-rtx-4060",
+    "product_name": "NVIDIA GeForce RTX 4060",
+    "category": "gpu",
+    "brand": "nvidia",
+    "total_reviews": 326,
+    "removed_count": 46,
+    "cleanse_ratio": 0.142,
+    "orig_rating": 4.73,
+    "cleaned_rating": 4.51,
+    "rating_dist": {
+      "labels": [
+        5,
+        4,
+        3,
+        2,
+        1
+      ],
+      "before_pct": [
+        60,
+        26,
+        12,
+        7,
+        1
+      ],
+      "after_pct": [
+        42,
+        29,
+        15,
+        8,
+        5
+      ]
+    },
+    "axis_scores": {
+      "내구성": {
+        "label": "긍정",
+        "pct": 74,
+        "n": 104
+      },
+      "발열": {
+        "label": "긍정",
+        "pct": 79,
+        "n": 142
+      },
+      "소음": {
+        "label": "부정",
+        "pct": 49,
+        "n": 57
+      },
+      "설치난이도": {
+        "label": "부정",
+        "pct": 58,
+        "n": 99
+      }
+    },
+    "top_summaries": [
+      {
+        "axis": "소음",
+        "sentiment": "부정",
+        "text": "고부하 게임에서 팬 소음이 확 올라간다는 평이 반복됩니다.",
+        "source_label": "커뮤니티A",
+        "source_type": "community",
+        "source_url": "https://example.com/community-a/thread",
+        "collected_at": "2026-08-12",
+        "orig_refs": [
+          119148,
+          119518
+        ]
+      },
+      {
+        "axis": "내구성",
+        "sentiment": "긍정",
+        "text": "1년 이상 사용자에서 성능 저하나 코일 노이즈 악화 언급이 거의 없습니다.",
+        "source_label": "유튜브D",
+        "source_type": "youtube",
+        "source_url": "https://example.com/youtube-d/watch",
+        "collected_at": "2026-08-18",
+        "orig_refs": [
+          119164,
+          119287
+        ]
+      },
+      {
+        "axis": "발열",
+        "sentiment": "긍정",
+        "text": "언더볼팅하면 온도가 크게 떨어지고 정숙해진다는 후기가 많습니다.",
+        "source_label": "커뮤니티A",
+        "source_type": "community",
+        "source_url": "https://example.com/community-a/thread",
+        "collected_at": "2026-08-21",
+        "orig_refs": [
+          119101,
+          119185,
+          119490,
+          119669
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "label": "유튜브D",
+        "type": "youtube",
+        "url": "https://example.com/youtube-d/watch"
+      },
+      {
+        "label": "커뮤니티A",
+        "type": "community",
+        "url": "https://example.com/community-a/thread"
+      }
+    ],
+    "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
+    "collected_at": "2026-09-01"
+  },
+  {
+    "product_key": "nvidia-geforce-rtx-4070-super",
+    "product_name": "NVIDIA GeForce RTX 4070 SUPER",
+    "category": "gpu",
+    "brand": "nvidia",
+    "total_reviews": 398,
+    "removed_count": 57,
+    "cleanse_ratio": 0.143,
+    "orig_rating": 4.18,
+    "cleaned_rating": 4.0,
+    "rating_dist": {
+      "labels": [
+        5,
+        4,
+        3,
+        2,
+        1
+      ],
+      "before_pct": [
+        64,
+        24,
+        12,
+        5,
+        1
+      ],
+      "after_pct": [
+        45,
+        28,
+        16,
+        7,
+        4
+      ]
+    },
+    "axis_scores": {
+      "내구성": {
+        "label": "긍정",
+        "pct": 75,
+        "n": 66
+      },
+      "발열": {
+        "label": "긍정",
+        "pct": 80,
+        "n": 93
+      },
+      "소음": {
+        "label": "부정",
+        "pct": 48,
+        "n": 117
+      },
+      "설치난이도": {
+        "label": "부정",
+        "pct": 59,
+        "n": 71
+      }
+    },
+    "top_summaries": [
+      {
+        "axis": "내구성",
+        "sentiment": "긍정",
+        "text": "1년 이상 사용자에서 성능 저하나 코일 노이즈 악화 언급이 거의 없습니다.",
+        "source_label": "커뮤니티A",
+        "source_type": "community",
+        "source_url": "https://example.com/community-a/thread",
+        "collected_at": "2026-08-30",
+        "orig_refs": [
+          119145,
+          119248,
+          119424,
+          120540
+        ]
+      },
+      {
+        "axis": "설치난이도",
+        "sentiment": "부정",
+        "text": "3슬롯 두께·긴 길이라 좁은 케이스에서는 간섭이 생긴다는 설치 관련 지적이 있습니다.",
+        "source_label": "유튜브D",
+        "source_type": "youtube",
+        "source_url": "https://example.com/youtube-d/watch",
+        "collected_at": "2026-08-27",
+        "orig_refs": [
+          119128,
+          120283,
+          120350
+        ]
+      },
+      {
+        "axis": "발열",
+        "sentiment": "긍정",
+        "text": "언더볼팅하면 온도가 크게 떨어지고 정숙해진다는 후기가 많습니다.",
+        "source_label": "유튜브D",
+        "source_type": "youtube",
+        "source_url": "https://example.com/youtube-d/watch",
+        "collected_at": "2026-08-19",
+        "orig_refs": [
+          119404,
+          120115,
+          120502,
+          120520
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "label": "유튜브D",
+        "type": "youtube",
+        "url": "https://example.com/youtube-d/watch"
+      },
+      {
+        "label": "커뮤니티A",
+        "type": "community",
+        "url": "https://example.com/community-a/thread"
+      }
+    ],
+    "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
+    "collected_at": "2026-09-01"
+  },
+  {
+    "product_key": "nvidia-geforce-rtx-4070-ti-super",
+    "product_name": "NVIDIA GeForce RTX 4070 Ti SUPER",
+    "category": "gpu",
+    "brand": "nvidia",
+    "total_reviews": 637,
+    "removed_count": 66,
+    "cleanse_ratio": 0.103,
+    "orig_rating": 4.15,
+    "cleaned_rating": 3.81,
+    "rating_dist": {
+      "labels": [
+        5,
+        4,
+        3,
+        2,
+        1
+      ],
+      "before_pct": [
+        61,
+        26,
+        11,
+        4,
+        1
+      ],
+      "after_pct": [
+        43,
+        31,
+        16,
+        6,
+        5
+      ]
+    },
+    "axis_scores": {
+      "내구성": {
+        "label": "긍정",
+        "pct": 67,
+        "n": 284
+      },
+      "발열": {
+        "label": "긍정",
+        "pct": 61,
+        "n": 86
+      },
+      "소음": {
+        "label": "긍정",
+        "pct": 73,
+        "n": 276
+      },
+      "설치난이도": {
+        "label": "긍정",
+        "pct": 91,
+        "n": 88
+      }
+    },
+    "top_summaries": [
+      {
+        "axis": "내구성",
+        "sentiment": "긍정",
+        "text": "1년 이상 사용자에서 성능 저하나 코일 노이즈 악화 언급이 거의 없습니다.",
+        "source_label": "유튜브D",
+        "source_type": "youtube",
+        "source_url": "https://example.com/youtube-d/watch",
+        "collected_at": "2026-08-26",
+        "orig_refs": [
+          119348,
+          119896,
+          119979,
+          119989
+        ]
+      },
+      {
+        "axis": "설치난이도",
+        "sentiment": "부정",
+        "text": "3슬롯 두께·긴 길이라 좁은 케이스에서는 간섭이 생긴다는 설치 관련 지적이 있습니다.",
+        "source_label": "커뮤니티A",
+        "source_type": "community",
+        "source_url": "https://example.com/community-a/thread",
+        "collected_at": "2026-08-22",
+        "orig_refs": [
+          119201,
+          119664,
+          120311
+        ]
+      },
+      {
+        "axis": "소음",
+        "sentiment": "부정",
+        "text": "고부하 게임에서 팬 소음이 확 올라간다는 평이 반복됩니다.",
+        "source_label": "커뮤니티A",
+        "source_type": "community",
+        "source_url": "https://example.com/community-a/thread",
+        "collected_at": "2026-08-21",
+        "orig_refs": [
+          119531,
+          120073
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "label": "유튜브D",
+        "type": "youtube",
+        "url": "https://example.com/youtube-d/watch"
+      },
+      {
+        "label": "커뮤니티A",
+        "type": "community",
+        "url": "https://example.com/community-a/thread"
+      }
+    ],
+    "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
+    "collected_at": "2026-09-01"
+  },
+  {
+    "product_key": "nvidia-geforce-rtx-5070-ti",
+    "product_name": "NVIDIA GeForce RTX 5070 Ti",
+    "category": "gpu",
+    "brand": "nvidia",
+    "total_reviews": 1103,
+    "removed_count": 104,
+    "cleanse_ratio": 0.094,
+    "orig_rating": 4.41,
+    "cleaned_rating": 4.03,
+    "rating_dist": {
+      "labels": [
+        5,
+        4,
+        3,
+        2,
+        1
+      ],
+      "before_pct": [
+        55,
+        20,
+        11,
+        6,
+        8
+      ],
+      "after_pct": [
+        39,
+        26,
+        16,
+        8,
+        11
+      ]
+    },
+    "axis_scores": {
+      "내구성": {
+        "label": "긍정",
+        "pct": 66,
+        "n": 373
+      },
+      "발열": {
+        "label": "긍정",
+        "pct": 72,
+        "n": 143
+      },
+      "소음": {
+        "label": "부정",
+        "pct": 40,
+        "n": 494
+      },
+      "설치난이도": {
+        "label": "부정",
+        "pct": 41,
+        "n": 302
+      }
+    },
+    "top_summaries": [
+      {
+        "axis": "내구성",
+        "sentiment": "긍정",
+        "text": "1년 이상 사용자에서 성능 저하나 코일 노이즈 악화 언급이 거의 없습니다.",
+        "source_label": "커뮤니티A",
+        "source_type": "community",
+        "source_url": "https://example.com/community-a/thread",
+        "collected_at": "2026-08-19",
+        "orig_refs": [
+          119234,
+          119962
+        ]
+      },
+      {
+        "axis": "발열",
+        "sentiment": "긍정",
+        "text": "언더볼팅하면 온도가 크게 떨어지고 정숙해진다는 후기가 많습니다.",
+        "source_label": "쇼핑몰B",
+        "source_type": "marketplace",
+        "source_url": "https://example.com/mall-b/review",
+        "collected_at": "2026-08-26",
+        "orig_refs": [
+          119519,
+          120514
+        ]
+      },
+      {
+        "axis": "소음",
+        "sentiment": "부정",
+        "text": "고부하 게임에서 팬 소음이 확 올라간다는 평이 반복됩니다.",
+        "source_label": "유튜브D",
+        "source_type": "youtube",
+        "source_url": "https://example.com/youtube-d/watch",
+        "collected_at": "2026-08-27",
+        "orig_refs": [
+          119698,
+          120130,
+          120415,
+          120463
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "label": "쇼핑몰B",
+        "type": "marketplace",
+        "url": "https://example.com/mall-b/review"
+      },
+      {
+        "label": "유튜브D",
+        "type": "youtube",
+        "url": "https://example.com/youtube-d/watch"
+      },
+      {
+        "label": "커뮤니티A",
+        "type": "community",
+        "url": "https://example.com/community-a/thread"
+      }
+    ],
+    "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
+    "collected_at": "2026-09-01"
+  },
+  {
+    "product_key": "nvidia-geforce-rtx-5080",
+    "product_name": "NVIDIA GeForce RTX 5080",
+    "category": "gpu",
+    "brand": "nvidia",
+    "total_reviews": 1102,
+    "removed_count": 207,
+    "cleanse_ratio": 0.188,
+    "orig_rating": 4.18,
+    "cleaned_rating": 3.91,
+    "rating_dist": {
+      "labels": [
+        5,
+        4,
+        3,
+        2,
+        1
+      ],
+      "before_pct": [
+        54,
+        24,
+        7,
+        4,
+        11
+      ],
+      "after_pct": [
+        37,
+        30,
+        12,
+        6,
+        15
+      ]
+    },
+    "axis_scores": {
+      "내구성": {
+        "label": "긍정",
+        "pct": 65,
+        "n": 378
+      },
+      "발열": {
+        "label": "긍정",
+        "pct": 91,
+        "n": 197
+      },
+      "소음": {
+        "label": "부정",
+        "pct": 55,
+        "n": 281
+      },
+      "설치난이도": {
+        "label": "부정",
+        "pct": 44,
+        "n": 419
+      }
+    },
+    "top_summaries": [
+      {
+        "axis": "소음",
+        "sentiment": "부정",
+        "text": "고부하 게임에서 팬 소음이 확 올라간다는 평이 반복됩니다.",
+        "source_label": "블로그C",
+        "source_type": "blog",
+        "source_url": "https://example.com/blog-c/post",
+        "collected_at": "2026-08-23",
+        "orig_refs": [
+          119507,
+          119621,
+          119877,
+          120279
+        ]
+      },
+      {
+        "axis": "내구성",
+        "sentiment": "긍정",
+        "text": "장기 사용 후에도 초기 성능이 유지된다는 후기가 대부분입니다.",
+        "source_label": "유튜브D",
+        "source_type": "youtube",
+        "source_url": "https://example.com/youtube-d/watch",
+        "collected_at": "2026-08-23",
+        "orig_refs": [
+          119355,
+          119791,
+          120067,
+          120556
+        ]
+      },
+      {
+        "axis": "발열",
+        "sentiment": "긍정",
+        "text": "언더볼팅하면 온도가 크게 떨어지고 정숙해진다는 후기가 많습니다.",
+        "source_label": "블로그C",
+        "source_type": "blog",
+        "source_url": "https://example.com/blog-c/post",
+        "collected_at": "2026-08-21",
+        "orig_refs": [
+          119130,
+          120400,
+          120414
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "label": "블로그C",
+        "type": "blog",
+        "url": "https://example.com/blog-c/post"
+      },
+      {
+        "label": "유튜브D",
+        "type": "youtube",
+        "url": "https://example.com/youtube-d/watch"
+      }
+    ],
+    "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
+    "collected_at": "2026-09-01"
+  },
+  {
+    "product_key": "nvidia-geforce-rtx-5090",
+    "product_name": "NVIDIA GeForce RTX 5090",
+    "category": "gpu",
+    "brand": "nvidia",
+    "total_reviews": 1015,
+    "removed_count": 219,
+    "cleanse_ratio": 0.216,
+    "orig_rating": 4.28,
+    "cleaned_rating": 4.05,
+    "rating_dist": {
+      "labels": [
+        5,
+        4,
+        3,
+        2,
+        1
+      ],
+      "before_pct": [
+        57,
+        21,
+        10,
+        7,
+        5
+      ],
+      "after_pct": [
+        44,
+        26,
+        14,
+        8,
+        8
+      ]
+    },
+    "axis_scores": {
+      "내구성": {
+        "label": "긍정",
+        "pct": 62,
+        "n": 357
+      },
+      "발열": {
+        "label": "긍정",
+        "pct": 58,
+        "n": 245
+      },
+      "소음": {
+        "label": "부정",
+        "pct": 60,
+        "n": 407
+      },
+      "설치난이도": {
+        "label": "부정",
+        "pct": 58,
+        "n": 284
+      }
+    },
+    "top_summaries": [
+      {
+        "axis": "설치난이도",
+        "sentiment": "부정",
+        "text": "3슬롯 두께·긴 길이라 좁은 케이스에서는 간섭이 생긴다는 설치 관련 지적이 있습니다.",
+        "source_label": "블로그C",
+        "source_type": "blog",
+        "source_url": "https://example.com/blog-c/post",
+        "collected_at": "2026-09-01",
+        "orig_refs": [
+          119716,
+          119887
+        ]
+      },
+      {
+        "axis": "내구성",
+        "sentiment": "긍정",
+        "text": "장기 사용 후에도 초기 성능이 유지된다는 후기가 대부분입니다.",
+        "source_label": "블로그C",
+        "source_type": "blog",
+        "source_url": "https://example.com/blog-c/post",
+        "collected_at": "2026-08-31",
+        "orig_refs": [
+          119595,
+          120249
+        ]
+      },
+      {
+        "axis": "소음",
+        "sentiment": "부정",
+        "text": "고부하 게임에서 팬 소음이 확 올라간다는 평이 반복됩니다.",
+        "source_label": "커뮤니티A",
+        "source_type": "community",
+        "source_url": "https://example.com/community-a/thread",
+        "collected_at": "2026-08-25",
+        "orig_refs": [
+          119270,
+          119782,
+          119916,
+          119918
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "label": "블로그C",
+        "type": "blog",
+        "url": "https://example.com/blog-c/post"
+      },
+      {
+        "label": "커뮤니티A",
+        "type": "community",
+        "url": "https://example.com/community-a/thread"
+      }
+    ],
+    "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
+    "collected_at": "2026-09-01"
+  },
+  {
+    "product_key": "amd-radeon-rx-7600",
+    "product_name": "AMD Radeon RX 7600",
+    "category": "gpu",
+    "brand": "amd",
+    "total_reviews": 159,
+    "removed_count": 11,
+    "cleanse_ratio": 0.072,
+    "orig_rating": 4.62,
+    "cleaned_rating": 4.11,
+    "rating_dist": {
+      "labels": [
+        5,
+        4,
+        3,
+        2,
+        1
+      ],
+      "before_pct": [
+        57,
+        25,
+        8,
+        3,
+        7
+      ],
+      "after_pct": [
+        43,
+        30,
+        12,
+        4,
+        11
+      ]
+    },
+    "axis_scores": {
+      "내구성": {
+        "label": "긍정",
+        "pct": 64,
+        "n": 42
+      },
+      "발열": {
+        "label": "긍정",
+        "pct": 81,
+        "n": 24
+      },
+      "소음": {
+        "label": "부정",
+        "pct": 42,
+        "n": 22
+      },
+      "설치난이도": {
+        "label": "부정",
+        "pct": 44,
+        "n": 52
+      }
+    },
+    "top_summaries": [
+      {
+        "axis": "설치난이도",
+        "sentiment": "부정",
+        "text": "3슬롯 두께·긴 길이라 좁은 케이스에서는 간섭이 생긴다는 설치 관련 지적이 있습니다.",
+        "source_label": "유튜브D",
+        "source_type": "youtube",
+        "source_url": "https://example.com/youtube-d/watch",
+        "collected_at": "2026-08-26",
+        "orig_refs": [
+          119130,
+          119774,
+          120077
+        ]
+      },
+      {
+        "axis": "내구성",
+        "sentiment": "긍정",
+        "text": "장기 사용 후에도 초기 성능이 유지된다는 후기가 대부분입니다.",
+        "source_label": "유튜브D",
+        "source_type": "youtube",
+        "source_url": "https://example.com/youtube-d/watch",
+        "collected_at": "2026-08-29",
+        "orig_refs": [
+          119834,
+          120478,
+          120548
+        ]
+      },
+      {
+        "axis": "소음",
+        "sentiment": "부정",
+        "text": "고부하 게임에서 팬 소음이 확 올라간다는 평이 반복됩니다.",
+        "source_label": "커뮤니티A",
+        "source_type": "community",
+        "source_url": "https://example.com/community-a/thread",
+        "collected_at": "2026-09-01",
+        "orig_refs": [
+          119390,
+          120310
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "label": "유튜브D",
+        "type": "youtube",
+        "url": "https://example.com/youtube-d/watch"
+      },
+      {
+        "label": "커뮤니티A",
+        "type": "community",
+        "url": "https://example.com/community-a/thread"
+      }
+    ],
+    "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
+    "collected_at": "2026-09-01"
+  },
+  {
+    "product_key": "amd-radeon-rx-7800-xt",
+    "product_name": "AMD Radeon RX 7800 XT",
+    "category": "gpu",
+    "brand": "amd",
+    "total_reviews": 512,
+    "removed_count": 55,
+    "cleanse_ratio": 0.107,
+    "orig_rating": 4.61,
+    "cleaned_rating": 4.4,
+    "rating_dist": {
+      "labels": [
+        5,
+        4,
+        3,
+        2,
+        1
+      ],
+      "before_pct": [
+        64,
+        24,
+        8,
+        3,
+        1
+      ],
+      "after_pct": [
+        47,
+        30,
+        13,
+        5,
+        5
+      ]
+    },
+    "axis_scores": {
+      "내구성": {
+        "label": "긍정",
+        "pct": 83,
+        "n": 166
+      },
+      "발열": {
+        "label": "긍정",
+        "pct": 91,
+        "n": 222
+      },
+      "소음": {
+        "label": "부정",
+        "pct": 51,
+        "n": 132
+      },
+      "설치난이도": {
+        "label": "부정",
+        "pct": 48,
+        "n": 193
+      }
+    },
+    "top_summaries": [
+      {
+        "axis": "발열",
+        "sentiment": "긍정",
+        "text": "언더볼팅하면 온도가 크게 떨어지고 정숙해진다는 후기가 많습니다.",
+        "source_label": "블로그C",
+        "source_type": "blog",
+        "source_url": "https://example.com/blog-c/post",
+        "collected_at": "2026-08-21",
+        "orig_refs": [
+          119259,
+          120268,
+          120457
+        ]
+      },
+      {
+        "axis": "내구성",
+        "sentiment": "긍정",
+        "text": "장기 사용 후에도 초기 성능이 유지된다는 후기가 대부분입니다.",
+        "source_label": "쇼핑몰B",
+        "source_type": "marketplace",
+        "source_url": "https://example.com/mall-b/review",
+        "collected_at": "2026-08-22",
+        "orig_refs": [
+          119086,
+          119471,
+          120280
+        ]
+      },
+      {
+        "axis": "소음",
+        "sentiment": "부정",
+        "text": "고부하 게임에서 팬 소음이 확 올라간다는 평이 반복됩니다.",
+        "source_label": "블로그C",
+        "source_type": "blog",
+        "source_url": "https://example.com/blog-c/post",
+        "collected_at": "2026-08-18",
+        "orig_refs": [
+          119567,
+          119902,
+          120451
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "label": "블로그C",
+        "type": "blog",
+        "url": "https://example.com/blog-c/post"
+      },
+      {
+        "label": "쇼핑몰B",
+        "type": "marketplace",
+        "url": "https://example.com/mall-b/review"
+      }
+    ],
+    "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
+    "collected_at": "2026-09-01"
+  },
+  {
+    "product_key": "amd-radeon-rx-9070-xt",
+    "product_name": "AMD Radeon RX 9070 XT",
+    "category": "gpu",
+    "brand": "amd",
+    "total_reviews": 1555,
+    "removed_count": 152,
+    "cleanse_ratio": 0.098,
+    "orig_rating": 4.44,
+    "cleaned_rating": 4.2,
+    "rating_dist": {
+      "labels": [
+        5,
+        4,
+        3,
+        2,
+        1
+      ],
+      "before_pct": [
+        57,
+        23,
+        7,
+        3,
+        10
+      ],
+      "after_pct": [
+        46,
+        27,
+        10,
+        4,
+        13
+      ]
+    },
+    "axis_scores": {
+      "내구성": {
+        "label": "부정",
+        "pct": 51,
+        "n": 615
+      },
+      "발열": {
+        "label": "긍정",
+        "pct": 78,
+        "n": 516
+      },
+      "소음": {
+        "label": "부정",
+        "pct": 47,
+        "n": 365
+      },
+      "설치난이도": {
+        "label": "부정",
+        "pct": 59,
+        "n": 223
+      }
+    },
+    "top_summaries": [
+      {
+        "axis": "소음",
+        "sentiment": "부정",
+        "text": "고부하 게임에서 팬 소음이 확 올라간다는 평이 반복됩니다.",
+        "source_label": "커뮤니티A",
+        "source_type": "community",
+        "source_url": "https://example.com/community-a/thread",
+        "collected_at": "2026-08-13",
+        "orig_refs": [
+          119826,
+          119888,
+          119986,
+          120317
+        ]
+      },
+      {
+        "axis": "내구성",
+        "sentiment": "긍정",
+        "text": "1년 이상 사용자에서 성능 저하나 코일 노이즈 악화 언급이 거의 없습니다.",
+        "source_label": "쇼핑몰B",
+        "source_type": "marketplace",
+        "source_url": "https://example.com/mall-b/review",
+        "collected_at": "2026-08-24",
+        "orig_refs": [
+          119190,
+          119663,
+          120317
+        ]
+      },
+      {
+        "axis": "발열",
+        "sentiment": "긍정",
+        "text": "언더볼팅하면 온도가 크게 떨어지고 정숙해진다는 후기가 많습니다.",
+        "source_label": "유튜브D",
+        "source_type": "youtube",
+        "source_url": "https://example.com/youtube-d/watch",
+        "collected_at": "2026-08-26",
+        "orig_refs": [
+          119143,
+          119249,
+          119698
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "label": "쇼핑몰B",
+        "type": "marketplace",
+        "url": "https://example.com/mall-b/review"
+      },
+      {
+        "label": "유튜브D",
+        "type": "youtube",
+        "url": "https://example.com/youtube-d/watch"
+      },
+      {
+        "label": "커뮤니티A",
+        "type": "community",
+        "url": "https://example.com/community-a/thread"
+      }
+    ],
+    "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
+    "collected_at": "2026-09-01"
+  },
+  {
+    "product_key": "samsung-990-pro-1tb",
+    "product_name": "Samsung 990 PRO 1TB",
+    "category": "ssd",
+    "brand": "samsung",
+    "total_reviews": 1487,
+    "removed_count": 235,
+    "cleanse_ratio": 0.158,
+    "orig_rating": 4.18,
+    "cleaned_rating": 3.95,
+    "rating_dist": {
+      "labels": [
+        5,
+        4,
+        3,
+        2,
+        1
+      ],
+      "before_pct": [
+        55,
+        21,
+        12,
+        3,
+        9
+      ],
+      "after_pct": [
+        38,
+        27,
+        17,
+        5,
+        13
+      ]
+    },
+    "axis_scores": {
+      "순차속도": {
+        "label": "부정",
+        "pct": 57,
+        "n": 227
+      },
+      "발열": {
+        "label": "부정",
+        "pct": 48,
+        "n": 181
+      },
+      "내구성": {
+        "label": "부정",
+        "pct": 41,
+        "n": 260
+      },
+      "호환성": {
+        "label": "긍정",
+        "pct": 86,
+        "n": 617
+      }
+    },
+    "top_summaries": [
+      {
+        "axis": "호환성",
+        "sentiment": "긍정",
+        "text": "메인보드·노트북 모두 인식 문제 없이 바로 잡혔다는 후기가 대부분입니다.",
+        "source_label": "커뮤니티A",
+        "source_type": "community",
+        "source_url": "https://example.com/community-a/thread",
+        "collected_at": "2026-08-28",
+        "orig_refs": [
+          119237,
+          119824,
+          120354
+        ]
+      },
+      {
+        "axis": "발열",
+        "sentiment": "부정",
+        "text": "히트싱크 없이 쓰면 대용량 쓰기에서 온도가 올라 속도가 떨어진다는 지적이 있습니다.",
+        "source_label": "쇼핑몰B",
+        "source_type": "marketplace",
+        "source_url": "https://example.com/mall-b/review",
+        "collected_at": "2026-08-23",
+        "orig_refs": [
+          120081,
+          120250
+        ]
+      },
+      {
+        "axis": "순차속도",
+        "sentiment": "긍정",
+        "text": "카탈로그 수치에 근접한 순차 속도가 실사용에서도 나온다는 후기가 많습니다.",
+        "source_label": "블로그C",
+        "source_type": "blog",
+        "source_url": "https://example.com/blog-c/post",
+        "collected_at": "2026-08-21",
+        "orig_refs": [
+          119269,
+          119990
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "label": "블로그C",
+        "type": "blog",
+        "url": "https://example.com/blog-c/post"
+      },
+      {
+        "label": "쇼핑몰B",
+        "type": "marketplace",
+        "url": "https://example.com/mall-b/review"
+      },
+      {
+        "label": "커뮤니티A",
+        "type": "community",
+        "url": "https://example.com/community-a/thread"
+      }
+    ],
+    "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
+    "collected_at": "2026-09-01"
+  },
+  {
+    "product_key": "samsung-990-pro-2tb",
+    "product_name": "Samsung 990 PRO 2TB",
+    "category": "ssd",
+    "brand": "samsung",
+    "total_reviews": 1012,
+    "removed_count": 93,
+    "cleanse_ratio": 0.092,
+    "orig_rating": 4.35,
+    "cleaned_rating": 4.14,
+    "rating_dist": {
+      "labels": [
+        5,
+        4,
+        3,
+        2,
+        1
+      ],
+      "before_pct": [
+        59,
+        22,
+        9,
+        7,
+        3
+      ],
+      "after_pct": [
+        44,
+        27,
+        13,
+        9,
+        7
+      ]
+    },
+    "axis_scores": {
+      "순차속도": {
+        "label": "긍정",
+        "pct": 85,
+        "n": 435
+      },
+      "발열": {
+        "label": "부정",
+        "pct": 42,
+        "n": 204
+      },
+      "내구성": {
+        "label": "부정",
+        "pct": 54,
+        "n": 426
+      },
+      "호환성": {
+        "label": "긍정",
+        "pct": 63,
+        "n": 216
+      }
+    },
+    "top_summaries": [
+      {
+        "axis": "순차속도",
+        "sentiment": "긍정",
+        "text": "카탈로그 수치에 근접한 순차 속도가 실사용에서도 나온다는 후기가 많습니다.",
+        "source_label": "쇼핑몰B",
+        "source_type": "marketplace",
+        "source_url": "https://example.com/mall-b/review",
+        "collected_at": "2026-08-26",
+        "orig_refs": [
+          119083,
+          119528,
+          119799
+        ]
+      },
+      {
+        "axis": "발열",
+        "sentiment": "부정",
+        "text": "히트싱크 없이 쓰면 대용량 쓰기에서 온도가 올라 속도가 떨어진다는 지적이 있습니다.",
+        "source_label": "유튜브D",
+        "source_type": "youtube",
+        "source_url": "https://example.com/youtube-d/watch",
+        "collected_at": "2026-09-01",
+        "orig_refs": [
+          119109,
+          120211,
+          120370,
+          120481
+        ]
+      },
+      {
+        "axis": "내구성",
+        "sentiment": "긍정",
+        "text": "수년 사용자에서 수명 관련 문제 언급이 드뭅니다.",
+        "source_label": "커뮤니티A",
+        "source_type": "community",
+        "source_url": "https://example.com/community-a/thread",
+        "collected_at": "2026-08-23",
+        "orig_refs": [
+          119107,
+          119669,
+          120003,
+          120447
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "label": "쇼핑몰B",
+        "type": "marketplace",
+        "url": "https://example.com/mall-b/review"
+      },
+      {
+        "label": "유튜브D",
+        "type": "youtube",
+        "url": "https://example.com/youtube-d/watch"
+      },
+      {
+        "label": "커뮤니티A",
+        "type": "community",
+        "url": "https://example.com/community-a/thread"
+      }
+    ],
+    "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
+    "collected_at": "2026-09-01"
+  },
+  {
+    "product_key": "wd-black-sn770-1tb",
+    "product_name": "WD Black SN770 1TB",
+    "category": "ssd",
+    "brand": "wd",
+    "total_reviews": 383,
+    "removed_count": 45,
+    "cleanse_ratio": 0.118,
+    "orig_rating": 4.51,
+    "cleaned_rating": 4.22,
+    "rating_dist": {
+      "labels": [
+        5,
+        4,
+        3,
+        2,
+        1
+      ],
+      "before_pct": [
+        58,
+        24,
+        7,
+        6,
+        5
+      ],
+      "after_pct": [
+        48,
+        28,
+        10,
+        7,
+        7
+      ]
+    },
+    "axis_scores": {
+      "순차속도": {
+        "label": "부정",
+        "pct": 58,
+        "n": 121
+      },
+      "발열": {
+        "label": "부정",
+        "pct": 43,
+        "n": 76
+      },
+      "내구성": {
+        "label": "부정",
+        "pct": 40,
+        "n": 141
+      },
+      "호환성": {
+        "label": "부정",
+        "pct": 48,
+        "n": 71
+      }
+    },
+    "top_summaries": [
+      {
+        "axis": "호환성",
+        "sentiment": "긍정",
+        "text": "메인보드·노트북 모두 인식 문제 없이 바로 잡혔다는 후기가 대부분입니다.",
+        "source_label": "커뮤니티A",
+        "source_type": "community",
+        "source_url": "https://example.com/community-a/thread",
+        "collected_at": "2026-08-31",
+        "orig_refs": [
+          119090,
+          119201,
+          120001
+        ]
+      },
+      {
+        "axis": "내구성",
+        "sentiment": "긍정",
+        "text": "수년 사용자에서 수명 관련 문제 언급이 드뭅니다.",
+        "source_label": "커뮤니티A",
+        "source_type": "community",
+        "source_url": "https://example.com/community-a/thread",
+        "collected_at": "2026-08-23",
+        "orig_refs": [
+          119782,
+          119970
+        ]
+      },
+      {
+        "axis": "순차속도",
+        "sentiment": "긍정",
+        "text": "카탈로그 수치에 근접한 순차 속도가 실사용에서도 나온다는 후기가 많습니다.",
+        "source_label": "블로그C",
+        "source_type": "blog",
+        "source_url": "https://example.com/blog-c/post",
+        "collected_at": "2026-08-17",
+        "orig_refs": [
+          119534,
+          119984,
+          120350
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "label": "블로그C",
+        "type": "blog",
+        "url": "https://example.com/blog-c/post"
+      },
+      {
+        "label": "커뮤니티A",
+        "type": "community",
+        "url": "https://example.com/community-a/thread"
+      }
+    ],
+    "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
+    "collected_at": "2026-09-01"
+  },
+  {
+    "product_key": "crucial-mx500-1tb",
+    "product_name": "Crucial MX500 1TB",
+    "category": "ssd",
+    "brand": "crucial",
+    "total_reviews": 604,
+    "removed_count": 142,
+    "cleanse_ratio": 0.235,
+    "orig_rating": 4.62,
+    "cleaned_rating": 4.41,
+    "rating_dist": {
+      "labels": [
+        5,
+        4,
+        3,
+        2,
+        1
+      ],
+      "before_pct": [
+        59,
+        27,
+        8,
+        3,
+        3
+      ],
+      "after_pct": [
+        42,
+        33,
+        13,
+        5,
+        7
+      ]
+    },
+    "axis_scores": {
+      "순차속도": {
+        "label": "긍정",
+        "pct": 91,
+        "n": 157
+      },
+      "발열": {
+        "label": "부정",
+        "pct": 51,
+        "n": 153
+      },
+      "내구성": {
+        "label": "긍정",
+        "pct": 63,
+        "n": 176
+      },
+      "호환성": {
+        "label": "긍정",
+        "pct": 85,
+        "n": 88
+      }
+    },
+    "top_summaries": [
+      {
+        "axis": "내구성",
+        "sentiment": "긍정",
+        "text": "수년 사용자에서 수명 관련 문제 언급이 드뭅니다.",
+        "source_label": "블로그C",
+        "source_type": "blog",
+        "source_url": "https://example.com/blog-c/post",
+        "collected_at": "2026-08-22",
+        "orig_refs": [
+          119263,
+          119888,
+          120146,
+          120547
+        ]
+      },
+      {
+        "axis": "발열",
+        "sentiment": "긍정",
+        "text": "메인보드 기본 히트싱크만으로도 온도가 무난하다는 후기가 많습니다.",
+        "source_label": "유튜브D",
+        "source_type": "youtube",
+        "source_url": "https://example.com/youtube-d/watch",
+        "collected_at": "2026-08-30",
+        "orig_refs": [
+          119060,
+          120470
+        ]
+      },
+      {
+        "axis": "순차속도",
+        "sentiment": "긍정",
+        "text": "카탈로그 수치에 근접한 순차 속도가 실사용에서도 나온다는 후기가 많습니다.",
+        "source_label": "블로그C",
+        "source_type": "blog",
+        "source_url": "https://example.com/blog-c/post",
+        "collected_at": "2026-08-17",
+        "orig_refs": [
+          119657,
+          120306
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "label": "블로그C",
+        "type": "blog",
+        "url": "https://example.com/blog-c/post"
+      },
+      {
+        "label": "유튜브D",
+        "type": "youtube",
+        "url": "https://example.com/youtube-d/watch"
+      }
+    ],
+    "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
+    "collected_at": "2026-09-01"
+  },
+  {
+    "product_key": "corsair-rm650e",
+    "product_name": "Corsair RM650e",
+    "category": "psu",
+    "brand": "corsair",
+    "total_reviews": 790,
+    "removed_count": 67,
+    "cleanse_ratio": 0.085,
+    "orig_rating": 4.2,
+    "cleaned_rating": 3.73,
+    "rating_dist": {
+      "labels": [
+        5,
+        4,
+        3,
+        2,
+        1
+      ],
+      "before_pct": [
+        59,
+        25,
+        10,
+        4,
+        2
+      ],
+      "after_pct": [
+        42,
+        31,
+        15,
+        6,
+        6
+      ]
+    },
+    "axis_scores": {
+      "팬소음": {
+        "label": "긍정",
+        "pct": 61,
+        "n": 316
+      },
+      "코일소음": {
+        "label": "부정",
+        "pct": 39,
+        "n": 354
+      },
+      "전압안정성": {
+        "label": "긍정",
+        "pct": 63,
+        "n": 217
+      },
+      "케이블": {
+        "label": "부정",
+        "pct": 60,
+        "n": 306
+      }
+    },
+    "top_summaries": [
+      {
+        "axis": "케이블",
+        "sentiment": "부정",
+        "text": "케이블이 짧거나 뻣뻣해 빅타워에서는 선정리가 까다롭다는 지적이 있습니다.",
+        "source_label": "커뮤니티A",
+        "source_type": "community",
+        "source_url": "https://example.com/community-a/thread",
+        "collected_at": "2026-08-29",
+        "orig_refs": [
+          119288,
+          119649,
+          119688,
+          119722
+        ]
+      },
+      {
+        "axis": "팬소음",
+        "sentiment": "긍정",
+        "text": "중부하까지 팬이 거의 돌지 않아 조용하다는 평이 많습니다.",
+        "source_label": "유튜브D",
+        "source_type": "youtube",
+        "source_url": "https://example.com/youtube-d/watch",
+        "collected_at": "2026-08-22",
+        "orig_refs": [
+          119188,
+          120151,
+          120503
+        ]
+      },
+      {
+        "axis": "전압안정성",
+        "sentiment": "긍정",
+        "text": "트랜지언트 스파이크가 큰 그래픽카드에서도 셧다운 없이 버틴다는 후기가 많습니다.",
+        "source_label": "쇼핑몰B",
+        "source_type": "marketplace",
+        "source_url": "https://example.com/mall-b/review",
+        "collected_at": "2026-08-24",
+        "orig_refs": [
+          120124,
+          120542
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "label": "쇼핑몰B",
+        "type": "marketplace",
+        "url": "https://example.com/mall-b/review"
+      },
+      {
+        "label": "유튜브D",
+        "type": "youtube",
+        "url": "https://example.com/youtube-d/watch"
+      },
+      {
+        "label": "커뮤니티A",
+        "type": "community",
+        "url": "https://example.com/community-a/thread"
+      }
+    ],
+    "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
+    "collected_at": "2026-09-01"
+  },
+  {
+    "product_key": "corsair-rm750e",
+    "product_name": "Corsair RM750e",
+    "category": "psu",
+    "brand": "corsair",
+    "total_reviews": 1261,
+    "removed_count": 129,
+    "cleanse_ratio": 0.102,
+    "orig_rating": 4.36,
+    "cleaned_rating": 4.02,
+    "rating_dist": {
+      "labels": [
+        5,
+        4,
+        3,
+        2,
+        1
+      ],
+      "before_pct": [
+        52,
+        21,
+        9,
+        5,
+        13
+      ],
+      "after_pct": [
+        43,
+        24,
+        12,
+        6,
+        15
+      ]
+    },
+    "axis_scores": {
+      "팬소음": {
+        "label": "긍정",
+        "pct": 71,
+        "n": 236
+      },
+      "코일소음": {
+        "label": "부정",
+        "pct": 50,
+        "n": 169
+      },
+      "전압안정성": {
+        "label": "긍정",
+        "pct": 72,
+        "n": 162
+      },
+      "케이블": {
+        "label": "부정",
+        "pct": 61,
+        "n": 532
+      }
+    },
+    "top_summaries": [
+      {
+        "axis": "팬소음",
+        "sentiment": "긍정",
+        "text": "중부하까지 팬이 거의 돌지 않아 조용하다는 평이 많습니다.",
+        "source_label": "쇼핑몰B",
+        "source_type": "marketplace",
+        "source_url": "https://example.com/mall-b/review",
+        "collected_at": "2026-08-17",
+        "orig_refs": [
+          119278,
+          119499,
+          119568,
+          119931
+        ]
+      },
+      {
+        "axis": "케이블",
+        "sentiment": "부정",
+        "text": "케이블이 짧거나 뻣뻣해 빅타워에서는 선정리가 까다롭다는 지적이 있습니다.",
+        "source_label": "커뮤니티A",
+        "source_type": "community",
+        "source_url": "https://example.com/community-a/thread",
+        "collected_at": "2026-08-26",
+        "orig_refs": [
+          119578,
+          120126,
+          120245
+        ]
+      },
+      {
+        "axis": "전압안정성",
+        "sentiment": "긍정",
+        "text": "트랜지언트 스파이크가 큰 그래픽카드에서도 셧다운 없이 버틴다는 후기가 많습니다.",
+        "source_label": "쇼핑몰B",
+        "source_type": "marketplace",
+        "source_url": "https://example.com/mall-b/review",
+        "collected_at": "2026-08-25",
+        "orig_refs": [
+          119296,
+          119603,
+          119826,
+          120076
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "label": "쇼핑몰B",
+        "type": "marketplace",
+        "url": "https://example.com/mall-b/review"
+      },
+      {
+        "label": "커뮤니티A",
+        "type": "community",
+        "url": "https://example.com/community-a/thread"
+      }
+    ],
+    "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
+    "collected_at": "2026-09-01"
+  },
+  {
+    "product_key": "corsair-rm850e",
+    "product_name": "Corsair RM850e",
+    "category": "psu",
+    "brand": "corsair",
+    "total_reviews": 1063,
+    "removed_count": 92,
+    "cleanse_ratio": 0.087,
+    "orig_rating": 4.54,
+    "cleaned_rating": 4.2,
+    "rating_dist": {
+      "labels": [
+        5,
+        4,
+        3,
+        2,
+        1
+      ],
+      "before_pct": [
+        64,
+        20,
+        7,
+        4,
+        5
+      ],
+      "after_pct": [
+        52,
+        24,
+        11,
+        5,
+        8
+      ]
+    },
+    "axis_scores": {
+      "팬소음": {
+        "label": "긍정",
+        "pct": 58,
+        "n": 242
+      },
+      "코일소음": {
+        "label": "부정",
+        "pct": 54,
+        "n": 395
+      },
+      "전압안정성": {
+        "label": "긍정",
+        "pct": 68,
+        "n": 429
+      },
+      "케이블": {
+        "label": "부정",
+        "pct": 62,
+        "n": 421
+      }
+    },
+    "top_summaries": [
+      {
+        "axis": "팬소음",
+        "sentiment": "부정",
+        "text": "팬이 한번 돌기 시작하면 특정 RPM에서 소음이 도드라진다는 후기가 있습니다.",
+        "source_label": "커뮤니티A",
+        "source_type": "community",
+        "source_url": "https://example.com/community-a/thread",
+        "collected_at": "2026-08-27",
+        "orig_refs": [
+          119154,
+          119219,
+          119887
+        ]
+      },
+      {
+        "axis": "전압안정성",
+        "sentiment": "긍정",
+        "text": "트랜지언트 스파이크가 큰 그래픽카드에서도 셧다운 없이 버틴다는 후기가 많습니다.",
+        "source_label": "블로그C",
+        "source_type": "blog",
+        "source_url": "https://example.com/blog-c/post",
+        "collected_at": "2026-08-18",
+        "orig_refs": [
+          119127,
+          119155,
+          119522,
+          119829
+        ]
+      },
+      {
+        "axis": "코일소음",
+        "sentiment": "부정",
+        "text": "고프레임 상황에서 약한 코일 소음이 들린다는 후기가 일부 있습니다.",
+        "source_label": "커뮤니티A",
+        "source_type": "community",
+        "source_url": "https://example.com/community-a/thread",
+        "collected_at": "2026-08-13",
+        "orig_refs": [
+          120129,
+          120368
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "label": "블로그C",
+        "type": "blog",
+        "url": "https://example.com/blog-c/post"
+      },
+      {
+        "label": "커뮤니티A",
+        "type": "community",
+        "url": "https://example.com/community-a/thread"
+      }
+    ],
+    "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
+    "collected_at": "2026-09-01"
+  },
+  {
+    "product_key": "msi-mpg-a1000g-pcie5",
+    "product_name": "MSI MPG A1000G PCIE5",
+    "category": "psu",
+    "brand": "msi",
+    "total_reviews": 258,
+    "removed_count": 49,
+    "cleanse_ratio": 0.191,
+    "orig_rating": 4.68,
+    "cleaned_rating": 4.33,
+    "rating_dist": {
+      "labels": [
+        5,
+        4,
+        3,
+        2,
+        1
+      ],
+      "before_pct": [
+        53,
+        24,
+        11,
+        4,
+        8
+      ],
+      "after_pct": [
+        37,
+        30,
+        16,
+        6,
+        11
+      ]
+    },
+    "axis_scores": {
+      "팬소음": {
+        "label": "긍정",
+        "pct": 77,
+        "n": 57
+      },
+      "코일소음": {
+        "label": "부정",
+        "pct": 57,
+        "n": 105
+      },
+      "전압안정성": {
+        "label": "긍정",
+        "pct": 68,
+        "n": 106
+      },
+      "케이블": {
+        "label": "부정",
+        "pct": 49,
+        "n": 87
+      }
+    },
+    "top_summaries": [
+      {
+        "axis": "팬소음",
+        "sentiment": "긍정",
+        "text": "중부하까지 팬이 거의 돌지 않아 조용하다는 평이 많습니다.",
+        "source_label": "유튜브D",
+        "source_type": "youtube",
+        "source_url": "https://example.com/youtube-d/watch",
+        "collected_at": "2026-08-20",
+        "orig_refs": [
+          119257,
+          119629,
+          119952,
+          120555
+        ]
+      },
+      {
+        "axis": "케이블",
+        "sentiment": "부정",
+        "text": "케이블이 짧거나 뻣뻣해 빅타워에서는 선정리가 까다롭다는 지적이 있습니다.",
+        "source_label": "커뮤니티A",
+        "source_type": "community",
+        "source_url": "https://example.com/community-a/thread",
+        "collected_at": "2026-08-24",
+        "orig_refs": [
+          119506,
+          120180,
+          120277,
+          120554
+        ]
+      },
+      {
+        "axis": "전압안정성",
+        "sentiment": "긍정",
+        "text": "트랜지언트 스파이크가 큰 그래픽카드에서도 셧다운 없이 버틴다는 후기가 많습니다.",
+        "source_label": "쇼핑몰B",
+        "source_type": "marketplace",
+        "source_url": "https://example.com/mall-b/review",
+        "collected_at": "2026-08-16",
+        "orig_refs": [
+          119812,
+          119851
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "label": "쇼핑몰B",
+        "type": "marketplace",
+        "url": "https://example.com/mall-b/review"
+      },
+      {
+        "label": "유튜브D",
+        "type": "youtube",
+        "url": "https://example.com/youtube-d/watch"
+      },
+      {
+        "label": "커뮤니티A",
+        "type": "community",
+        "url": "https://example.com/community-a/thread"
+      }
+    ],
+    "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
+    "collected_at": "2026-09-01"
+  },
+  {
+    "product_key": "corsair-sf750",
+    "product_name": "Corsair SF750",
+    "category": "psu",
+    "brand": "corsair",
+    "total_reviews": 156,
+    "removed_count": 37,
+    "cleanse_ratio": 0.238,
+    "orig_rating": 4.75,
+    "cleaned_rating": 4.44,
+    "rating_dist": {
+      "labels": [
+        5,
+        4,
+        3,
+        2,
+        1
+      ],
+      "before_pct": [
+        58,
+        21,
+        10,
+        6,
+        5
+      ],
+      "after_pct": [
+        45,
+        26,
+        14,
+        7,
+        8
+      ]
+    },
+    "axis_scores": {
+      "팬소음": {
+        "label": "긍정",
+        "pct": 61,
+        "n": 57
+      },
+      "코일소음": {
+        "label": "부정",
+        "pct": 58,
+        "n": 42
+      },
+      "전압안정성": {
+        "label": "긍정",
+        "pct": 68,
+        "n": 37
+      },
+      "케이블": {
+        "label": "부정",
+        "pct": 43,
+        "n": 22
+      }
+    },
+    "top_summaries": [
+      {
+        "axis": "팬소음",
+        "sentiment": "부정",
+        "text": "팬이 한번 돌기 시작하면 특정 RPM에서 소음이 도드라진다는 후기가 있습니다.",
+        "source_label": "쇼핑몰B",
+        "source_type": "marketplace",
+        "source_url": "https://example.com/mall-b/review",
+        "collected_at": "2026-08-21",
+        "orig_refs": [
+          120184,
+          120546
+        ]
+      },
+      {
+        "axis": "코일소음",
+        "sentiment": "부정",
+        "text": "고프레임 상황에서 약한 코일 소음이 들린다는 후기가 일부 있습니다.",
+        "source_label": "커뮤니티A",
+        "source_type": "community",
+        "source_url": "https://example.com/community-a/thread",
+        "collected_at": "2026-08-13",
+        "orig_refs": [
+          119795,
+          120394
+        ]
+      },
+      {
+        "axis": "전압안정성",
+        "sentiment": "긍정",
+        "text": "트랜지언트 스파이크가 큰 그래픽카드에서도 셧다운 없이 버틴다는 후기가 많습니다.",
+        "source_label": "쇼핑몰B",
+        "source_type": "marketplace",
+        "source_url": "https://example.com/mall-b/review",
+        "collected_at": "2026-08-25",
+        "orig_refs": [
+          119550,
+          119682,
+          120272
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "label": "쇼핑몰B",
+        "type": "marketplace",
+        "url": "https://example.com/mall-b/review"
+      },
+      {
+        "label": "커뮤니티A",
+        "type": "community",
+        "url": "https://example.com/community-a/thread"
+      }
+    ],
+    "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
+    "collected_at": "2026-09-01"
+  },
+  {
+    "product_key": "fractal-design-north",
+    "product_name": "Fractal Design North",
+    "category": "case",
+    "brand": "fractal",
+    "total_reviews": 944,
+    "removed_count": 147,
+    "cleanse_ratio": 0.156,
+    "orig_rating": 4.42,
+    "cleaned_rating": 3.94,
+    "rating_dist": {
+      "labels": [
+        5,
+        4,
+        3,
+        2,
+        1
+      ],
+      "before_pct": [
+        59,
+        27,
+        12,
+        5,
+        1
+      ],
+      "after_pct": [
+        44,
+        31,
+        15,
+        6,
+        4
+      ]
+    },
+    "axis_scores": {
+      "쿨링": {
+        "label": "긍정",
+        "pct": 65,
+        "n": 171
+      },
+      "조립편의": {
+        "label": "긍정",
+        "pct": 66,
+        "n": 241
+      },
+      "소음": {
+        "label": "부정",
+        "pct": 59,
+        "n": 128
+      },
+      "마감": {
+        "label": "긍정",
+        "pct": 65,
+        "n": 313
+      }
+    },
+    "top_summaries": [
+      {
+        "axis": "조립편의",
+        "sentiment": "긍정",
+        "text": "선정리 공간과 후면 케이블 채널이 넉넉해 조립이 수월하다는 평이 많습니다.",
+        "source_label": "유튜브D",
+        "source_type": "youtube",
+        "source_url": "https://example.com/youtube-d/watch",
+        "collected_at": "2026-08-14",
+        "orig_refs": [
+          119389,
+          119528,
+          119619,
+          120405
+        ]
+      },
+      {
+        "axis": "쿨링",
+        "sentiment": "부정",
+        "text": "상단·후면 팬을 추가하지 않으면 고사양 구성에서 온도가 아쉽다는 지적이 있습니다.",
+        "source_label": "블로그C",
+        "source_type": "blog",
+        "source_url": "https://example.com/blog-c/post",
+        "collected_at": "2026-08-18",
+        "orig_refs": [
+          119111,
+          119248,
+          119594,
+          120230
+        ]
+      },
+      {
+        "axis": "마감",
+        "sentiment": "긍정",
+        "text": "도장과 패널 결합부 마감이 가격대 대비 좋다는 평이 많습니다.",
+        "source_label": "커뮤니티A",
+        "source_type": "community",
+        "source_url": "https://example.com/community-a/thread",
+        "collected_at": "2026-08-13",
+        "orig_refs": [
+          119125,
+          119616,
+          119737,
+          120260
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "label": "블로그C",
+        "type": "blog",
+        "url": "https://example.com/blog-c/post"
+      },
+      {
+        "label": "유튜브D",
+        "type": "youtube",
+        "url": "https://example.com/youtube-d/watch"
+      },
+      {
+        "label": "커뮤니티A",
+        "type": "community",
+        "url": "https://example.com/community-a/thread"
+      }
+    ],
+    "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
+    "collected_at": "2026-09-01"
+  },
+  {
+    "product_key": "nzxt-h5-flow",
+    "product_name": "NZXT H5 Flow",
+    "category": "case",
+    "brand": "nzxt",
+    "total_reviews": 1234,
+    "removed_count": 228,
+    "cleanse_ratio": 0.185,
+    "orig_rating": 4.39,
+    "cleaned_rating": 4.07,
+    "rating_dist": {
+      "labels": [
+        5,
+        4,
+        3,
+        2,
+        1
+      ],
+      "before_pct": [
+        54,
+        27,
+        10,
+        5,
+        4
+      ],
+      "after_pct": [
+        38,
+        33,
+        15,
+        7,
+        7
+      ]
+    },
+    "axis_scores": {
+      "쿨링": {
+        "label": "긍정",
+        "pct": 82,
+        "n": 354
+      },
+      "조립편의": {
+        "label": "부정",
+        "pct": 58,
+        "n": 290
+      },
+      "소음": {
+        "label": "긍정",
+        "pct": 71,
+        "n": 368
+      },
+      "마감": {
+        "label": "긍정",
+        "pct": 71,
+        "n": 499
+      }
+    },
+    "top_summaries": [
+      {
+        "axis": "소음",
+        "sentiment": "부정",
+        "text": "기본 팬은 최대 RPM에서 풍절음이 있어 교체했다는 후기가 있습니다.",
+        "source_label": "커뮤니티A",
+        "source_type": "community",
+        "source_url": "https://example.com/community-a/thread",
+        "collected_at": "2026-08-18",
+        "orig_refs": [
+          120085,
+          120115
+        ]
+      },
+      {
+        "axis": "쿨링",
+        "sentiment": "긍정",
+        "text": "메쉬 전면 덕에 동일 구성에서 GPU·CPU 온도가 낮게 유지된다는 후기가 많습니다.",
+        "source_label": "블로그C",
+        "source_type": "blog",
+        "source_url": "https://example.com/blog-c/post",
+        "collected_at": "2026-08-31",
+        "orig_refs": [
+          119079,
+          120467
+        ]
+      },
+      {
+        "axis": "조립편의",
+        "sentiment": "긍정",
+        "text": "선정리 공간과 후면 케이블 채널이 넉넉해 조립이 수월하다는 평이 많습니다.",
+        "source_label": "커뮤니티A",
+        "source_type": "community",
+        "source_url": "https://example.com/community-a/thread",
+        "collected_at": "2026-08-30",
+        "orig_refs": [
+          120128,
+          120471
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "label": "블로그C",
+        "type": "blog",
+        "url": "https://example.com/blog-c/post"
+      },
+      {
+        "label": "커뮤니티A",
+        "type": "community",
+        "url": "https://example.com/community-a/thread"
+      }
+    ],
+    "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
+    "collected_at": "2026-09-01"
+  },
+  {
+    "product_key": "cooler-master-nr200p-max",
+    "product_name": "Cooler Master NR200P MAX",
+    "category": "case",
+    "brand": "coolermaster",
+    "total_reviews": 474,
+    "removed_count": 109,
+    "cleanse_ratio": 0.231,
+    "orig_rating": 4.47,
+    "cleaned_rating": 4.1,
+    "rating_dist": {
+      "labels": [
+        5,
+        4,
+        3,
+        2,
+        1
+      ],
+      "before_pct": [
+        63,
+        25,
+        12,
+        7,
+        1
+      ],
+      "after_pct": [
+        44,
+        29,
+        16,
+        8,
+        4
+      ]
+    },
+    "axis_scores": {
+      "쿨링": {
+        "label": "긍정",
+        "pct": 92,
+        "n": 63
+      },
+      "조립편의": {
+        "label": "부정",
+        "pct": 38,
+        "n": 161
+      },
+      "소음": {
+        "label": "부정",
+        "pct": 43,
+        "n": 129
+      },
+      "마감": {
+        "label": "긍정",
+        "pct": 71,
+        "n": 63
+      }
+    },
+    "top_summaries": [
+      {
+        "axis": "마감",
+        "sentiment": "긍정",
+        "text": "도장과 패널 결합부 마감이 가격대 대비 좋다는 평이 많습니다.",
+        "source_label": "커뮤니티A",
+        "source_type": "community",
+        "source_url": "https://example.com/community-a/thread",
+        "collected_at": "2026-08-19",
+        "orig_refs": [
+          119155,
+          119561,
+          119578,
+          120399
+        ]
+      },
+      {
+        "axis": "소음",
+        "sentiment": "부정",
+        "text": "기본 팬은 최대 RPM에서 풍절음이 있어 교체했다는 후기가 있습니다.",
+        "source_label": "쇼핑몰B",
+        "source_type": "marketplace",
+        "source_url": "https://example.com/mall-b/review",
+        "collected_at": "2026-08-15",
+        "orig_refs": [
+          119276,
+          119306,
+          119944
+        ]
+      },
+      {
+        "axis": "쿨링",
+        "sentiment": "긍정",
+        "text": "메쉬 전면 덕에 동일 구성에서 GPU·CPU 온도가 낮게 유지된다는 후기가 많습니다.",
+        "source_label": "유튜브D",
+        "source_type": "youtube",
+        "source_url": "https://example.com/youtube-d/watch",
+        "collected_at": "2026-08-27",
+        "orig_refs": [
+          119159,
+          119913,
+          120089
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "label": "쇼핑몰B",
+        "type": "marketplace",
+        "url": "https://example.com/mall-b/review"
+      },
+      {
+        "label": "유튜브D",
+        "type": "youtube",
+        "url": "https://example.com/youtube-d/watch"
+      },
+      {
+        "label": "커뮤니티A",
+        "type": "community",
+        "url": "https://example.com/community-a/thread"
+      }
+    ],
+    "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
+    "collected_at": "2026-09-01"
+  },
+  {
+    "product_key": "asus-prime-ap201",
+    "product_name": "ASUS Prime AP201",
+    "category": "case",
+    "brand": "asus",
+    "total_reviews": 138,
+    "removed_count": 8,
+    "cleanse_ratio": 0.061,
+    "orig_rating": 4.28,
+    "cleaned_rating": 3.78,
+    "rating_dist": {
+      "labels": [
+        5,
+        4,
+        3,
+        2,
+        1
+      ],
+      "before_pct": [
+        54,
+        24,
+        8,
+        3,
+        11
+      ],
+      "after_pct": [
+        42,
+        28,
+        12,
+        4,
+        14
+      ]
+    },
+    "axis_scores": {
+      "쿨링": {
+        "label": "긍정",
+        "pct": 73,
+        "n": 62
+      },
+      "조립편의": {
+        "label": "긍정",
+        "pct": 65,
+        "n": 37
+      },
+      "소음": {
+        "label": "부정",
+        "pct": 44,
+        "n": 51
+      },
+      "마감": {
+        "label": "긍정",
+        "pct": 81,
+        "n": 24
+      }
+    },
+    "top_summaries": [
+      {
+        "axis": "쿨링",
+        "sentiment": "긍정",
+        "text": "메쉬 전면 덕에 동일 구성에서 GPU·CPU 온도가 낮게 유지된다는 후기가 많습니다.",
+        "source_label": "커뮤니티A",
+        "source_type": "community",
+        "source_url": "https://example.com/community-a/thread",
+        "collected_at": "2026-09-01",
+        "orig_refs": [
+          119135,
+          119261,
+          119521
+        ]
+      },
+      {
+        "axis": "소음",
+        "sentiment": "부정",
+        "text": "기본 팬은 최대 RPM에서 풍절음이 있어 교체했다는 후기가 있습니다.",
+        "source_label": "블로그C",
+        "source_type": "blog",
+        "source_url": "https://example.com/blog-c/post",
+        "collected_at": "2026-08-27",
+        "orig_refs": [
+          120259,
+          120350,
+          120477
+        ]
+      },
+      {
+        "axis": "마감",
+        "sentiment": "긍정",
+        "text": "도장과 패널 결합부 마감이 가격대 대비 좋다는 평이 많습니다.",
+        "source_label": "쇼핑몰B",
+        "source_type": "marketplace",
+        "source_url": "https://example.com/mall-b/review",
+        "collected_at": "2026-08-28",
+        "orig_refs": [
+          119199,
+          119598,
+          119663,
+          120430
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "label": "블로그C",
+        "type": "blog",
+        "url": "https://example.com/blog-c/post"
+      },
+      {
+        "label": "쇼핑몰B",
+        "type": "marketplace",
+        "url": "https://example.com/mall-b/review"
+      },
+      {
+        "label": "커뮤니티A",
+        "type": "community",
+        "url": "https://example.com/community-a/thread"
+      }
+    ],
+    "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
+    "collected_at": "2026-09-01"
+  },
+  {
+    "product_key": "thermalright-peerless-assassin-120-se",
+    "product_name": "Thermalright Peerless Assassin 120 SE",
+    "category": "cooler",
+    "brand": "thermalright",
+    "total_reviews": 1452,
+    "removed_count": 119,
+    "cleanse_ratio": 0.082,
+    "orig_rating": 4.26,
+    "cleaned_rating": 3.81,
+    "rating_dist": {
+      "labels": [
+        5,
+        4,
+        3,
+        2,
+        1
+      ],
+      "before_pct": [
+        53,
+        24,
+        8,
+        5,
+        10
+      ],
+      "after_pct": [
+        38,
+        29,
+        12,
+        7,
+        14
+      ]
+    },
+    "axis_scores": {
+      "냉각성능": {
+        "label": "긍정",
+        "pct": 65,
+        "n": 211
+      },
+      "소음": {
+        "label": "긍정",
+        "pct": 76,
+        "n": 367
+      },
+      "설치난이도": {
+        "label": "부정",
+        "pct": 55,
+        "n": 190
+      },
+      "클리어런스": {
+        "label": "부정",
+        "pct": 60,
+        "n": 228
+      }
+    },
+    "top_summaries": [
+      {
+        "axis": "소음",
+        "sentiment": "긍정",
+        "text": "풀로드에서도 팬 소음이 거슬리지 않는다는 후기가 많습니다.",
+        "source_label": "커뮤니티A",
+        "source_type": "community",
+        "source_url": "https://example.com/community-a/thread",
+        "collected_at": "2026-08-27",
+        "orig_refs": [
+          119291,
+          120543
+        ]
+      },
+      {
+        "axis": "클리어런스",
+        "sentiment": "부정",
+        "text": "높이가 있어 일부 미들타워 케이스나 키 큰 RAM과 간섭된다는 후기가 있습니다.",
+        "source_label": "쇼핑몰B",
+        "source_type": "marketplace",
+        "source_url": "https://example.com/mall-b/review",
+        "collected_at": "2026-08-27",
+        "orig_refs": [
+          119079,
+          119706
+        ]
+      },
+      {
+        "axis": "설치난이도",
+        "sentiment": "부정",
+        "text": "백플레이트 장착이 까다롭고 설명서가 불친절하다는 지적이 반복됩니다.",
+        "source_label": "쇼핑몰B",
+        "source_type": "marketplace",
+        "source_url": "https://example.com/mall-b/review",
+        "collected_at": "2026-08-30",
+        "orig_refs": [
+          119203,
+          119324,
+          119976
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "label": "쇼핑몰B",
+        "type": "marketplace",
+        "url": "https://example.com/mall-b/review"
+      },
+      {
+        "label": "커뮤니티A",
+        "type": "community",
+        "url": "https://example.com/community-a/thread"
+      }
+    ],
+    "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
+    "collected_at": "2026-09-01"
+  },
+  {
+    "product_key": "noctua-nh-d15",
+    "product_name": "Noctua NH-D15",
+    "category": "cooler",
+    "brand": "noctua",
+    "total_reviews": 1053,
+    "removed_count": 68,
+    "cleanse_ratio": 0.065,
+    "orig_rating": 4.34,
+    "cleaned_rating": 4.16,
+    "rating_dist": {
+      "labels": [
+        5,
+        4,
+        3,
+        2,
+        1
+      ],
+      "before_pct": [
+        56,
+        22,
+        9,
+        7,
+        6
+      ],
+      "after_pct": [
+        44,
+        26,
+        13,
+        8,
+        9
+      ]
+    },
+    "axis_scores": {
+      "냉각성능": {
+        "label": "긍정",
+        "pct": 77,
+        "n": 189
+      },
+      "소음": {
+        "label": "긍정",
+        "pct": 69,
+        "n": 427
+      },
+      "설치난이도": {
+        "label": "부정",
+        "pct": 56,
+        "n": 252
+      },
+      "클리어런스": {
+        "label": "부정",
+        "pct": 59,
+        "n": 440
+      }
+    },
+    "top_summaries": [
+      {
+        "axis": "냉각성능",
+        "sentiment": "긍정",
+        "text": "고전력 CPU도 전력 제한 없이 상시 사용 가능한 수준이라는 후기가 많습니다.",
+        "source_label": "유튜브D",
+        "source_type": "youtube",
+        "source_url": "https://example.com/youtube-d/watch",
+        "collected_at": "2026-08-25",
+        "orig_refs": [
+          119113,
+          119211
+        ]
+      },
+      {
+        "axis": "소음",
+        "sentiment": "긍정",
+        "text": "풀로드에서도 팬 소음이 거슬리지 않는다는 후기가 많습니다.",
+        "source_label": "커뮤니티A",
+        "source_type": "community",
+        "source_url": "https://example.com/community-a/thread",
+        "collected_at": "2026-08-28",
+        "orig_refs": [
+          119509,
+          119567
+        ]
+      },
+      {
+        "axis": "설치난이도",
+        "sentiment": "부정",
+        "text": "백플레이트 장착이 까다롭고 설명서가 불친절하다는 지적이 반복됩니다.",
+        "source_label": "쇼핑몰B",
+        "source_type": "marketplace",
+        "source_url": "https://example.com/mall-b/review",
+        "collected_at": "2026-08-30",
+        "orig_refs": [
+          119179,
+          119215,
+          120060
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "label": "쇼핑몰B",
+        "type": "marketplace",
+        "url": "https://example.com/mall-b/review"
+      },
+      {
+        "label": "유튜브D",
+        "type": "youtube",
+        "url": "https://example.com/youtube-d/watch"
+      },
+      {
+        "label": "커뮤니티A",
+        "type": "community",
+        "url": "https://example.com/community-a/thread"
+      }
+    ],
+    "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
+    "collected_at": "2026-09-01"
+  },
+  {
+    "product_key": "arctic-liquid-freezer-iii-360",
+    "product_name": "Arctic Liquid Freezer III 360",
+    "category": "cooler",
+    "brand": "arctic",
+    "total_reviews": 591,
+    "removed_count": 120,
+    "cleanse_ratio": 0.203,
+    "orig_rating": 4.56,
+    "cleaned_rating": 4.31,
+    "rating_dist": {
+      "labels": [
+        5,
+        4,
+        3,
+        2,
+        1
+      ],
+      "before_pct": [
+        52,
+        20,
+        11,
+        7,
+        10
+      ],
+      "after_pct": [
+        38,
+        25,
+        15,
+        8,
+        14
+      ]
+    },
+    "axis_scores": {
+      "냉각성능": {
+        "label": "긍정",
+        "pct": 88,
+        "n": 179
+      },
+      "소음": {
+        "label": "긍정",
+        "pct": 91,
+        "n": 122
+      },
+      "설치난이도": {
+        "label": "부정",
+        "pct": 44,
+        "n": 180
+      },
+      "클리어런스": {
+        "label": "부정",
+        "pct": 39,
+        "n": 245
+      }
+    },
+    "top_summaries": [
+      {
+        "axis": "냉각성능",
+        "sentiment": "긍정",
+        "text": "동급 공랭 중 온도가 낮은 편이고 소음도 조용하다는 평이 많습니다.",
+        "source_label": "쇼핑몰B",
+        "source_type": "marketplace",
+        "source_url": "https://example.com/mall-b/review",
+        "collected_at": "2026-08-12",
+        "orig_refs": [
+          119516,
+          119588,
+          120057,
+          120398
+        ]
+      },
+      {
+        "axis": "클리어런스",
+        "sentiment": "부정",
+        "text": "높이가 있어 일부 미들타워 케이스나 키 큰 RAM과 간섭된다는 후기가 있습니다.",
+        "source_label": "쇼핑몰B",
+        "source_type": "marketplace",
+        "source_url": "https://example.com/mall-b/review",
+        "collected_at": "2026-08-25",
+        "orig_refs": [
+          119507,
+          120252
+        ]
+      },
+      {
+        "axis": "소음",
+        "sentiment": "긍정",
+        "text": "풀로드에서도 팬 소음이 거슬리지 않는다는 후기가 많습니다.",
+        "source_label": "쇼핑몰B",
+        "source_type": "marketplace",
+        "source_url": "https://example.com/mall-b/review",
+        "collected_at": "2026-08-14",
+        "orig_refs": [
+          119197,
+          119944,
+          120077
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "label": "쇼핑몰B",
+        "type": "marketplace",
+        "url": "https://example.com/mall-b/review"
+      }
+    ],
+    "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
+    "collected_at": "2026-09-01"
+  },
+  {
+    "product_key": "deepcool-ak400",
+    "product_name": "DeepCool AK400",
+    "category": "cooler",
+    "brand": "deepcool",
+    "total_reviews": 101,
+    "removed_count": 13,
+    "cleanse_ratio": 0.125,
+    "orig_rating": 4.48,
+    "cleaned_rating": 4.08,
+    "rating_dist": {
+      "labels": [
+        5,
+        4,
+        3,
+        2,
+        1
+      ],
+      "before_pct": [
+        61,
+        20,
+        12,
+        7,
+        1
+      ],
+      "after_pct": [
+        49,
+        24,
+        16,
+        8,
+        4
+      ]
+    },
+    "axis_scores": {
+      "냉각성능": {
+        "label": "긍정",
+        "pct": 58,
+        "n": 28
+      },
+      "소음": {
+        "label": "긍정",
+        "pct": 77,
+        "n": 39
+      },
+      "설치난이도": {
+        "label": "긍정",
+        "pct": 59,
+        "n": 43
+      },
+      "클리어런스": {
+        "label": "긍정",
+        "pct": 75,
+        "n": 16
+      }
+    },
+    "top_summaries": [
+      {
+        "axis": "설치난이도",
+        "sentiment": "부정",
+        "text": "백플레이트 장착이 까다롭고 설명서가 불친절하다는 지적이 반복됩니다.",
+        "source_label": "커뮤니티A",
+        "source_type": "community",
+        "source_url": "https://example.com/community-a/thread",
+        "collected_at": "2026-08-15",
+        "orig_refs": [
+          119303,
+          119607
+        ]
+      },
+      {
+        "axis": "소음",
+        "sentiment": "긍정",
+        "text": "풀로드에서도 팬 소음이 거슬리지 않는다는 후기가 많습니다.",
+        "source_label": "유튜브D",
+        "source_type": "youtube",
+        "source_url": "https://example.com/youtube-d/watch",
+        "collected_at": "2026-08-16",
+        "orig_refs": [
+          119806,
+          120477
+        ]
+      },
+      {
+        "axis": "냉각성능",
+        "sentiment": "긍정",
+        "text": "고전력 CPU도 전력 제한 없이 상시 사용 가능한 수준이라는 후기가 많습니다.",
+        "source_label": "블로그C",
+        "source_type": "blog",
+        "source_url": "https://example.com/blog-c/post",
+        "collected_at": "2026-08-21",
+        "orig_refs": [
+          119240,
+          120496
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "label": "블로그C",
+        "type": "blog",
+        "url": "https://example.com/blog-c/post"
+      },
+      {
+        "label": "유튜브D",
+        "type": "youtube",
+        "url": "https://example.com/youtube-d/watch"
+      },
+      {
+        "label": "커뮤니티A",
+        "type": "community",
+        "url": "https://example.com/community-a/thread"
+      }
+    ],
+    "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
+    "collected_at": "2026-09-01"
+  }
+]

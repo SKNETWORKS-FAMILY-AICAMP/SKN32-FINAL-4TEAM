@@ -1,0 +1,6 @@
+{
+  "status": "passed",
+  "scope": "deterministic data consistency; not product safety",
+  "coverage_status": "partial",
+  "manual_sha256": "d785521071908514f5924e68134e85d7bd767b98d7fedf680197e71815c7e76d"
+}

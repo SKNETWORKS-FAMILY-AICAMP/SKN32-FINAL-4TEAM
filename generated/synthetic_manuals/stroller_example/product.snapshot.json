@@ -1,0 +1,67 @@
+{
+  "product_id": "SYN-STROLLER-001",
+  "is_synthetic": true,
+  "brand": "가상브랜드_새봄",
+  "model": "SYN-LITE-A",
+  "category_id": "stroller",
+  "variant_id": "SYN-STROLLER-001-GREY",
+  "market": "KR_DEMO",
+  "eligibility": [
+    {
+      "mode": "seat",
+      "min_age_months": 6,
+      "max_weight_kg": 22,
+      "requires": [
+        "independent_sitting"
+      ],
+      "stop_when_any": [
+        "weight_over_22kg"
+      ]
+    }
+  ],
+  "components": [],
+  "specs": {
+    "type": "compact",
+    "assembled_weight_kg": 6.5,
+    "folded_cm": {
+      "width": 45,
+      "depth": 25,
+      "height": 55
+    },
+    "unfolded_cm": {
+      "width": 55,
+      "depth": 85,
+      "height": 105
+    },
+    "seat_max_kg": 22,
+    "basket_max_kg": 3,
+    "newborn_setup": "not_supported",
+    "one_hand_fold": true,
+    "self_standing_folded": false,
+    "compatible_adapter_ids": []
+  },
+  "field_status": {
+    "specs.type": "known",
+    "specs.assembled_weight_kg": "known",
+    "specs.folded_cm": "known",
+    "specs.unfolded_cm": "known",
+    "specs.seat_max_kg": "known",
+    "specs.basket_max_kg": "known",
+    "specs.newborn_setup": "known",
+    "specs.one_hand_fold": "known",
+    "specs.self_standing_folded": "known",
+    "specs.compatible_adapter_ids": "known"
+  },
+  "simulated_safety_status": "not_evaluated",
+  "offer": {
+    "price_krw": 290000,
+    "shipping_krw": 3000,
+    "stock": 10,
+    "lead_time_days": 3
+  },
+  "dataset_meta": {
+    "version": "1.0",
+    "seed": 42,
+    "scenario_id": "SYN-CASE-001"
+  }
+}
