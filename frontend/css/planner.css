@@ -277,6 +277,7 @@ body:has(.flow:not([hidden]))>header{display:none}
 .summary-action-row .review-score-trigger strong{font-size:13px}
 .summary-action-row .review-score-trigger .review-arrow{font-size:18px}
 .summary-action-row>.btn{flex:0 0 auto;padding:8px 10px!important;font-size:12px!important}
+.summary-action-row .selection-toggle.is-selected{background:var(--tf-soft-sage)!important;border-color:var(--tf-secondary)!important;color:var(--tf-primary)!important;font-weight:800}
 @media(max-width:760px){.summary-action-row{flex-wrap:wrap}.summary-action-row .review-score-trigger{white-space:normal}}
 .part-detail .part-actions .review-score-trigger{display:none}
 .summary-review-link{justify-self:start;border:1px solid var(--tf-border);border-radius:10px;background:var(--tf-surface);color:var(--tf-text);padding:7px 11px;font-size:12px;line-height:1.2;cursor:pointer}
