@@ -112,6 +112,47 @@ class EngineRepo(Repo):
             WHERE id=%s""",
             (headline, text, Jsonb(reasoning_log), run_id),
         )
+    def set_candidate_reason(self, candidate_id: UUID, *, reason: str | None, status: str) -> None:
+        self._exec(
+            "UPDATE engine.recommendation_candidate SET reason=%s, reason_status=%s, updated_at=now() WHERE id=%s",
+            (reason, status, candidate_id),
+        )
+    def set_candidate_result(self, candidate_id: UUID, *, result: str, score: float | None = None) -> None:
+        if score is not None:
+            self._exec(
+                "UPDATE engine.recommendation_candidate SET result=%s, score=%s, score_method_version=%s, updated_at=now() WHERE id=%s",
+                (result, score, "baby-optimizer-v1", candidate_id),
+            )
+        else:
+            self._exec(
+                "UPDATE engine.recommendation_candidate SET result=%s, updated_at=now() WHERE id=%s",
+                (result, candidate_id),
+            )
+    def get_candidate(self, candidate_id: UUID) -> dict | None:
+        return self._one("SELECT * FROM engine.recommendation_candidate WHERE id=%s", (candidate_id,))
+    def get_candidates_by_requirement(self, run_id: UUID, requirement_id: UUID) -> list[dict]:
+        return self._all(
+            """SELECT c.*, p.model AS product_key, p.name AS product_name, p.brand, p.image_url,
+                      v.variant_key, of.purchase_url, obs.price
+               FROM engine.recommendation_candidate c
+               JOIN catalog.product_variant v ON v.id=c.variant_id
+               JOIN catalog.product p ON p.id=v.product_id
+               LEFT JOIN catalog.offer_observation obs ON obs.id=c.offer_observation_id
+               LEFT JOIN catalog.offer of ON of.id=obs.offer_id
+               WHERE c.run_id=%s AND c.requirement_id=%s ORDER BY c.score DESC NULLS LAST, c.created_at""",
+            (run_id, requirement_id),
+        )
+    def get_candidate_eligibility(self, run_id: UUID, candidate_id: UUID) -> dict:
+        """validation_result.issues[0].target.candidate_id 로 이 후보의 적격성을 재구성한다
+        (baby 경로는 CandidateCheck 를 별도 테이블 없이 issues jsonb 로만 갖고 있다 — P0 v3)."""
+        rows = self._all(
+            """SELECT status, severity FROM engine.validation_result
+               WHERE run_id=%s AND issues->0->'target'->>'candidate_id'=%s""",
+            (run_id, str(candidate_id)),
+        )
+        statuses = [r["status"] for r in rows]
+        eligibility = "fail" if "fail" in statuses else ("unknown" if "unknown" in statuses else "pass")
+        return {"eligibility": eligibility, "selection_allowed": eligibility == "pass", "issue_count": len(rows)}
     def get_run(self, run_id: UUID) -> dict | None:
         return self._one("SELECT * FROM engine.recommendation_run WHERE id=%s",(run_id,))
     def get_latest_run(self, revision_id: UUID) -> dict | None:

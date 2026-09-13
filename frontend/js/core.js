@@ -29,9 +29,12 @@ const TF_PLAN={
  specFile(id,fileName,content){return TF_API.post('/session/'+tfSeg(id)+'/spec-file',{file_name:fileName,content})},
  recommend(id,strategy){return TF_API.post('/session/'+tfSeg(id)+'/recommend',strategy?{strategy}:{})},
  result(id){return TF_API.get('/session/'+tfSeg(id)+'/result')},
- updateItem(id,itemId,changes){return TF_API.patch('/session/'+tfSeg(id)+'/items/'+tfSeg(itemId),changes)},
+ // TF-DEV: PATCH/swap은 낙관적 잠금(If-Match: lock_version)을 쓴다 — 가장 최근에 받은
+ // tfPlan.result.lock_version을 보낸다. 그 사이 조건이 바뀌었으면 서버가 409를 준다
+ // (호출부가 tfResultAction의 오류 처리로 그대로 사용자에게 보여준다).
+ updateItem(id,itemId,changes){return TF_API.patch('/session/'+tfSeg(id)+'/items/'+tfSeg(itemId),changes,{'If-Match':String(tfPlan.result?.lock_version??'')})},
  alternatives(id,itemId){return TF_API.get('/session/'+tfSeg(id)+'/items/'+tfSeg(itemId)+'/alternatives')},
- swap(id,itemId,candidateId){return TF_API.post('/session/'+tfSeg(id)+'/items/'+tfSeg(itemId)+'/swap',{candidate_id:candidateId})},
+ swap(id,itemId,candidateId){return TF_API.post('/session/'+tfSeg(id)+'/items/'+tfSeg(itemId)+'/swap',{candidate_id:candidateId},{'If-Match':String(tfPlan.result?.lock_version??'')})},
  resultMessage(id,text){return TF_API.post('/session/'+tfSeg(id)+'/result-message',{text})},
  reviewSummary(productKey){return TF_API.get('/reviews/summary/'+tfSeg(productKey))},
  lists(){return TF_API.get('/lists')},

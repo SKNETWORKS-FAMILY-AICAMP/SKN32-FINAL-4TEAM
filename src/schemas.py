@@ -150,6 +150,12 @@ class ItemOut(BaseModel):
     reason: TextStatusOut
     checks: TextStatusOut
     alternatives_count: int = 0
+    # ── baby extension (CONTRACTS target extension of frontend D-4-2) ──
+    requirement_id: str | None = None
+    candidate_id: str | None = None
+    eligibility: str | None = None          # pass | fail | unknown
+    coverage: str | None = None             # partial | full | none | error
+    status: str | None = None               # owned | to_purchase | purchased
 
 
 class TotalsOut(BaseModel):
@@ -181,7 +187,7 @@ class RecommendResultOut(BaseModel):
 
     list_id: str
     run_id: str
-    status: str                      # running | done | failed
+    status: str                      # running | done | failed | conflict
     progress: list[ProgressStepOut] = Field(default_factory=list)
     category: str
     conditions_summary: str = ""
@@ -193,6 +199,45 @@ class RecommendResultOut(BaseModel):
     reasoning_log: list[dict] = Field(default_factory=list)
     data_notice: str = "상품·가격·리뷰는 합성 데이터입니다."
     error: RecommendErrorOut | None = None
+    # ── baby extension ──
+    revision_id: str | None = None
+    lock_version: int | None = None
+    feasible: bool | None = None
+    missing_requirements: list[dict[str, Any]] = Field(default_factory=list)
+
+
+# ── baby item edit / alternatives / result-message (P5) ──
+class ItemPatchIn(BaseModel):
+    selected: Optional[bool] = None
+    qty: Optional[int] = Field(default=None, ge=1, le=99)
+    timing: Optional[Literal["now", "soon", "later"]] = None
+
+
+class SwapIn(BaseModel):
+    candidate_id: str
+
+
+class AlternativeOut(BaseModel):
+    candidate_id: str
+    current: bool = False
+    product: ProductOut
+    price: int | None = None
+    price_delta: int | None = None
+    review: ReviewBriefOut | None = None
+    selection_allowed: bool = True
+
+
+class AlternativesOut(BaseModel):
+    items: list[AlternativeOut] = Field(default_factory=list)
+
+
+class ResultMessageIn(BaseModel):
+    text: str = Field(min_length=1, max_length=300)
+
+
+class ResultMessageOut(BaseModel):
+    reply: str
+    result: RecommendResultOut
 
 
 # ── list confirm (S5-a) / report (S5-b) ──

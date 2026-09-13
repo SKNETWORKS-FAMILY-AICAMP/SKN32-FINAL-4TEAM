@@ -131,6 +131,72 @@ class PlanRepo(Repo):
         )
         return row["id"]
 
+    # ── P5 baby basket item persistence (planning.item; real rows, real UUIDs) ──
+    def upsert_basket_item(self, revision_id: UUID, *, item_id: UUID | str | None,
+                           variant_id, offer_id, offer_observation_id,
+                           status: str, qty: float, unit_code: str, unit_qty: float,
+                           timing: str, selected: bool, item_spec: dict) -> UUID:
+        """to_purchase/owned/purchased 행 하나를 실제 UUID로 저장한다.
+
+        item_id 가 주어지면(=기존 소유 항목 또는 이전 저장분 재사용) UPDATE, 아니면 INSERT.
+        BasketItem.item_id 를 그대로 신뢰하지 않는다 — 호출자가 실제 저장 후 반환된
+        UUID로 다시 채워 넣는다(합성 uuid4() 를 그대로 API에 노출하지 않음, P5 CONTRACTS).
+        """
+        if item_id is not None:
+            row = self._one(
+                """UPDATE planning.item SET variant_id=%s, offer_id=%s, offer_observation_id=%s,
+                   status=%s, qty=%s, unit_code=%s, unit_qty=%s, timing=%s, selected=%s, item_spec=%s
+                   WHERE id=%s AND revision_id=%s RETURNING id""",
+                (variant_id, offer_id, offer_observation_id, status, qty, unit_code, unit_qty,
+                 timing, selected, Jsonb(item_spec), item_id, revision_id),
+            )
+            if row is not None:
+                return row["id"]
+        row = self._one(
+            """INSERT INTO planning.item
+               (revision_id, variant_id, offer_id, offer_observation_id, status, qty, unit_code,
+                unit_qty, timing, selected, item_spec)
+               VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id""",
+            (revision_id, variant_id, offer_id, offer_observation_id, status, qty, unit_code,
+             unit_qty, timing, selected, Jsonb(item_spec)),
+        )
+        return row["id"]
+
+    def delete_purchase_items(self, revision_id: UUID) -> None:
+        """이전 run 의 to_purchase 행을 지운다 — 재추천마다 새로 쌓아 중복시키지 않는다.
+
+        owned 행은 건드리지 않는다(persist_baby_requirements 가 rule_key 로 멱등 재사용).
+        """
+        self._exec("DELETE FROM planning.item WHERE revision_id=%s AND status='to_purchase'", (revision_id,))
+
+    def get_item(self, item_id: UUID, revision_id: UUID) -> dict | None:
+        return self._one("SELECT * FROM planning.item WHERE id=%s AND revision_id=%s", (item_id, revision_id))
+
+    def list_items(self, revision_id: UUID) -> list[dict]:
+        return self._all("SELECT * FROM planning.item WHERE revision_id=%s ORDER BY created_at", (revision_id,))
+
+    def list_items_with_product(self, revision_id: UUID) -> list[dict]:
+        return self._all(
+            """SELECT i.*, p.model AS product_key, p.name AS product_name, p.brand, p.image_url,
+                      v.variant_key, of.purchase_url
+               FROM planning.item i
+               LEFT JOIN catalog.product_variant v ON v.id = i.variant_id
+               LEFT JOIN catalog.product p ON p.id = v.product_id
+               LEFT JOIN catalog.offer of ON of.id = i.offer_id
+               WHERE i.revision_id=%s ORDER BY i.created_at""",
+            (revision_id,),
+        )
+
+    def bump_lock_version(self, revision_id: UUID) -> int:
+        """조건 변경과 동일한 낙관적 잠금 카운터를 바구니 편집에도 재사용한다(CONTRACTS
+        "Mutable item/confirm requests send If-Match: <lock_version>")."""
+        self._lock_revision(revision_id)
+        row = self._one(
+            "UPDATE planning.plan_revision SET lock_version=lock_version+1, updated_at=now() WHERE id=%s RETURNING lock_version",
+            (revision_id,),
+        )
+        return row["lock_version"]
+
     def load_full(self, revision_id: UUID) -> dict:
         revision = self.get_revision(revision_id)
         if revision is None:

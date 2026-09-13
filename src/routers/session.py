@@ -1,11 +1,10 @@
 """/session HTTP handlers."""
 from __future__ import annotations
 from uuid import UUID
-from fastapi import APIRouter, BackgroundTasks, Depends, Response, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, Response, status
 from src import schemas
 from src.auth.deps import Principal, optional_principal
 from src.db import get_conn
-from src.errors import NotFound
 from src.services import recommendation_service, session_service
 
 router = APIRouter(prefix="/session", tags=["session"])
@@ -64,8 +63,48 @@ def recommend(list_id: UUID, body: schemas.RecommendIn = schemas.RecommendIn(), 
 @router.get("/{list_id}/result", response_model=schemas.RecommendResultOut)
 def result(list_id: UUID, principal: Principal = Depends(optional_principal)) -> schemas.RecommendResultOut:
     with get_conn() as conn:
-        revision = session_service.load_owned_draft(conn, list_id, principal)
-        stored = recommendation_service.get_stored_result(conn, revision["id"])
-    if stored is None:
-        raise NotFound("추천 실행 결과가 없습니다. 먼저 /recommend 를 호출하세요.")
+        stored = recommendation_service.get_owned_result(conn, list_id, principal)
     return schemas.RecommendResultOut(**stored)
+
+
+@router.patch("/{list_id}/items/{item_id}", response_model=schemas.RecommendResultOut)
+def patch_item(
+    list_id: UUID, item_id: UUID, body: schemas.ItemPatchIn,
+    if_match: str | None = Header(default=None, alias="If-Match"),
+    principal: Principal = Depends(optional_principal),
+) -> schemas.RecommendResultOut:
+    changes = {k: v for k, v in body.model_dump().items() if v is not None}
+    with get_conn() as conn:
+        stored = recommendation_service.update_item(
+            conn, list_id, item_id, changes, principal,
+            if_match=int(if_match) if if_match is not None else None,
+        )
+    return schemas.RecommendResultOut(**stored)
+
+
+@router.get("/{list_id}/items/{item_id}/alternatives", response_model=schemas.AlternativesOut)
+def item_alternatives(list_id: UUID, item_id: UUID, principal: Principal = Depends(optional_principal)) -> schemas.AlternativesOut:
+    with get_conn() as conn:
+        out = recommendation_service.get_alternatives(conn, list_id, item_id, principal)
+    return schemas.AlternativesOut(**out)
+
+
+@router.post("/{list_id}/items/{item_id}/swap", response_model=schemas.RecommendResultOut)
+def swap_item(
+    list_id: UUID, item_id: UUID, body: schemas.SwapIn,
+    if_match: str | None = Header(default=None, alias="If-Match"),
+    principal: Principal = Depends(optional_principal),
+) -> schemas.RecommendResultOut:
+    with get_conn() as conn:
+        stored = recommendation_service.swap_candidate(
+            conn, list_id, item_id, body.candidate_id, principal,
+            if_match=int(if_match) if if_match is not None else None,
+        )
+    return schemas.RecommendResultOut(**stored)
+
+
+@router.post("/{list_id}/result-message", response_model=schemas.ResultMessageOut)
+def result_message(list_id: UUID, body: schemas.ResultMessageIn, principal: Principal = Depends(optional_principal)) -> schemas.ResultMessageOut:
+    with get_conn() as conn:
+        out = recommendation_service.handle_result_message(conn, list_id, body.text, principal)
+    return schemas.ResultMessageOut(**out)
