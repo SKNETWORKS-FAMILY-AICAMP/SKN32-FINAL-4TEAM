@@ -11,7 +11,56 @@ from typing import Any, Literal, Optional
 from pydantic import BaseModel, ConfigDict, Field
 
 
-# ── auth ──
+# ── auth (이메일+비밀번호, 서버 쿠키만 사용) ──
+class SignupIn(BaseModel):
+    email: str
+    password: str
+    display_name: str
+    terms_agreed: bool
+    privacy_agreed: bool
+    marketing_agreed: bool = False
+
+
+class LoginIn(BaseModel):
+    email: str
+    password: str
+    remember: bool = False
+
+
+class PatchMeIn(BaseModel):
+    display_name: Optional[str] = None
+    email: Optional[str] = None
+    marketing_agreed: Optional[bool] = None
+
+
+class PasswordChangeIn(BaseModel):
+    current_password: str
+    new_password: str
+
+
+class WithdrawIn(BaseModel):
+    password: str
+
+
+class UserOut(BaseModel):
+    id: str
+    email: str
+    display_name: str
+    marketing_agreed: bool
+    created_at: str
+
+
+class UserEnvelopeOut(BaseModel):
+    user: UserOut
+
+
+class EmailAvailabilityOut(BaseModel):
+    available: bool
+
+
+# 비밀번호 재설정·이메일 인증(§G, 2026-10-26 예정)에 재사용 예정 — 삭제하지 말고 보류
+# (docs/frontend_외부수정요청.md §A-4 각주). 비밀번호 로그인의 일부가 아니며 현재 라우터는
+# 미구현(NotImplementedError)을 그대로 유지한다.
 class RequestCodeIn(BaseModel):
     email: str
 

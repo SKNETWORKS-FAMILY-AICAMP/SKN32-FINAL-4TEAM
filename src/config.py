@@ -33,8 +33,22 @@ DATABASE_URL: str = os.getenv(
 )
 JWT_SECRET: str = os.getenv("JWT_SECRET", "dev-only-change-me")
 JWT_TTL_DAYS: int = int(os.getenv("JWT_TTL_DAYS", "14"))
+JWT_SESSION_TTL_HOURS: int = int(os.getenv("JWT_SESSION_TTL_HOURS", "12"))  # remember=false 토큰 수명
+
+# "production" 이면 기본 개발용 JWT_SECRET 사용을 금지하고 인증 쿠키에 Secure 를 강제한다.
+# 로컬 HTTP 로 운영을 흉내낼 때는 명시적으로 development(기본값)로 두어야 한다.
+APP_ENV: str = os.getenv("APP_ENV", "development")
+IS_PRODUCTION: bool = APP_ENV == "production"
+AUTH_COOKIE_SECURE: bool = IS_PRODUCTION or os.getenv("AUTH_COOKIE_SECURE", "0") == "1"
+
 AUTH_CODE_TTL_MIN: int = 10
 AUTH_CODE_MAX_ATTEMPTS: int = 5
+
+
+def assert_production_secret_safe() -> None:
+    """운영 환경에서 개발용 기본 JWT_SECRET 를 그대로 쓰는 배포를 막는다."""
+    if IS_PRODUCTION and JWT_SECRET == "dev-only-change-me":
+        raise RuntimeError("APP_ENV=production 에서는 JWT_SECRET 환경변수를 반드시 설정해야 합니다.")
 
 # --------------------------------------------------------------------------
 # 파이프라인 파라미터
