@@ -1,11 +1,11 @@
 """세션 생성과 조건 대화 서비스 (계약: docs/frontend_외부수정요청.md §D-4-1)."""
 from __future__ import annotations
-import hashlib, secrets
+import hashlib, re, secrets
 from uuid import UUID
 from src.auth.deps import Principal
 from src.categories import load_category
 from src.engine import slot_rules
-from src.errors import Conflict, NotFound, ValidationFailed
+from src.errors import Conflict, FileTooLarge, NotFound, ValidationFailed
 from src.repo.plan_repo import PlanRepo
 from src.repo.user_repo import ConversationRepo
 
@@ -82,6 +82,8 @@ def _display(meta: dict, value) -> str | None:
         return disp_map.get(value, disp_map.get(str(value), str(value)))
     if isinstance(value, list):
         return " · ".join("없음" if v == "none" else str(v) for v in value)
+    if isinstance(value, dict):
+        return " · ".join(f"{k}: {v}" for k, v in value.items())
     if isinstance(value, bool):
         return "예" if value else "아니오"
     if meta["key"] == "budget_max" and isinstance(value, (int, float)):
@@ -154,7 +156,7 @@ def _state(conn, list_id: UUID, principal: Principal) -> dict:
         "fields": _build_fields(cat_def, values),
         "next_question": _next_question(cat_def, values),
         "can_recommend": not compute_missing(cat_def, values),
-        "accepts_spec_file": False,  # TODO: 사양 파일 업로드 — §D-4-1 "결정 필요", 미구현
+        "accepts_spec_file": values.get("mode") == "upgrade",
     }
 
 
@@ -254,4 +256,35 @@ def reset_conditions(conn, list_id: UUID, principal: Principal) -> dict:
         if row["condition_key"] not in ("category", "mode"):
             repo.upsert_condition(current["id"], row["condition_key"], {"value": None}, "explicit")
     ConversationRepo(conn).add_message(current["conversation_id"], "system", "조건을 초기화했어요.")
+    return _state(conn, list_id, principal)
+
+
+# ── 업그레이드 사양 파일 첨부 (§D-4-1: current_specs · spec_file_name) ──
+_ALLOWED_SPEC_EXTENSIONS = {"txt", "json", "csv", "md", "log", "nfo", "xml"}
+_MAX_SPEC_FILE_BYTES = 1_000_000
+_SPEC_LINE = re.compile(r"(?im)^\s*(cpu|프로세서|gpu|그래픽카드|그래픽|ram|메모리)\s*[:=]\s*(.+?)\s*$")
+_SPEC_KEY_MAP = {"cpu": "CPU", "프로세서": "CPU", "gpu": "GPU", "그래픽카드": "GPU", "그래픽": "GPU",
+                 "ram": "RAM", "메모리": "RAM"}
+
+
+def _parse_spec_file(content: str) -> dict:
+    """'CPU: i5-13600K' 같은 key: value 줄만 규칙 기반으로 뽑는다. 매칭 안 되면 빈 dict."""
+    specs: dict[str, str] = {}
+    for m in _SPEC_LINE.finditer(content):
+        specs[_SPEC_KEY_MAP[m.group(1).lower()]] = m.group(2).strip()
+    return specs
+
+
+def attach_spec_file(conn, list_id: UUID, file_name: str, content: str, principal: Principal) -> dict:
+    repo = PlanRepo(conn)
+    current = _owned(repo, list_id, principal)
+    ext = file_name.rsplit(".", 1)[-1].lower() if "." in file_name else ""
+    if ext not in _ALLOWED_SPEC_EXTENSIONS:
+        raise ValidationFailed("지원하지 않는 파일 형식입니다.", field="file_name", code="unsupported_file")
+    if len(content.encode("utf-8")) > _MAX_SPEC_FILE_BYTES:
+        raise FileTooLarge("파일이 너무 큽니다(1MB 이하).", field="content")
+    specs = _parse_spec_file(content)
+    repo.upsert_condition(current["id"], "spec_file_name", {"value": file_name}, "explicit")
+    if specs:
+        repo.upsert_condition(current["id"], "current_specs", {"value": specs}, "extracted")
     return _state(conn, list_id, principal)

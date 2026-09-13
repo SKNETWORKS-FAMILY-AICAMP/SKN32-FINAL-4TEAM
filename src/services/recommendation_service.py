@@ -13,7 +13,7 @@ from uuid import UUID
 
 from src.categories import load_category
 from src.dto import PipelineResult, Slots
-from src.errors import Conflict, ValidationFailed
+from src.errors import Conflict, NotFound, ValidationFailed
 from src.pipeline import run_pipeline as _run_scenario
 
 
@@ -248,8 +248,9 @@ def get_stored_result(conn, revision_id: UUID) -> dict | None:
     """
     from src.repo.engine_repo import EngineRepo
     from src.repo.plan_repo import PlanRepo
+    from src.repo.product_repo import ProductRepo
 
-    erepo, prepo = EngineRepo(conn), PlanRepo(conn)
+    erepo, prepo, prodrepo = EngineRepo(conn), PlanRepo(conn), ProductRepo(conn)
     run = erepo.get_latest_run(revision_id)
     if run is None:
         return None
@@ -283,11 +284,14 @@ def get_stored_result(conn, revision_id: UUID) -> dict | None:
     if status == "running":
         return result
 
+    candidates_by_slot = prodrepo.candidates_by_slot()
     items = []
     for row in erepo.get_candidates(run["id"]):
         attrs = row.get("attributes") or {}
         spec_summary = f"성능 티어 {attrs['perf_tier']}" if attrs.get("perf_tier") is not None else None
         price = int(row["price"]) if row["price"] is not None else 0
+        slot_variants = candidates_by_slot.get(row["slot"], [])
+        alternatives_count = sum(1 for c in slot_variants if c["variant_id"] != row["variant_id"])
         items.append({
             "item_id": str(row["id"]), "slot": row["slot"], "slot_label": row["slot_label"],
             "product": {
@@ -298,19 +302,20 @@ def get_stored_result(conn, revision_id: UUID) -> dict | None:
             },
             "price": price, "price_source": "synthetic",
             "price_observed_at": row["observed_at"].isoformat() if row["observed_at"] else None,
-            "qty": 1, "selected": True, "timing": "now", "budget_share": None,
+            "qty": row["qty"], "selected": row["selected"], "timing": row["timing"], "budget_share": None,
             "review": None,
             "reason": {"status": row["reason_status"], "text": row["reason"]},
             "checks": {"status": "pending", "text": None},
-            "alternatives_count": 0,
+            "alternatives_count": alternatives_count,
         })
-    selected_price = sum(i["price"] for i in items)
+    selected_price = sum(i["price"] * i["qty"] for i in items if i["selected"])
+    selected_units = sum(i["qty"] for i in items if i["selected"])
     for item in items:
-        item["budget_share"] = round(item["price"] / selected_price, 3) if selected_price else None
+        item["budget_share"] = round(item["price"] * item["qty"] / selected_price, 3) if item["selected"] and selected_price else None
     budget_max = values.get("budget_max")
     result["items"] = items
     result["totals"] = {
-        "selected_price": selected_price, "selected_units": len(items),
+        "selected_price": selected_price, "selected_units": selected_units,
         "budget_remaining": (budget_max - selected_price) if budget_max else None,
         "over_budget": bool(budget_max and selected_price > budget_max),
     }
@@ -331,3 +336,135 @@ def get_stored_result(conn, revision_id: UUID) -> dict | None:
         "text": run.get("explanation_text"),
     }
     return result
+
+
+# ── 결과 화면 상호작용 (§D-4-2: 담기/빼기·수량·구매시점 / 후보 교체 / 결과 대화) ──
+
+def _require_done_run(conn, revision_id: UUID) -> tuple:
+    from src.repo.engine_repo import EngineRepo
+    erepo = EngineRepo(conn)
+    run = erepo.get_latest_run(revision_id)
+    if run is None or run["status"] != "completed":
+        raise NotFound("추천 결과가 없습니다. 먼저 /recommend 를 호출하세요.")
+    return erepo, run
+
+
+def _find_candidate(rows: list[dict], item_id: UUID) -> dict:
+    for row in rows:
+        if row["id"] == item_id:
+            return row
+    raise NotFound("해당 품목을 찾을 수 없습니다.")
+
+
+def patch_item(conn, revision_id: UUID, item_id: UUID, *, selected: bool | None,
+                qty: int | None, timing: str | None) -> dict:
+    erepo, run = _require_done_run(conn, revision_id)
+    _find_candidate(erepo.get_candidates(run["id"]), item_id)
+    erepo.update_candidate_state(item_id, selected=selected, qty=qty, timing=timing)
+    return get_stored_result(conn, revision_id)
+
+
+def _alternative_out(row: dict, *, current: bool, current_price: int) -> dict:
+    price = int(row["price"]) if row.get("price") is not None else 0
+    delta = price - current_price
+    label = "현재 선택" if current else ("절약형 후보" if delta < 0 else ("프리미엄 후보" if delta > 0 else "동급 후보"))
+    attrs = row.get("attributes") or {}
+    return {
+        "candidate_id": str(row["variant_id"]), "label": label, "current": current,
+        "product": {
+            "product_key": row.get("product_key") or str(row["product_id"]),
+            "variant_id": str(row["variant_id"]), "name": row["name"], "brand": row.get("brand") or "",
+            "spec_summary": f"성능 티어 {attrs['perf_tier']}" if attrs.get("perf_tier") is not None else None,
+            "image_url": row.get("image_url"), "purchase_url": row.get("purchase_url"),
+        },
+        "price": price, "price_delta": delta, "review": None,
+    }
+
+
+def list_alternatives(conn, revision_id: UUID, item_id: UUID) -> dict:
+    from src.repo.product_repo import ProductRepo
+    erepo, run = _require_done_run(conn, revision_id)
+    current = _find_candidate(erepo.get_candidates(run["id"]), item_id)
+    current_price = int(current["price"]) if current["price"] is not None else 0
+    slot_variants = ProductRepo(conn).candidates_by_slot().get(current["slot"], [])
+    items = [
+        _alternative_out(row, current=False, current_price=current_price)
+        for row in sorted(slot_variants, key=lambda r: r["price"] if r["price"] is not None else 0)
+        if row["variant_id"] != current["variant_id"]
+    ]
+    return {"items": items}
+
+
+def swap_item(conn, revision_id: UUID, item_id: UUID, candidate_id: UUID) -> dict:
+    """candidate_id는 alternatives가 돌려준 variant_id다. item_id(행 자체)는 그대로 두고
+    내용만 바꿔치기한다 — 계약상 item_id는 후보 교체 후에도 고정."""
+    from src.repo.product_repo import ProductRepo
+    erepo, run = _require_done_run(conn, revision_id)
+    current = _find_candidate(erepo.get_candidates(run["id"]), item_id)
+    slot_variants = ProductRepo(conn).candidates_by_slot().get(current["slot"], [])
+    target = next((row for row in slot_variants if row["variant_id"] == candidate_id), None)
+    if target is None:
+        raise NotFound("해당 후보를 찾을 수 없습니다.")
+    erepo.update_candidate_variant(item_id, variant_id=candidate_id,
+                                    offer_observation_id=target.get("offer_observation_id"))
+    return get_stored_result(conn, revision_id)
+
+
+_SLOT_SYNONYMS: dict[str, str] = {
+    "그래픽카드": "GPU", "그래픽": "GPU", "지포스": "GPU", "라데온": "GPU", "gpu": "GPU",
+    "씨피유": "CPU", "프로세서": "CPU", "cpu": "CPU",
+    "램": "RAM", "메모리": "RAM", "ram": "RAM",
+    "메인보드": "메인보드", "마더보드": "메인보드",
+    "저장장치": "저장장치", "에스에스디": "저장장치", "ssd": "저장장치", "하드": "저장장치",
+    "파워": "파워", "전원": "파워",
+    "케이스": "케이스",
+    "쿨러": "쿨러", "쿨링": "쿨러",
+}
+_CHEAPER_WORDS = ("저렴", "싸게", "싼", "가성비", "낮은", "절약")
+_PRICIER_WORDS = ("고급", "좋은", "성능", "비싼", "상위", "프리미엄")
+
+
+def _match_slot(text: str, known_slots: set[str]) -> str | None:
+    lowered = text.lower()
+    for keyword, slot in _SLOT_SYNONYMS.items():
+        if keyword in lowered and slot in known_slots:
+            return slot
+    return next((slot for slot in known_slots if slot.lower() in lowered), None)
+
+
+def handle_result_message(conn, revision_id: UUID, text: str) -> dict:
+    """규칙 기반 결과 화면 채팅 — "그래픽카드를 더 저렴한 걸로" 같은 요청만 해석한다.
+    슬롯·방향을 못 찾으면 아무것도 바꾸지 않고 이해하지 못했다는 답만 돌려준다."""
+    erepo, run = _require_done_run(conn, revision_id)
+    rows = erepo.get_candidates(run["id"])
+    known_slots = {r["slot"] for r in rows}
+    slot = _match_slot(text, known_slots)
+    if slot is None:
+        return {"reply": "무엇을 바꿀지 이해하지 못했어요. 부품 이름(예: 그래픽카드)과 원하시는 "
+                          "방향(더 저렴한/더 좋은)을 함께 말씀해 주세요.",
+                "result": get_stored_result(conn, revision_id)}
+    cheaper = any(w in text for w in _CHEAPER_WORDS)
+    pricier = any(w in text for w in _PRICIER_WORDS)
+    if not cheaper and not pricier:
+        return {"reply": f"{slot}를 어떻게 바꿔드릴까요? '더 저렴한 걸로' 또는 '더 좋은 걸로'처럼 말씀해 주세요.",
+                "result": get_stored_result(conn, revision_id)}
+
+    current = next(r for r in rows if r["slot"] == slot)
+    current_price = int(current["price"]) if current["price"] is not None else 0
+    from src.repo.product_repo import ProductRepo
+    slot_variants = ProductRepo(conn).candidates_by_slot().get(slot, [])
+    others = [r for r in slot_variants if r["variant_id"] != current["variant_id"] and r["price"] is not None]
+    # "더 저렴한"/"더 좋은"은 방향이 있는 요청이다 — 후보가 있어도 그 방향으로 안 가면
+    # (지금이 이미 최저가/최고가) 엉뚱한 방향으로 바꾸지 않고 그렇다고 말한다.
+    candidates = [r for r in others if r["price"] < current_price] if cheaper \
+        else [r for r in others if r["price"] > current_price]
+    if not candidates:
+        state = "가장 저렴해요" if cheaper else "가장 고급이에요"
+        return {"reply": f"지금 선택된 {slot}가 이미 {state}. 더 {'저렴한' if cheaper else '좋은'} 후보가 없어요.",
+                "result": get_stored_result(conn, revision_id)}
+    target = min(candidates, key=lambda r: r["price"]) if cheaper else max(candidates, key=lambda r: r["price"])
+    erepo.update_candidate_variant(current["id"], variant_id=target["variant_id"],
+                                    offer_observation_id=target.get("offer_observation_id"))
+    direction = "더 저렴한" if cheaper else "더 좋은"
+    reply = f"{slot}를 {direction} '{target['name']}'(으)로 바꿨어요."
+    return {"reply": reply, "result": get_stored_result(conn, revision_id)}

@@ -76,3 +76,25 @@ class EngineRepo(Repo):
         return self._all("""SELECT ev.id AS evidence_id, ev.citation_snapshot, ev.status
         FROM engine.candidate_evidence ce JOIN evidence.evidence ev ON ev.id=ce.evidence_id
         WHERE ce.candidate_id=%s AND ev.status='active'""", (candidate_id,))
+    def update_candidate_state(self, candidate_id: UUID, *, selected: bool | None = None,
+                                qty: int | None = None, timing: str | None = None) -> None:
+        sets, params = [], []
+        if selected is not None:
+            sets.append("selected=%s"); params.append(selected)
+        if qty is not None:
+            sets.append("qty=%s"); params.append(qty)
+        if timing is not None:
+            sets.append("timing=%s"); params.append(timing)
+        if not sets:
+            return
+        params.append(candidate_id)
+        self._exec(f"UPDATE engine.recommendation_candidate SET {', '.join(sets)} WHERE id=%s", params)
+    def update_candidate_variant(self, candidate_id: UUID, *, variant_id: UUID,
+                                  offer_observation_id: UUID | None) -> None:
+        """후보 교체 — item_id(행 자체)는 그대로 두고 내용만 바꿔치기한다(계약: item_id 고정).
+        점수·설명 문장은 더 이상 새 상품을 반영하지 않으므로 pending으로 되돌린다."""
+        self._exec(
+            "UPDATE engine.recommendation_candidate SET variant_id=%s, offer_observation_id=%s, "
+            "score=NULL, score_method_version=NULL, reason=NULL, reason_status='pending' WHERE id=%s",
+            (variant_id, offer_observation_id, candidate_id),
+        )

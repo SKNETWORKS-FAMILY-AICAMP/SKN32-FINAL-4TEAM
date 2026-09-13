@@ -217,6 +217,39 @@ class VerificationOut(BaseModel):
     issues: list[VerificationIssueOut] = Field(default_factory=list)
 
 
+class ItemPatchIn(BaseModel):
+    selected: Optional[bool] = None
+    qty: Optional[int] = Field(default=None, ge=1, le=99)
+    timing: Optional[Literal["now", "soon", "later"]] = None
+
+
+class AlternativeOut(BaseModel):
+    candidate_id: str
+    label: str
+    current: bool = False
+    product: ProductOut
+    price: int
+    price_delta: int
+    review: ReviewBriefOut | None = None
+
+
+class AlternativesOut(BaseModel):
+    items: list[AlternativeOut] = Field(default_factory=list)
+
+
+class SwapIn(BaseModel):
+    candidate_id: str
+
+
+class ResultMessageIn(BaseModel):
+    text: str = Field(max_length=300)
+
+
+class SpecFileIn(BaseModel):
+    file_name: str
+    content: str = Field(max_length=1_000_000)
+
+
 class RecommendErrorOut(BaseModel):
     code: str
     message: str
@@ -239,6 +272,11 @@ class RecommendResultOut(BaseModel):
     reasoning_log: list[dict] = Field(default_factory=list)
     data_notice: str = "상품·가격·리뷰는 합성 데이터입니다."
     error: RecommendErrorOut | None = None
+
+
+class ResultMessageOut(BaseModel):
+    reply: str
+    result: RecommendResultOut
 
 
 # ── 사이드바 목록 · 확정(S5-a) · 리포트(S5-b) · 가격 알림 (§D-4-3) ──

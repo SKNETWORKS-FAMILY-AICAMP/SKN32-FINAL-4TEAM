@@ -122,8 +122,9 @@ class ProductRepo(Repo):
         """슬롯별 최신 유효가 후보 (variant.attributes.slot 기준). [3-0] DB 경로가 사용."""
         rows = self._all(
             """
-            SELECT v.id AS variant_id, p.id AS product_id, p.name, p.brand, p.attributes,
-                   obs.id AS offer_observation_id, obs.price
+            SELECT v.id AS variant_id, p.id AS product_id, p.model AS product_key,
+                   p.name, p.brand, p.attributes, p.image_url,
+                   o.purchase_url, obs.id AS offer_observation_id, obs.price
             FROM catalog.product_variant v
             JOIN catalog.product p ON p.id = v.product_id
             JOIN catalog.offer o ON o.variant_id = v.id AND o.status = 'active'

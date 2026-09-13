@@ -31,6 +31,8 @@ defaults:                      # 동적 기본값 실패 시 fallback
 # ConditionState.fields 순서·표시 라벨 (§D-4-1 "카테고리별 필드")
 fields:
   - { key: mode, label: "구성 방식", display: { build: "새 컴퓨터", upgrade: "업그레이드" } }
+  - { key: spec_file_name, label: "첨부 사양 파일", mode_only: upgrade }
+  - { key: current_specs, label: "현재 사양", mode_only: upgrade }
   - { key: upgrade_parts, label: "업그레이드 부품", mode_only: upgrade }
   - { key: purpose, label: "주요 용도",
       display: { game: "게임", creation: "창작", office: "사무", study: "학습", other: "기타" } }
