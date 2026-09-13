@@ -150,6 +150,23 @@ class VerificationResult(BaseModel):
 
 
 # ── [5] 설명 생성 ───────────────────────────────────────────────────────
+class ExplanationDraftItem(BaseModel):
+    slot: str
+    reason: str
+
+
+class ExplanationDraft(BaseModel):
+    """[5] LLM 구조화 출력 (기획서 §11-3).
+
+    수치·부품명·통과여부는 코드가 확정해 입력으로 주므로 LLM 은 서술만 낸다 —
+    그래서 Explanation 과 달리 list_id·contribution·basis·evidence 를 갖지 않는다.
+    """
+
+    headline: str = ""
+    items: list[ExplanationDraftItem] = Field(default_factory=list)
+    caveats: list[str] = Field(default_factory=list)
+
+
 class ExplanationItem(BaseModel):
     slot: str
     reason: str

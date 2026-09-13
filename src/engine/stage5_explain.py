@@ -9,12 +9,19 @@
 """
 from __future__ import annotations
 
-from src.dto import BuildResult, Explanation, ExplanationItem, RankResult, VerificationResult
+from src.clients.llm_client import call_llm
+from src.dto import (BuildResult, Explanation, ExplanationDraft, ExplanationItem, RankResult,
+                     VerificationResult)
 from src.engine import LogFn
+from src.engine.prompts import EXPLAIN_SYSTEM
 from src.repo.review_repo import (OBS_LABEL, default_risk_store, default_suspect_counts,
                                  is_obs_flag, parse_obs_flag, risk_store_note)
 
 _AXIS_MAP = {"가격": "가격", "성능": "성능", "밸런스": "호환성", "호환여유": "호환성"}
+
+# 앞 둘: 이 모듈은 점수를 만들지 않는다. 문장에 섞이면 관측이 점수로 읽힌다 (docs/decisions/0001).
+# 나머지: 지시문 문구가 결과에 들어오면 모델이 프롬프트를 베낀 것이다 — 실제로 한 번 그랬다.
+_BANNED_IN_DRAFT = ("score", "점수", "1~2문장", "문장 한두 개", "슬롯마다", "지시문")
 
 
 def _ranked_flags(rank: RankResult | None, slot: str, product_key: str) -> list[str]:
@@ -70,6 +77,64 @@ def _contribution(build: BuildResult) -> dict[str, int]:
     return {k: round(v / total * 100) for k, v in acc.items()}
 
 
+def _top_axes(rank: RankResult | None, slot: str, product_key: str) -> str:
+    """그 후보에서 기여가 큰 축 둘 — 이유 문장의 방향 힌트 (기획서 §11-3)."""
+    if rank is None:
+        return ""
+    for c in rank.slots.get(slot, {}).get("ranked", []):
+        if c.get("product_key") == product_key:
+            bd = c.get("breakdown") or {}
+            top = sorted(bd.items(), key=lambda kv: kv[1], reverse=True)[:2]
+            return ", ".join(k for k, _ in top)
+    return ""
+
+
+def _llm_draft(build: BuildResult, verification: VerificationResult,
+               rank: RankResult | None, log: LogFn) -> ExplanationDraft | None:
+    """문장 초안 1회 생성. 검사를 통과한 것만 돌려주고 아니면 None → 규칙 템플릿 (§11-6).
+
+    수치·부품명·통과여부는 아래 입력으로 확정해 준다. LLM 이 슬롯을 바꾸거나 다른 슬롯의
+    부품을 끌어오거나 점수를 만들어내면 버린다 — 그 경우 호출자가 기존 규칙 문장을 쓴다.
+    """
+    tgt = verification.targets[0] if verification.targets else None
+    lines = [
+        f"예산 상한: {build.budget.get('max', 0)}원",
+        f"사용 금액: {build.totals.get('price', 0)}원",
+        f"검증 신뢰도: {tgt.confidence if tgt else '없음'} (통과: {tgt.passed if tgt else '없음'})",
+        f"근거가 확인되지 않은 축: {(tgt.gray_axes if tgt else []) or '없음'}",
+        "구성:",
+    ]
+    for it in build.items:
+        axes = _top_axes(rank, it.slot, it.product_key)
+        lines.append(f"- {it.slot} | {it.name} | {it.price}원 | {it.rank_from_3b}순위"
+                     + (f" | 기여가 큰 축: {axes}" if axes else ""))
+    if tgt and tgt.issues:
+        lines.append("검증 쟁점:")
+        lines += [f"- {i.axis}: {i.text or i.tool_result}" for i in tgt.issues]
+
+    want = {it.slot for it in build.items}
+    names = {it.slot: it.name for it in build.items}
+    schema = ExplanationDraft.model_json_schema()
+    for _attempt in range(2):
+        try:
+            draft = ExplanationDraft.model_validate(
+                call_llm("\n".join(lines), system=EXPLAIN_SYSTEM, output_schema=schema))
+        except Exception as exc:
+            log(f"      [5] 문장 생성 실패 ({type(exc).__name__}) → 규칙 템플릿")
+            return None
+        if {i.slot for i in draft.items} != want:
+            continue
+        if any(w in draft.model_dump_json() for w in _BANNED_IN_DRAFT):
+            continue
+        if any(other and other in i.reason
+               for i in draft.items
+               for slot, other in names.items() if slot != i.slot):
+            continue
+        return draft
+    log("      [5] 검사 불통과 → 규칙 템플릿")
+    return None
+
+
 def run(build: BuildResult, verification: VerificationResult, log: LogFn,
         rank: RankResult | None = None) -> Explanation:
     log("[5] 설명 생성 ...")
@@ -77,6 +142,10 @@ def run(build: BuildResult, verification: VerificationResult, log: LogFn,
     tgt = verification.targets[0] if verification.targets else None
     gray = tgt.gray_axes if tgt else []
     conf = tgt.confidence if tgt else 0
+
+    # 리뷰 관측(review_line_by_slot·evidence)은 규칙이 만든 것을 그대로 둔다 — LLM 은 건드리지 않는다.
+    draft = _llm_draft(build, verification, rank, log)
+    reason_by_slot = {i.slot: i.reason for i in draft.items} if draft else {}
 
     items, review_lines, review_caveats = [], {}, []
     for it in build.items:
@@ -86,17 +155,21 @@ def run(build: BuildResult, verification: VerificationResult, log: LogFn,
             review_caveats.append(f"{it.slot} {caveat}")
         items.append(ExplanationItem(
             slot=it.slot,
-            reason=f"{it.name} — 조건 충족, {it.rank_from_3b}순위, {it.price:,}원",
+            reason=(reason_by_slot.get(it.slot)
+                    or f"{it.name} — 조건 충족, {it.rank_from_3b}순위, {it.price:,}원"),
             basis=[f"rank{it.rank_from_3b}"],
             evidence=evidence,
         ))
+    # caveats 는 규칙이 소유한다 — 회색축과 리뷰 관측 둘 다 코드가 정확히 알고 있어서,
+    # LLM 이 같은 내용을 다른 표현으로 또 쓰면 화면에 중복으로 나간다.
     caveats = [f"{a} 근거는 확인되지 않았습니다" for a in gray] + review_caveats
-    headline = (
+    headline = (draft.headline if draft and draft.headline else (
         f"예산 {build.budget.get('max', 0):,}원 중 {build.totals.get('price', 0):,}원 사용, "
         f"세트 검증 신뢰도 {conf}점"
         + ("." if not gray else f" (회색축 {len(gray)}개).")
-    )
+    ))
     log(f"      기여도: 가격 {contrib['가격']}% / 성능 {contrib['성능']}% / 호환성 {contrib['호환성']}%")
+    log(f"      문장: {'LLM' if draft else '규칙 템플릿'}")
     log(f"      headline: {headline}")
     n_obs = sum(1 for l in review_lines.values() if not l.startswith("리뷰 관측 없음"))
     log(f"      리뷰 관측: {n_obs}/{len(review_lines)} 슬롯" + (f", 검토 권장 {len(review_caveats)}" if review_caveats else ""))
