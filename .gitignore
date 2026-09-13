@@ -33,6 +33,8 @@ htmlcov/
 
 # ── DB (로컬) ──
 db/pgdata/
+/pgdata/
+/pgenv/
 db/*.log
 pg.log
 *.dump

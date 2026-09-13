@@ -386,6 +386,7 @@
   "입력한 용도와 예산에 맞춰 구성한 가상 후보입니다.":"A fictional candidate built to your entered use and budget.",
   "장바구니에 담기":"Add to basket",
   "장바구니에서 빼기":"Remove from basket",
+  "✓ 선택됨":"✓ Selected",
   "추천 결과에 대해 더 물어보세요":"Ask more about the recommendations",
   "예: 그래픽카드 예산을 조금 낮춰줘":"e.g. lower the graphics-card budget a bit",
   "나의 장바구니":"My basket",
