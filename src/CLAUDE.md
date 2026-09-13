@@ -27,7 +27,7 @@
 | [3-C] 검증 쟁점 문장 | **사용** | |
 | [5] 추천 설명 문장 | **사용** | |
 
-**[1]에 LLM 슬롯필링을 추가하지 않는다.** 프론트가 이 전제로 구현돼 있고(`frontend/CLAUDE.md`: "채팅 조건 추출에 LLM을 쓰지 않는다"), `docs/frontend_외부수정요청.md`에 프론트와 합의된 결정으로 적혀 있다. `stage1_intent.py`의 `NotImplementedError`는 미완성이 아니라 의도된 상태다.
+**[1]에 LLM 슬롯필링을 추가하지 않는다.** 프론트가 이 전제로 구현돼 있고(`frontend/CLAUDE.md`: "채팅 조건 추출에 LLM을 쓰지 않는다"), 프론트와 합의된 결정이다 (계약 문서 §D-3). 그 문서(`docs/frontend_외부수정요청.md`)는 2026-09-13에 로컬에서 삭제됐으므로 내용을 봐야 하면 `origin/develop` 또는 `origin/front`에서 꺼낸다. `stage1_intent.py`의 `NotImplementedError`는 미완성이 아니라 의도된 상태다.
 
 ## [3-C] 검사AI·변호인AI 디베이트는 쓰지 않는다
 
@@ -94,7 +94,7 @@ uv run python main.py computer_pass
 
 ## 문서 갱신 의무
 
-- LLM 관련 결정이 바뀌면 **`docs/frontend_외부수정요청.md` §D-3을 먼저 고치고** 구현한다. 프론트가 이 문서를 계약으로 본다.
+- LLM 관련 결정이 바뀌면 **프론트 담당자와 먼저 합의하고 계약 문서 §D-3에 기록한 뒤** 구현한다. 프론트가 그 문서를 계약으로 본다. 단 이 브랜치의 워킹트리에는 그 파일이 없다 — `origin/develop`·`origin/front`에 있다.
 - 벤더 변경(Bedrock → OpenAI)은 아직 이 문서에 반영되지 않았다.
 
 ## 브랜치
