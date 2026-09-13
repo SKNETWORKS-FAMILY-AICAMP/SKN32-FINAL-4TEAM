@@ -3,7 +3,7 @@ body:has(.flow:not([hidden]))>header{display:none}
 .flow{min-height:100vh;padding:0;background:var(--tf-soft);color:var(--tf-text)}
 .planner-shell{display:grid;grid-template-columns:220px minmax(0,1fr);min-height:100vh}
 .planner-sidebar{position:sticky;top:0;height:100vh;padding:30px 22px;border-right:1px solid var(--tf-border);background:var(--tf-surface);display:flex;flex-direction:column;gap:28px;z-index:5}
-.planner-home{display:flex;align-items:center;justify-content:center;min-height:58px;border:1px solid var(--tf-primary);border-radius:17px;font-family:Arial,sans-serif;font-size:19px;font-weight:800;letter-spacing:-.5px;background:var(--tf-surface)}
+.planner-home{display:flex;align-items:center;justify-content:center;min-height:58px;border:1px solid transparent!important;border-radius:17px;font-family:Arial,sans-serif;font-size:19px;font-weight:800;letter-spacing:-.5px;background:transparent!important}
 .planner-new{width:100%;border:0;border-radius:13px;padding:15px 14px;background:var(--tf-soft-sage);color:var(--tf-text);font-weight:700;text-align:left}
 .planner-side-title{display:block;margin:20px 8px 10px;font-size:13px;color:var(--tf-muted)}
 .planner-saved{display:grid;gap:9px}
@@ -68,7 +68,7 @@ body:has(.flow:not([hidden]))>header{display:none}
 .conversation-label{font-size:11px;letter-spacing:1.3px;color:var(--tf-muted);font-weight:700}
 .conversation-current{margin-top:8px;padding:24px;border:1px solid var(--tf-border);border-radius:24px;background:var(--tf-surface-translucent)}
 .conversation-current h2{font-size:22px;line-height:1.45;margin:0 0 17px}
-.conversation-options{display:flex;gap:10px;flex-wrap:wrap}
+.conversation-options{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
 .conversation-option{border:1px solid var(--tf-border);background:var(--tf-surface);border-radius:14px;padding:11px 18px;color:var(--tf-text);font-weight:700}
 .conversation-option:hover,.conversation-option:focus-visible{background:var(--tf-soft);border-color:var(--tf-primary)}
 .conversation-option.primary-option{background:var(--tf-primary);color:var(--tf-on-primary);border-color:var(--tf-primary)}
@@ -165,7 +165,11 @@ body:has(.flow:not([hidden]))>header{display:none}
 .planner-sidebar.is-collapsed .sidebar-toggle{transform:rotate(180deg)}
 .planner-sidebar.is-collapsed .planner-brand-full,.planner-sidebar.is-collapsed .planner-new-full,.planner-sidebar.is-collapsed .planner-side-title,.planner-sidebar.is-collapsed .planner-saved,.planner-sidebar.is-collapsed .planner-side-note{display:none}
 .planner-sidebar.is-collapsed .planner-brand-short,.planner-sidebar.is-collapsed .planner-new-short{display:inline}
-.planner-sidebar.is-collapsed .planner-home{min-height:52px;font-size:15px;border-radius:14px}
+.planner-sidebar.is-collapsed .planner-home{min-height:52px;font-size:15px;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important}
+.planner-sidebar.is-collapsed .planner-brand-short{transform:rotate(0deg) scale(1);transition:opacity .22s ease,transform .28s ease}
+.planner-sidebar.is-collapsed .sidebar-toggle{top:41px;right:auto;left:50%;transform:translateX(-50%) rotate(180deg);opacity:0;pointer-events:none}
+.planner-sidebar.is-collapsed:has(.planner-home:hover) .sidebar-toggle,.planner-sidebar.is-collapsed .sidebar-toggle:hover,.planner-sidebar.is-collapsed .sidebar-toggle:focus-visible{opacity:1;pointer-events:auto}
+.planner-sidebar.is-collapsed:has(.planner-home:hover) .planner-brand-short,.planner-sidebar.is-collapsed:has(.sidebar-toggle:hover) .planner-brand-short,.planner-sidebar.is-collapsed:has(.sidebar-toggle:focus-visible) .planner-brand-short{opacity:0;transform:rotate(180deg) scale(.72)}
 .planner-sidebar.is-collapsed .planner-new{display:grid;place-items:center;padding:13px 8px;text-align:center;font-size:22px}
 @media(max-width:700px){.sidebar-toggle{display:none}.planner-sidebar.is-collapsed{padding:15px 18px;display:grid;grid-template-columns:1fr auto;align-items:center}.planner-sidebar.is-collapsed .planner-brand-full,.planner-sidebar.is-collapsed .planner-new-full{display:inline}.planner-sidebar.is-collapsed .planner-brand-short,.planner-sidebar.is-collapsed .planner-new-short{display:none}.planner-sidebar.is-collapsed .planner-home{min-height:44px;font-size:19px}.planner-sidebar.is-collapsed .planner-new{display:block;padding:11px 13px;font-size:14px}}
 /* Product thumbnail space; the entire result row remains the accordion trigger. */

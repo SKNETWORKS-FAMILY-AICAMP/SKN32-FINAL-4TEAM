@@ -36,6 +36,15 @@ function tfApplyResult(data,renderFn){if(!data)return;tfPlan.result=tfRequire(da
 // ── 공용 화면 조작(모든 flow 페이지) ──
 flow.addEventListener('click',e=>{
  const reload=e.target.closest('[data-reload]');if(reload){location.reload();return}
+ const sidebarHome=e.target.closest('.planner-home');
+ if(sidebarHome){
+  const panel=sidebarHome.closest('.planner-sidebar');
+  if(panel?.classList.contains('is-collapsed')){
+   e.preventDefault();
+   panel.querySelector('[data-sidebar-toggle]')?.click();
+   return;
+  }
+ }
  const toggle=e.target.closest('[data-sidebar-toggle]');if(toggle){const panel=toggle.closest('.planner-sidebar'),collapsed=panel.classList.toggle('is-collapsed');toggle.setAttribute('aria-expanded',String(!collapsed));toggle.setAttribute('aria-label',collapsed?'사이드바 열기':'사이드바 접기');toggle.title=collapsed?'사이드바 열기':'사이드바 접기';try{localStorage.setItem(SIDEBAR_STORE,collapsed?'1':'0')}catch{}return}
  const newLink=e.target.closest('[data-new-basket]');if(newLink){e.preventDefault();createNewBasket();return}
  const basketLink=e.target.closest('a[data-open-basket]');if(basketLink){if(basketLink.dataset.openBasket!==tfPlan.listId)tfSelectList(basketLink.dataset.openBasket)/* 이동은 기본 href 동작에 맡김 */;return}
