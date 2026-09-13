@@ -127,10 +127,11 @@ DB 스키마(`db/migrations/0008_frontend_contract.sql`)는 처음부터 세 상
 코드 리딩으로만 확인했다. `pytest`는 기존 기준선(87 passed, 기존에도 실패하던
 `test_list_service.py` 3건 제외) 그대로 유지되는 것만 확인.
 
-**2. 프롬프트 문안 팀 승인 — 초안 작성 완료 (2026-09-13), 승인 대기.**
-`docs/프롬프트_개선_초안_설명문장.md`에 규칙 4(headline 신뢰도 인용)·규칙 7(평가어 금지) 개선안과
-`stage5_explain.py`의 코드 가드 제안을 정리했다. **`prompts.py`는 아직 고치지 않았다** — 승인
-전에는 그대로 둔다.
+**2. 프롬프트 문안 팀 승인 — 승인·반영 완료 (2026-09-13).**
+`docs/프롬프트_개선_초안_설명문장.md`의 규칙 4(headline 신뢰도 숫자 명시)·규칙 7(평가어 목록
+구체화)를 사용자 승인 받아 `EXPLAIN_SYSTEM`에 반영. `stage5_explain.py`의 코드 가드
+둘(`_BANNED_IN_DRAFT`에 평가어 추가, headline 신뢰도 숫자 누락 시 fallback)도 같이 반영.
+`MOCK_MODE=1` 회귀 확인(87 passed, 기존 실패 3건 제외 동일).
 
 **3. 데모 시나리오에 `tool_result` 추가 — 완료 (2026-09-13).**
 `computer_pass.json`·`computer_research.json`의 쟁점 다섯 건에 `tool_result`(관측값 문자열)를 채우고, 쓰지 않던 `prosecutor`/`defender`는 제거했다. `stage3c_verify._issue_sentence`의 프롬프트가 이제 "관측값: (기록 없음)" 대신 실제 값("상시부하 420W · 정격 대비 55%" 등)을 받는다. `MOCK_MODE=1`으로 `main.py computer_pass`·`computer_research` 둘 다 재확인, `pytest` 기준선(87 passed / 기존에도 실패하던 `test_list_service.py` 3건 제외) 그대로 유지.
