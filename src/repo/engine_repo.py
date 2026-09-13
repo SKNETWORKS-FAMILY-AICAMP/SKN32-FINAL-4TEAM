@@ -24,6 +24,12 @@ class EngineRepo(Repo):
         VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id""",(run_id,requirement_id,variant_id,offer_observation_id,result,score,score_method_version,reason,reason_status)); return row["id"]
     def link_candidate_evidence(self, candidate_id: UUID, evidence_id: UUID, claim_key: str) -> None:
         self._exec("INSERT INTO engine.candidate_evidence (candidate_id,evidence_id,claim_key) VALUES (%s,%s,%s) ON CONFLICT DO NOTHING",(candidate_id,evidence_id,claim_key))
+    def update_candidate_reason(self, candidate_id: UUID, reason: str) -> None:
+        """[5] 설명 문장이 부품표 확정보다 늦게 끝날 때, 나중에 reason만 채워 넣는다."""
+        self._exec("UPDATE engine.recommendation_candidate SET reason=%s, reason_status='ready' WHERE id=%s",(reason,candidate_id))
+    def fail_candidate_reason(self, candidate_id: UUID) -> None:
+        """[5] 실패 — reason은 NULL로 남기고(제약상 ready만 값을 가짐) 상태만 failed로."""
+        self._exec("UPDATE engine.recommendation_candidate SET reason_status='failed' WHERE id=%s",(candidate_id,))
     def add_validation(self, run_id: UUID, *, rule_key: str, rule_version: str, executor_version: str, status: str, severity: str, measured_values: dict, threshold: dict, message: str, checked_at) -> UUID:
         row=self._one("""INSERT INTO engine.validation_result (run_id,rule_key,rule_version,executor_version,status,severity,measured_values,threshold,message,checked_at)
         VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id""",(run_id,rule_key,rule_version,executor_version,status,severity,Jsonb(measured_values),Jsonb(threshold),message,checked_at)); return row["id"]
@@ -39,6 +45,10 @@ class EngineRepo(Repo):
             WHERE id=%s""",
             (headline, text, Jsonb(reasoning_log), run_id),
         )
+    def fail_explanation(self, run_id: UUID) -> None:
+        """[5] 실패 — headline/text는 NULL로 남기고(제약상 ready만 값을 가짐) 상태만 failed로.
+        run.status는 건드리지 않는다 — 부품·가격·검증은 이미 complete_run으로 확정된 뒤다."""
+        self._exec("UPDATE engine.recommendation_run SET explanation_status='failed', updated_at=now() WHERE id=%s",(run_id,))
     def get_run(self, run_id: UUID) -> dict | None:
         return self._one("SELECT * FROM engine.recommendation_run WHERE id=%s",(run_id,))
     def get_latest_run(self, revision_id: UUID) -> dict | None:
@@ -50,7 +60,7 @@ class EngineRepo(Repo):
         return self._all("""
         SELECT c.*, p.model AS product_key, v.id AS variant_id, v.variant_key,
                p.name AS product_name, p.brand, p.attributes, p.image_url,
-               of.purchase_url, o.price, o.observed_at,
+               of.id AS offer_id, of.purchase_url, o.price, o.observed_at,
                n.template_key AS slot, n.name AS slot_label
         FROM engine.recommendation_candidate c
         JOIN catalog.product_variant v ON v.id=c.variant_id
@@ -66,3 +76,25 @@ class EngineRepo(Repo):
         return self._all("""SELECT ev.id AS evidence_id, ev.citation_snapshot, ev.status
         FROM engine.candidate_evidence ce JOIN evidence.evidence ev ON ev.id=ce.evidence_id
         WHERE ce.candidate_id=%s AND ev.status='active'""", (candidate_id,))
+    def update_candidate_state(self, candidate_id: UUID, *, selected: bool | None = None,
+                                qty: int | None = None, timing: str | None = None) -> None:
+        sets, params = [], []
+        if selected is not None:
+            sets.append("selected=%s"); params.append(selected)
+        if qty is not None:
+            sets.append("qty=%s"); params.append(qty)
+        if timing is not None:
+            sets.append("timing=%s"); params.append(timing)
+        if not sets:
+            return
+        params.append(candidate_id)
+        self._exec(f"UPDATE engine.recommendation_candidate SET {', '.join(sets)} WHERE id=%s", params)
+    def update_candidate_variant(self, candidate_id: UUID, *, variant_id: UUID,
+                                  offer_observation_id: UUID | None) -> None:
+        """후보 교체 — item_id(행 자체)는 그대로 두고 내용만 바꿔치기한다(계약: item_id 고정).
+        점수·설명 문장은 더 이상 새 상품을 반영하지 않으므로 pending으로 되돌린다."""
+        self._exec(
+            "UPDATE engine.recommendation_candidate SET variant_id=%s, offer_observation_id=%s, "
+            "score=NULL, score_method_version=NULL, reason=NULL, reason_status='pending' WHERE id=%s",
+            (variant_id, offer_observation_id, candidate_id),
+        )

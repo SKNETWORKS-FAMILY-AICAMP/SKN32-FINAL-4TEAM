@@ -47,6 +47,10 @@ def _print_result_table(result) -> None:
         print(f"설명    {e.headline}")
         for c in e.caveats:
             print(f"  주의  {c}")
+        if e.review_line_by_slot:
+            print("리뷰 관측 (상품 단위 · 점수 아님)")
+            for slot, line in e.review_line_by_slot.items():
+                print(f"  {slot:<8} {line}")
 
 
 if __name__ == "__main__":

@@ -21,6 +21,7 @@
 | 설명서 RAG       | Markdown 청크화, DB 적재·게시, pgvector+키워드 검색, 검색·인용 기록, 권한·철회 검사                  | 관리자 CLI 중심. 단일 가상 유모차 자료로 회귀 평가. PDF/OCR·S3·전체 추천 UI 연결 미구현 |
 | 임베딩           | Bedrock Titan v2 어댑터와 명시적 `local-test` 1024차원 벡터                                          | Bedrock 실모델 품질 평가는 미수행. local-test는 어휘 해시 벡터                          |
 | 리뷰·데이터 도구 | PC 합성 리뷰 요약 생성, 공식 스펙 수집 스크립트, 유아용품 상품 생성 코드                             | 운영 리뷰 작성·집계·학습 파이프라인 미구현. 상품 생성 기본 사전 파일 누락               |
+| 리뷰 관계·행동 축 | 공개 리뷰 데이터(Amazon Reviews'23)에서 리뷰어–상품 그래프의 **관측 사실**(7일 몰림·공유 리뷰어·계정 구성)을 배치로 산출하고 데모 부품 25종에 연결. 계약 리더(`ProductRiskStore`)까지 | 조작 라벨이 없어 탐지율·정제 후 평점은 산출하지 않음(`cleaned_rating`은 null). `GET /reviews/summary`·[3-B] 리뷰축·[5] 설명에 연결됨. 수집기·`author_ref` 저장은 미구현 |
 
 ## 빠른 시작
 
@@ -39,7 +40,7 @@ uv run python -m pytest -q
 - `stage4_optimize.py`는 현재 슬롯별 후보를 고르는 근사 구현입니다. 로그의 조합 수는 실제 완전탐색 수행량이 아니며, 재탐색 후 예산을 초과할 수 있습니다.
 - 검증 점수·고정 기여도·합성 가격을 실제 상품의 품질·시세·호환성 평가로 해석하지 않습니다.
 
-설정은 **프로세스 환경변수**로 전달합니다. [`.env.example`](.env.example)은 설정 항목 참고용이며 현재 코드가 `.env` 파일을 자동으로 읽지는 않습니다. PC 데모는 기본
+설정은 **프로세스 환경변수**로 전달합니다. [`.env.example`](.env.example)을 `.env` 로 복사해 값을 채우면 `src/config.py` 가 시작할 때 읽습니다. 이미 설정된 프로세스 환경변수가 `.env` 값보다 우선합니다. PC 데모는 기본
 `MOCK_MODE=1`로 동작합니다. 설명서 RAG CLI의 `--provider`는 이 값과 별개입니다.
 
 ### API 실행
@@ -147,6 +148,30 @@ Bedrock 경로는 `--provider bedrock`, AWS 자격증명·리전, 기본 `amazon
 
 [상세 실행법·PGlite 테스트 DB·Bedrock 설정·제한](docs/rag_implementation.md) · [기존 회귀 평가 산출물](generated/rag/README.md)
 
+## 리뷰 관계·행동 축 실행
+
+본문을 보지 않고 **누가·언제** 리뷰했는지로 상품 단위 관측 사실을 만듭니다. 산출물은 점수가 아니라
+"리뷰 200건 중 100건(50%)이 7일 안에 몰림 — 부류 중앙값 5.5%" 같은 확인·반박 가능한 문장입니다.
+공개 데이터 원본(jsonl)은 저장소에 없고 `data/amazon23/`은 `.gitignore`입니다.
+
+```powershell
+uv sync --group review-analysis --group test                     # pandas·numpy·scipy (배치) · httpx (API 테스트)
+uv run python scripts/amazon23_edges.py <Electronics.jsonl> --cat electronics       # 리뷰 jsonl → 엣지 표 (원문 버림)
+uv run python scripts/amazon23_meta_slim.py <meta_Electronics.jsonl> --cat electronics
+uv run python scripts/map_parts_to_asin.py                        # data/parts_list.csv ↔ ASIN (data/parts_asin_map.csv)
+uv run python -m src.workers.review_cleanse_worker data/amazon23/electronics_edges.tsv `
+    --meta data/amazon23/electronics_meta.tsv --category "Computer Components|Data Storage" `
+    --out data/amazon23/pcparts_product_risk.json                 # 43.9M건 ≈ 12GB·6분. 대조군은 같은 부류로
+uv run python -m src.workers.review_cleanse_worker --lookup amd-ryzen-5-5600   # 부품 하나의 카드
+uv run python main.py computer_pass                               # 결과표 아래 "리뷰 관측" 줄
+```
+
+- 산출 JSON(`data/amazon23/pcparts_product_risk.json`, 5MB)이 없는 환경에서는 `ProductRiskStore`가 `None`이고
+  호출자는 "관측 없음"으로 다룹니다. 팀원 기계에는 이 파일을 따로 전달해야 합니다
+- 정제 후 평점(`cleaned_rating`)은 판정기가 없어 **항상 null**입니다 — [결정 0001](docs/decisions/0001-정제-후-평점을-판정기-없이-내지-않는다.md).
+  합성 데모값(`data/review_summaries.json`)은 `is_synthetic: true`와 함께만 나오며 화면은 그 표지를 붙여야 합니다
+- 수집 시점에 잡을 것은 [수집기 설계](docs/review_collector.md) — 작성자 해시·게시 시각·옵션 단위 대상. 빠지면 소급이 안 됩니다
+
 ## API 계약과 구현 상태
 
 OpenAPI에는 업무·개발용 22개 작업과 `/health` 1개가 등록되어 있습니다. 인증 표시는 구현 목표이며 현재 인증 기능은 미구현입니다.
@@ -158,7 +183,8 @@ OpenAPI에는 업무·개발용 22개 작업과 `/health` 1개가 등록되어 �
 | 인증   | `POST /auth/request-code`, `/auth/verify`, `/auth/logout`, `GET /auth/me`                                                                                  | 이메일 코드·JWT·세션 병합 미구현   |
 | 세션   | `POST /session`, `POST /session/{list_id}/category`, `/message`, `/answer`, `/recommend`, `PATCH /session/{list_id}/slot`, `GET /session/{list_id}/result` | 계약·진입점 중심, 서비스 구현 필요 |
 | 리스트 | `POST /lists/{list_id}/confirm`, `GET /lists/{list_id}/report`, `GET /lists`                                                                               | 확정·저장·리포트 미구현            |
-| 리뷰   | `GET /reviews/pending`, `POST /reviews/part`, `/reviews/build`, `/reviews/{review_id}/publish`, `GET /reviews/summary/{product_key}`                       | 작성·게시·운영 집계 미구현         |
+| 리뷰   | `GET /reviews/pending`, `POST /reviews/part`, `/reviews/build`, `/reviews/{review_id}/publish`                                                            | 작성·게시·운영 집계 미구현. 작성 요청의 `telemetry`(폼 계측값, 횟수·시간만) 계약은 확정 |
+| 리뷰 요약 | `GET /reviews/summary/{product_key}`                                                                                                                    | 동작 — 관계 축 관측 + 합성 데모 블록(표지 포함). 인증 없음 |
 
 설명서 RAG는 CLI·서비스 함수로 구현되어 있으며 별도 HTTP 엔드포인트를 제공하지 않습니다. 공통 `src/db` 연결 풀은 미구현이지만 RAG CLI·검색 함수는 psycopg 직접 연결과 `RagRepo`
 를 사용합니다.
@@ -169,6 +195,7 @@ OpenAPI에는 업무·개발용 22개 작업과 `/health` 1개가 등록되어 �
 |-------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `scripts/build_specs.py`            | PC 공식 스펙 수집, 출처·실패 목록 저장. `requests`, `beautifulsoup4`, `lxml` 추가 설치 필요. 코드에는 Chrome/Edge를 이용한 `--render` 재시도 경로도 있음. 추출되지 않은 규격은 수동 확인 필요 |
 | `scripts/gen_review_summaries.py`   | `data/parts_list.csv`에서 데모용 합성 리뷰 요약·평점 생성. 실행하면 기존 출력 파일을 다시 작성함. 운영 후기나 실제 조작 판정 데이터가 아님                                                    |
+| `scripts/amazon23_edges.py` · `amazon23_meta_slim.py` · `map_parts_to_asin.py` | Amazon Reviews'23 리뷰 jsonl → 엣지 표(원문 버림), 메타 → 제목·카테고리 TSV, 데모 부품 ↔ ASIN(부품별 손 규칙, 25/51 — 나머지는 2023-09 이후 출시). 원본은 별도 수령 |
 | `scripts/generate_baby_products.py` | 23개 유아용품 품목군의 가상 상품 생성 코드. 기본 입력인 `scripts/유아용품_가상제품_스펙사전_v1.json`은 현재 저장소에 없어 기본 실행 불가. 호환 사전을 `--dictionary`로 제공해야 함            |
 
 [스펙 수집기 설명](scripts/README.md)과 [상품 생성기 기존 사용법](가상제품_생성기_사용법.md)은 참고 문서입니다. 기존 문서의 일부 경로·`--render` 구현 상태·상품 생성 테스트/사전
@@ -187,10 +214,12 @@ src/
   repo/                       그 외 업무 저장소는 대부분 미구현
   db/, auth/, services/        공통 연결·인증·업무 서비스 뼈대
   workers/                    추출·리뷰·가격·알림·학습 작업 진입점
+  workers/relation_axis.py    리뷰어–상품 그래프 관측 사실·근거 카드 (review_cleanse_worker 가 호출)
 config/categories/            computer 정의, baby 추천 정의 stub
 frontend/                     멀티페이지 화면(*.html) + css/js, 화면 지도는 frontend/CLAUDE.md
 scripts/                      스펙 수집·합성 데이터·설명서·RAG CLI
 data/                        PC 부품·리뷰 예시·시나리오·설명서 입력
+docs/decisions/              되돌리기 어려운 결정과 대가 · docs/review_collector.md 수집 시점 목록
 generated/                   설명서 예시·RAG 평가 산출물
 db/                          마이그레이션 러너와 SQL
 docs/                        RAG·설명서 생성·DB 명세와 구조도
@@ -227,7 +256,8 @@ uv run python -m pytest -q tests/test_rag_postgres.py
 3. 실제 상품 규격·가격 연동, PC 하드필터·호환 검사·예산 준수 최적화 구현
 4. 설명서 RAG의 실제 Bedrock 평가, PDF/OCR·이미지·객체 저장소·비동기 처리 확장
 5. 유아용품 사전 복원·입력 검증, `baby.yaml`과 품목별 추천·예산 분기 구현
-6. 실제 PC 리뷰·운영 집계, 단일 부모 리뷰 증강·라벨 검수·내보내기 구현
+6. 실제 PC 리뷰·운영 집계, 단일 부모 리뷰 증강·라벨 검수·내보내기 구현. 사람 라벨링을 시작하기 전에 검토 큐 유입 경로와 무작위 대조 표본 비율을 정한다 — 첫 라벨 뒤에는 소급이 안 됨.
+   외부 리뷰 수집기는 [수집 시점에 잡을 것](docs/review_collector.md)대로 작성자 해시·게시 시각·옵션 단위 대상을 처음부터 잡는다
 7. 가격 추적·알림·사용자 행동 기록 구현. 자동 학습 배치는 현재 명세에서 보류
 
 [프로젝트 기획서](프로젝트_기획서_v2.md) · [기술 기획서](기술기획서_데모+최종.md)

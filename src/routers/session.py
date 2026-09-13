@@ -67,3 +67,36 @@ def result(list_id: UUID, principal: Principal = Depends(optional_principal)) ->
     if stored is None:
         raise NotFound("추천 실행 결과가 없습니다. 먼저 /recommend 를 호출하세요.")
     return schemas.RecommendResultOut(**stored)
+
+@router.patch("/{list_id}/items/{item_id}", response_model=schemas.RecommendResultOut)
+def patch_item(list_id: UUID, item_id: UUID, body: schemas.ItemPatchIn, principal: Principal = Depends(optional_principal)) -> schemas.RecommendResultOut:
+    with get_conn() as conn:
+        revision = session_service._owned(PlanRepo(conn), list_id, principal)
+        stored = recommendation_service.patch_item(conn, revision["id"], item_id, selected=body.selected, qty=body.qty, timing=body.timing)
+    return schemas.RecommendResultOut(**stored)
+
+@router.get("/{list_id}/items/{item_id}/alternatives", response_model=schemas.AlternativesOut)
+def alternatives(list_id: UUID, item_id: UUID, principal: Principal = Depends(optional_principal)) -> schemas.AlternativesOut:
+    with get_conn() as conn:
+        revision = session_service._owned(PlanRepo(conn), list_id, principal)
+        stored = recommendation_service.list_alternatives(conn, revision["id"], item_id)
+    return schemas.AlternativesOut(**stored)
+
+@router.post("/{list_id}/items/{item_id}/swap", response_model=schemas.RecommendResultOut)
+def swap(list_id: UUID, item_id: UUID, body: schemas.SwapIn, principal: Principal = Depends(optional_principal)) -> schemas.RecommendResultOut:
+    with get_conn() as conn:
+        revision = session_service._owned(PlanRepo(conn), list_id, principal)
+        stored = recommendation_service.swap_item(conn, revision["id"], item_id, UUID(body.candidate_id))
+    return schemas.RecommendResultOut(**stored)
+
+@router.post("/{list_id}/result-message", response_model=schemas.ResultMessageOut)
+def result_message(list_id: UUID, body: schemas.ResultMessageIn, principal: Principal = Depends(optional_principal)) -> schemas.ResultMessageOut:
+    with get_conn() as conn:
+        revision = session_service._owned(PlanRepo(conn), list_id, principal)
+        stored = recommendation_service.handle_result_message(conn, revision["id"], body.text)
+    return schemas.ResultMessageOut(**stored)
+
+@router.post("/{list_id}/spec-file", response_model=schemas.ConditionState)
+def spec_file(list_id: UUID, body: schemas.SpecFileIn, principal: Principal = Depends(optional_principal)) -> schemas.ConditionState:
+    with get_conn() as conn:
+        return schemas.ConditionState(**session_service.attach_spec_file(conn, list_id, body.file_name, body.content, principal))

@@ -52,6 +52,7 @@ python db/migrate.py status
 | `0007_app_user_password_auth.sql` | 이메일+비밀번호 인증, 로그인 잠금, 약관 동의와 소프트 탈퇴 |
 | `0008_frontend_contract.sql` | 리스트 소프트 삭제, 확정 목표금액·메모, 추천 설명 비동기 상태 |
 | `0009_frontend_requirement_revision.sql` | 변경된 프론트 요구의 이메일 인증 시각·계정 updated_at·UI 설정 복원 |
+| `0010_review_summary_relation_axis.sql` | `evidence.review_summary` + `author_ref`(소스별 솔트 해시) · `review_posted_at` — 관계·행동 축(공유 리뷰어·7일 몰림·간격)이 온라인 요약 위에서 계산되려면 필요. 원문 미저장 정책과 무관한 메타데이터 |
 
 phase 방식(테이블 전부 → 제약 전부 → 인덱스 전부)을 쓴 이유: 스키마 간 순환 참조가 있어서
 (`assets.material_revision` ↔ `rag.ingestion_job`, `catalog` ↔ `evidence` ↔ `rag` ↔ `engine` ↔ `planning`).
