@@ -110,8 +110,10 @@ uv run python main.py computer_pass
 **1. 문장 필드 pending/ready/failed 분리 — 가장 시급하다.**
 `execute_recommendation`이 [2]~[5]를 전부 끝내야 run을 `done`으로 바꾼다. 그런데 이제 [3-C]·[5]가 실제 API를 호출하므로, 부품·가격·검증이 이미 계산됐는데도 문장이 올 때까지 사용자는 아무것도 못 본다. LLM이 실패하면 추천 전체가 실패로 보이는 것도 같은 원인이다. 계약(§D-4-0)대로 부품·가격·검증을 먼저 `done`으로 저장하고 문장 필드는 `pending` → `ready`/`failed`로 채운다. **`recommendation_service.py`는 develop 담당자 영역이라 합의가 먼저다.**
 
-**2. 프롬프트 문안 팀 승인.**
-`prompts.py`의 두 문안은 기획서 §19-3 체크리스트의 미승인 항목이다. 실호출에서 드러난 약점 둘을 같이 올린다 — headline이 검증 신뢰도 인용을 빠뜨리는 경우가 있고, "강력한 성능" 같은 평가 표현이 섞인다(규칙 7 위반이지만 후처리 검사는 통과한다).
+**2. 프롬프트 문안 팀 승인 — 초안 작성 완료 (2026-09-13), 승인 대기.**
+`docs/프롬프트_개선_초안_설명문장.md`에 규칙 4(headline 신뢰도 인용)·규칙 7(평가어 금지) 개선안과
+`stage5_explain.py`의 코드 가드 제안을 정리했다. **`prompts.py`는 아직 고치지 않았다** — 승인
+전에는 그대로 둔다.
 
 **3. 데모 시나리오에 `tool_result` 추가 — 완료 (2026-09-13).**
 `computer_pass.json`·`computer_research.json`의 쟁점 다섯 건에 `tool_result`(관측값 문자열)를 채우고, 쓰지 않던 `prosecutor`/`defender`는 제거했다. `stage3c_verify._issue_sentence`의 프롬프트가 이제 "관측값: (기록 없음)" 대신 실제 값("상시부하 420W · 정격 대비 55%" 등)을 받는다. `MOCK_MODE=1`으로 `main.py computer_pass`·`computer_research` 둘 다 재확인, `pytest` 기준선(87 passed / 기존에도 실패하던 `test_list_service.py` 3건 제외) 그대로 유지.
