@@ -13,47 +13,99 @@
 """
 from __future__ import annotations
 
+import re
+from typing import TYPE_CHECKING
+
 from src.clients.llm_client import call_llm
 from src.config import CONFIDENCE_THRESHOLD
 from src.dto import BuildResult, Issue, VerificationResult, VerificationTarget
 from src.engine import LogFn
-from src.engine.lang import L, localize_system
-from src.engine.prompts import VERIFY_ISSUE_SYSTEM
+from src.engine.prompts import verify_issue_system
 from src.rag.evidence_search import evidence_search
 
+if TYPE_CHECKING:
+    from src.i18n import Locale
+
 # 이 문장은 서술만 한다 — 판정이 섞이면 규칙이 정한 judge 와 화면에서 어긋난다.
-_BANNED_VERDICT_WORDS = ("위반", "불합격", "부적합", "적합", "통과", "안전합니다", "위험합니다")
+_BANNED_KOREAN_VERDICTS = (
+    "위반", "불합격", "부적합", "적합", "통과", "안전합니다", "위험합니다",
+)
+_BANNED_ENGLISH_VERDICT = re.compile(
+    r"\b(?:violation|violates?|pass(?:es|ed)?|fail(?:s|ed)?|safe|unsafe|"
+    r"suitable|unsuitable|compliant|non[- ]compliant)\b",
+    re.IGNORECASE,
+)
+_EN_AXIS_LABELS = {
+    "예산": "Budget", "가격": "Price", "성능": "Performance", "파워": "Power",
+    "전원": "Power", "호환성": "Compatibility", "밸런스": "Balance",
+    "호환여유": "Compatibility headroom", "리뷰 진위 (담당 팀원)": "Review authenticity",
+    "RAG 근거 (담당 팀원)": "RAG evidence",
+}
 
 
-def _rule_sentence(axis: str, tool_result: str, lang: str = "ko") -> str:
+def _axis_label(axis: str, locale: Locale) -> str:
+    return _EN_AXIS_LABELS.get(axis, axis) if locale == "en-US" else axis
+
+
+def _contains_verdict(text: str) -> bool:
+    return any(word in text for word in _BANNED_KOREAN_VERDICTS) or bool(
+        _BANNED_ENGLISH_VERDICT.search(text)
+    )
+
+
+def _rule_sentence(
+    axis: str,
+    tool_result: str,
+    *,
+    locale: Locale = "ko-KR",
+) -> str:
     """LLM 없이 쓰는 기본 문장. 관측값만 옮기고 해석하지 않는다."""
+    if locale == "en-US":
+        if tool_result:
+            return f"{axis}: observed value {tool_result}"
+        return f"{axis}: no observed value was recorded"
     if tool_result:
-        return L(lang, f"{axis}: 관측값 {tool_result}", f"{axis}: observed {tool_result}")
-    return L(lang, f"{axis}: 관측값이 기록되지 않았습니다", f"{axis}: no observation recorded")
+        return f"{axis}: 관측값 {tool_result}"
+    return f"{axis}: 관측값이 기록되지 않았습니다"
 
 
-def _issue_sentence(axis: str, tool_result: str, evidence: list[dict], lang: str = "ko") -> str:
+def _issue_sentence(
+    axis: str,
+    tool_result: str,
+    evidence: list[dict],
+    *,
+    locale: Locale = "ko-KR",
+) -> str:
     """쟁점 1건을 중립 문장으로.
 
     판정어가 섞이면 1회 재생성하고, 그래도 섞이거나 호출이 실패하면 규칙 템플릿으로
     내려간다. 문장화 실패는 신뢰도 점수에 영향을 주지 않는다 (기획서 §10-11 E4).
     """
-    if lang == "en":
+    if locale == "en-US":
         # stage4 의 link_check 값("ok (근사)")은 엔진 상수다 — 영어 문장에 한국어 토막이 섞이지 않게 입력에서만 바꾼다
         tool_result = (tool_result or "").replace("근사", "approximate")
-    snippets = "\n".join(f"- {e.get('text', '')}" for e in evidence) or "- (없음)"
-    prompt = f"축: {axis}\n관측값: {tool_result or '(기록 없음)'}\n근거:\n{snippets}"
+    snippets = "\n".join(f"- {e.get('text', '')}" for e in evidence) or ("- (none)" if locale == "en-US" else "- (없음)")
+    prompt = (f"Axis: {axis}\nObserved value: {tool_result or '(not recorded)'}\nEvidence:\n{snippets}"
+              if locale == "en-US"
+              else f"축: {axis}\n관측값: {tool_result or '(기록 없음)'}\n근거:\n{snippets}")
     for _attempt in range(2):
         try:
-            text = (call_llm(prompt, system=localize_system(VERIFY_ISSUE_SYSTEM, lang)).get("text") or "").strip()
+            text = (call_llm(prompt, system=verify_issue_system(locale)).get("text") or "").strip()
         except Exception:
             break
-        if text and not any(w in text for w in _BANNED_VERDICT_WORDS):
+        if text and not _contains_verdict(text):
             return text
-    return _rule_sentence(axis, tool_result, lang)
+    return _rule_sentence(axis, tool_result, locale=locale)
 
 
-def verify_set(build: BuildResult, scenario: dict, round_index: int, log: LogFn) -> VerificationResult:
+def verify_set(
+    build: BuildResult,
+    scenario: dict,
+    round_index: int,
+    log: LogFn,
+    *,
+    locale: Locale = "ko-KR",
+) -> VerificationResult:
     """세트 검증 1라운드. 정답값은 scenario['verify']['rounds'][round_index]."""
     log(f"[3-C] 세트 검증 (규칙 judge + 쟁점 문장화) ... (라운드 {round_index + 1})")
     vspec = scenario["verify"]
@@ -65,12 +117,13 @@ def verify_set(build: BuildResult, scenario: dict, round_index: int, log: LogFn)
 
     issues: list[Issue] = []
     for iss in rspec.get("issues", []):
-        axis = iss["axis"]
+        source_axis = iss["axis"]
+        axis = _axis_label(source_axis, locale)
         tool_result = iss.get("tool_result", "")
-        ev = evidence_search(domain, f"{axis} 조합 이슈", filters={"axis": axis})
+        ev = evidence_search(domain, f"{source_axis} 조합 이슈", filters={"axis": source_axis})
         issues.append(Issue(
             axis=axis,
-            text=_issue_sentence(axis, tool_result, ev),
+            text=_issue_sentence(axis, tool_result, ev, locale=locale),
             tool_result=tool_result,
             evidence=ev,
             judge=iss.get("judge", ""),
@@ -97,7 +150,13 @@ def verify_set(build: BuildResult, scenario: dict, round_index: int, log: LogFn)
     return VerificationResult(list_id=build.list_id, category=domain, mode="set", targets=[tgt])
 
 
-def verify_build(build: BuildResult, category: str, log: LogFn = lambda _m: None, lang: str = "ko") -> VerificationResult:
+def verify_build(
+    build: BuildResult,
+    category: str,
+    log: LogFn = lambda _m: None,
+    *,
+    locale: Locale = "ko-KR",
+) -> VerificationResult:
     """DB 경로([추천 실행])의 세트 검증 — 규칙 judge + 쟁점 문장화.
 
     RAG 근거 연결은 담당 팀원 자리라 여기서는 근거 없이 관측값만으로 문장을 만든다.
@@ -107,13 +166,14 @@ def verify_build(build: BuildResult, category: str, log: LogFn = lambda _m: None
     issues: list[Issue] = []
     penalty = 0
     for axis, state in (build.link_check or {}).items():
+        axis = _axis_label(axis, locale)
         s = str(state).lower()
         if "fail" in s or "미충족" in s or "over" in s:
-            issues.append(Issue(axis=axis, text=_issue_sentence(axis, state, [], lang),
+            issues.append(Issue(axis=axis, text=_issue_sentence(axis, state, [], locale=locale),
                                 tool_result=state, judge="위반", penalty=20))
             penalty += 20
         elif "pending" in s or "근사" in s:
-            issues.append(Issue(axis=axis, text=_issue_sentence(axis, state, [], lang),
+            issues.append(Issue(axis=axis, text=_issue_sentence(axis, state, [], locale=locale),
                                 tool_result=state, judge="확인 필요", penalty=6))
             penalty += 6
 
@@ -122,20 +182,25 @@ def verify_build(build: BuildResult, category: str, log: LogFn = lambda _m: None
     if used_pct is None and budget.get("max"):
         used_pct = round(budget.get("used", 0) / budget["max"] * 100, 1)
     if used_pct and used_pct > 110:
-        issues.append(Issue(axis="예산", text=_issue_sentence("예산", f"{used_pct}%", [], lang),
+        budget_axis = _axis_label("예산", locale)
+        issues.append(Issue(axis=budget_axis, text=_issue_sentence(budget_axis, f"{used_pct}%", [], locale=locale),
                             tool_result=f"{used_pct}%", judge="초과", penalty=15))
         penalty += 15
 
     # 회색축 = 이 경로에서 실제로 검사하지 못한 것. 화면 caveats 에 "<축> 근거는 확인되지 않았습니다" 로 나간다.
     # (전에는 "리뷰 진위 (담당 팀원)" 같은 내부 자리표시가 그대로 사용자에게 나갔다)
-    gray = [L(lang, "설명서·규격(RAG 미연결)", "manual/spec evidence (RAG not connected)"),
-            L(lang, "호환성 정밀 검사(소켓·전력·크기는 근사값)", "detailed compatibility check (socket/power/size are approximations)")]
+    if locale == "en-US":
+        gray = ["manual/spec evidence (RAG not connected)",
+                "detailed compatibility check (socket/power/size are approximations)"]
+    else:
+        gray = ["설명서·규격(RAG 미연결)",
+                "호환성 정밀 검사(소켓·전력·크기는 근사값)"]
     confidence = max(0, 100 - penalty)
     passed = confidence >= CONFIDENCE_THRESHOLD
     log(f"      신뢰도 {confidence} · 회색축 {gray} · {'통과' if passed else '기준 미달'}")
 
     tgt = VerificationTarget(
-        subject="세트 전체", confidence=confidence, passed=passed, rounds=1,
+        subject="Entire build" if locale == "en-US" else "세트 전체",
         issues=issues, gray_axes=gray,
         transcript=[{"round": 1, "issues": [i.model_dump() for i in issues]}],
     )

@@ -6,6 +6,7 @@ assembled_self_reported 확인 후 게시(C11). 외부 리뷰 원문 미저장.
 from __future__ import annotations
 
 import os
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 from src.config import REVIEW_SUMMARIES_DEMO
@@ -15,6 +16,9 @@ from src.repo.review_repo import ReviewRepo, ReviewSubjectRepo
 from src.repo.review_repo import (OBS_LABEL, SUSPECT_SOURCE, ReviewSummaryDemoFile,
                                  default_risk_store, default_suspect_counts)
 from src.schemas import ProductRiskOut, ReviewSummaryOut, ReviewTelemetry, SyntheticDemoOut
+
+if TYPE_CHECKING:
+    from src.i18n import Locale
 
 TELEMETRY_KEY = "telemetry"
 
@@ -278,10 +282,24 @@ def list_pending_for_user(user_id: UUID) -> dict:
 # 그래서 이미 자유 형식인 reasoning_log(추천 과정 기록)와 explanation_text 에 싣는다.
 
 REVIEW_TRACE_STEP = "리뷰 관측"
+_SLOT_LABEL_EN = {
+    "메인보드": "Motherboard", "저장장치": "Storage", "파워": "Power supply",
+    "케이스": "Case", "쿨러": "Cooler", "수유": "Feeding", "수면": "Sleep",
+    "위생/기저귀": "Hygiene/diapers", "외출": "Outings",
+}
+_OBS_LABEL_EN = {
+    "burst7": "7-day burst", "shared_reviewer": "shared reviewers",
+    "rating5": "5-star share",
+}
+
+
+def _slot_label(slot: str, locale: Locale) -> str:
+    return _SLOT_LABEL_EN.get(slot, slot) if locale == "en-US" else slot
 
 
 def review_trace_steps(review_line_by_slot: dict[str, str],
-                       evidence_by_slot: dict[str, list[dict]] | None = None, lang: str = "ko") -> list[dict]:
+                       evidence_by_slot: dict[str, list[dict]] | None = None,
+                       locale: Locale = "ko-KR") -> list[dict]:
     """[5] 의 리뷰 관측을 reasoning_log 단계들로. 관측이 없으면 빈 목록.
 
     첫 단계는 요약(N/M 슬롯), 이어서 **관측 문장이 있는 슬롯마다 한 단계**다.
@@ -295,19 +313,19 @@ def review_trace_steps(review_line_by_slot: dict[str, str],
     관측이 하나도 없으면 단계를 만들지 않는다 — "리뷰를 봤지만 깨끗했다" 와
     "볼 리뷰가 없었다" 는 다른 말이고, 뒤쪽을 앞쪽으로 보이게 하면 안 된다.
     """
-    observed = {slot: line for slot, line in (review_line_by_slot or {}).items()
-                if line and not line.startswith(("리뷰 관측 없음", "No review observation"))}
+    observed = {
+        slot: line for slot, line in (review_line_by_slot or {}).items()
+        if line and not line.startswith(("리뷰 관측 없음", "No review observations", "No review observation"))
+    }
     if not observed:
         return []
-    en = lang == "en"
-    from src.services.recommendation_service import slot_label   # 슬롯 표시명 (엔진 키는 그대로)
-    sl = (lambda x: slot_label(x, "en")) if en else (lambda x: x)
-    step_name = "Review observations" if en else REVIEW_TRACE_STEP
+    english = locale == "en-US"
+    trace_step = "Review observations" if english else REVIEW_TRACE_STEP
+    slot_word = "slots" if english else "슬롯"
     steps = [{
-        "step": step_name,
-        "title": (f"{step_name} {len(observed)}/{len(review_line_by_slot)} slots" if en
-                  else f"{REVIEW_TRACE_STEP} {len(observed)}/{len(review_line_by_slot)} 슬롯"),
-        "detail": " · ".join(f"{sl(slot)} {line}" for slot, line in observed.items()),   # 관측 문장은 데이터(한국어)
+        "step": trace_step,
+        "title": f"{trace_step} {len(observed)}/{len(review_line_by_slot)} {slot_word}",
+        "detail": " · ".join(f"{_slot_label(slot, locale)} {line}" for slot, line in observed.items()),
     }]
     for slot in observed:
         facts = [e for e in (evidence_by_slot or {}).get(slot, []) if e.get("text")]
@@ -316,17 +334,19 @@ def review_trace_steps(review_line_by_slot: dict[str, str],
         detail = " · ".join(e["text"] for e in facts)
         verify = next((e.get("verify_url") for e in facts if e.get("verify_url")), None)
         if verify:
-            detail += (f" — verify: {verify}" if en else f" — 확인: {verify}")
+            detail += f" — {'Verify' if english else '확인'}: {verify}"
+        display_slot = _slot_label(slot, locale)
         steps.append({
-            "step": f"{step_name} · {sl(slot)}",
-            "title": (f"{sl(slot)}: {len(facts)} observed facts (not a score)" if en
+            "step": f"{trace_step} · {display_slot}",
+            "title": (f"{display_slot}: {len(facts)} observed facts (not a score)" if english
                       else f"{slot} 관측 사실 {len(facts)}건 (점수 아님)"),
             "detail": detail,
         })
     return steps
 
 
-def review_demotion_step(demoted_by_slot: dict[str, list[dict]] | None, lang: str = "ko") -> dict | None:
+def review_demotion_step(demoted_by_slot: dict[str, list[dict]] | None,
+                         locale: Locale = "ko-KR") -> dict | None:
     """리뷰축이 **순위를 낮춘 후보**를 reasoning_log 한 단계로. 없으면 None.
 
     추천된 8개는 대개 "특이 없음" 이다 — 걸린 후보가 감점을 받아 밀려나기 때문이다. 그래서
@@ -341,16 +361,23 @@ def review_demotion_step(demoted_by_slot: dict[str, list[dict]] | None, lang: st
     rows = [(slot, d) for slot, ds in (demoted_by_slot or {}).items() for d in ds if d.get("over")]
     if not rows:
         return None
+    english = locale == "en-US"
     parts = []
     for slot, d in rows:
-        facts = " · ".join(f"{OBS_LABEL.get(k, k)} {100 * v:.1f}% (부류 중앙값 {100 * m:.1f}%)"
-                           for k, v, m in d["over"])
-        parts.append(f"{slot} {d.get('name', '?')} — {facts}")
-    if lang == "en":
+        if english:
+            facts = " · ".join(
+                f"{_OBS_LABEL_EN.get(k, k)} {100 * v:.1f}% (category median {100 * m:.1f}%)"
+                for k, v, m in d["over"]
+            )
+        else:
+            facts = " · ".join(f"{OBS_LABEL.get(k, k)} {100 * v:.1f}% (부류 중앙값 {100 * m:.1f}%)"
+                               for k, v, m in d["over"])
+        parts.append(f"{_slot_label(slot, locale)} {d.get('name', '?')} — {facts}")
+    if english:
         return {
-            "step": "Review observations · ranking",
-            "title": f"{len(rows)} candidates ranked lower because of observations (not excluded)",
-            "detail": " · ".join(parts) + " — still in the candidate list, only ranked lower",
+            "step": "Review observations · Ranking adjustment",
+            "title": f"{len(rows)} candidates ranked lower due to observations (not excluded)",
+            "detail": " · ".join(parts) + " — These candidates remain available; only their ranking changed",
         }
     return {
         "step": f"{REVIEW_TRACE_STEP} · 순위 조정",
@@ -359,9 +386,17 @@ def review_demotion_step(demoted_by_slot: dict[str, list[dict]] | None, lang: st
     }
 
 
-def explanation_text_with_caveats(item_reasons: list[str], caveats: list[str]) -> str:
-    """explanation_text = 추천 이유 목록 + 확인이 필요한 것. caveats 가 비면 이유만."""
-    body = "\n".join(f"- {r}" for r in item_reasons)
+def explanation_text_with_caveats(
+    summary: str,
+    caveats: list[str],
+    *,
+    locale: Locale = "ko-KR",
+) -> str:
+    """explanation_text = 추천 요약(summary) + 확인이 필요한 것. caveats 가 비면 요약만.
+
+    전엔 슬롯별 reason 8줄을 이어붙였는데 그건 요약이 아니었다 — summary 로 바뀌었다.
+    """
     if not caveats:
-        return body
-    return body + "\n\n확인이 필요한 것:\n" + "\n".join(f"- {c}" for c in caveats)
+        return summary
+    heading = "Things to check:" if locale == "en-US" else "확인이 필요한 것:"
+    return summary + f"\n\n{heading}\n" + "\n".join(f"- {c}" for c in caveats)

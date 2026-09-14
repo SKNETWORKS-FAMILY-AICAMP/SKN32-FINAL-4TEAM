@@ -2,9 +2,11 @@
 // TF-DEV: ?api=http://host:port 로 한 번 열면 이후 페이지 이동에도(멀티페이지라 매번 쿼리스트링을 못 붙임) 같은 브라우저 탭에서 유지된다. 지우려면 sessionStorage의 truefit-api-override를 비우면 됨.
 const TF_API_BASE=(()=>{const params=new URLSearchParams(location.search),queryOverride=params.get('api');if(queryOverride){try{sessionStorage.setItem('truefit-api-override',queryOverride)}catch{}}let override=queryOverride;if(!override)try{override=sessionStorage.getItem('truefit-api-override')||''}catch{}if(override)return override.replace(/\/+$/,'');const value=(document.querySelector('meta[name="truefit-api-base"]')?.content||'auto').trim();if(value!=='auto')return value.replace(/\/+$/,'');return location.port==='5500'?location.protocol+'//'+location.hostname+':8000':''})();
 class TF_ApiError extends Error{constructor(status,code,message,field=null){super(message);this.name='TF_ApiError';this.status=status;this.code=code;this.field=field}}
+function tfApiText(value){return window.TF_I18N?.t?.(value)||value}
 const TF_API={
  async request(method,path,body,extraHeaders){
-  const headers={Accept:'application/json',...extraHeaders};if(body!==undefined)headers['Content-Type']='application/json';
+  const locale=window.TF_LOCALE?.get?.()||'ko-KR';
+  const headers={Accept:'application/json','Accept-Language':locale,...extraHeaders};if(body!==undefined)headers['Content-Type']='application/json';
   let response;
   // TF-DEV: 언어 토글(i18n.js, localStorage 'planbasket-lang')을 서버에 알린다 — 서버가 만드는 문장(질문·요약·이유·메모)이 그 언어로 나온다
   try{const l=localStorage.getItem('planbasket-lang');if(l==='en'||l==='ko')headers['X-TrueFit-Lang']=l}catch{}
@@ -38,5 +40,5 @@ const TF_AUTH={
  async withdraw({password}){await TF_API.post('/auth/withdraw',{password});this._set(null)},
  async checkEmail(email){const data=await TF_API.get('/auth/email-availability?email='+encodeURIComponent(email));return !!(data&&data.available)}
 };
-function tfAuthErrorMessage(error,fallback){return ({invalid_credentials:'이메일 또는 비밀번호가 올바르지 않습니다.',account_locked:'로그인 시도가 여러 번 실패해 잠시 잠겼어요. 15분 후 다시 시도해 주세요.',email_taken:'이미 가입된 이메일입니다.',weak_password:'비밀번호는 영문과 숫자를 포함해 8자 이상이어야 합니다.',terms_required:'필수 약관에 동의해 주세요.',invalid_password:'현재 비밀번호가 일치하지 않습니다.',rate_limited:'요청이 많아요. 잠시 후 다시 시도해 주세요.',unauthorized:'로그인이 필요합니다.'})[error&&error.code]||(error&&error.message)||fallback||'요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요.'}
-function tfBusy(button,busy,label){if(!button)return;if(busy){if(!button.dataset.idleLabel)button.dataset.idleLabel=button.textContent;button.disabled=true;button.textContent=label||'처리 중…'}else{button.disabled=false;if(button.dataset.idleLabel)button.textContent=button.dataset.idleLabel;delete button.dataset.idleLabel}}
+function tfAuthErrorMessage(error,fallback){const message=({invalid_credentials:'이메일 또는 비밀번호가 올바르지 않습니다.',account_locked:'로그인 시도가 여러 번 실패해 잠시 잠겼어요. 15분 후 다시 시도해 주세요.',email_taken:'이미 가입된 이메일입니다.',weak_password:'비밀번호는 영문과 숫자를 포함해 8자 이상이어야 합니다.',terms_required:'필수 약관에 동의해 주세요.',invalid_password:'현재 비밀번호가 일치하지 않습니다.',rate_limited:'요청이 많아요. 잠시 후 다시 시도해 주세요.',unauthorized:'로그인이 필요합니다.'})[error&&error.code]||(error&&error.message)||fallback||'요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요.';return tfApiText(message)}
+function tfBusy(button,busy,label){if(!button)return;if(busy){if(!button.dataset.idleLabel)button.dataset.idleLabel=button.textContent;button.disabled=true;button.textContent=tfApiText(label||'처리 중…')}else{button.disabled=false;if(button.dataset.idleLabel)button.textContent=button.dataset.idleLabel;delete button.dataset.idleLabel}}

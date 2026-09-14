@@ -49,6 +49,11 @@ def test_frontend_static_directories_are_served():
     assert status == 200
     assert "javascript" in headers["content-type"]
 
+    for path in ("/js/locale.js", "/js/i18n.js"):
+        status, headers = get(path)
+        assert status == 200
+        assert "javascript" in headers["content-type"]
+
 
 def test_non_public_frontend_files_are_not_served():
     status, _ = get("/CLAUDE.md")

@@ -6,6 +6,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Header
 
 from src import schemas
+from src.i18n import Locale, resolve_locale
 from src.auth.deps import Principal, optional_principal
 from src.db import get_conn
 from src.services import list_service
@@ -39,22 +40,22 @@ def delete(list_id: UUID, principal: Principal = Depends(optional_principal)) ->
 @router.post("/{list_id}/confirm", response_model=schemas.ReportOut)
 def confirm(
     list_id: UUID, body: schemas.ConfirmIn, if_match: int | None = Header(default=None, alias="If-Match"),
-    principal: Principal = Depends(optional_principal)
+    principal: Principal = Depends(optional_principal), locale: Locale = Depends(resolve_locale)
 ) -> schemas.ReportOut:
     """draft → confirmed. 비로그인이면 401 (프론트가 로그인 모달)."""
     with get_conn() as conn:
         report = list_service.confirm(
             conn, list_id, principal,
             name=body.name, planned_purchase_at=body.planned_purchase_at,
-            target_amount=body.target_amount, memo=body.memo, if_match=if_match,
+            target_amount=body.target_amount, memo=body.memo, if_match=if_match, locale=locale,
         )
     return schemas.ReportOut(**report)
 
 
 @router.get("/{list_id}/report", response_model=schemas.ReportOut)
-def report(list_id: UUID, principal: Principal = Depends(optional_principal)) -> schemas.ReportOut:
+def report(list_id: UUID, principal: Principal = Depends(optional_principal), locale: Locale = Depends(resolve_locale)) -> schemas.ReportOut:
     with get_conn() as conn:
-        report = list_service.get_report(conn, list_id, principal)
+        report = list_service.get_report(conn, list_id, principal, locale=locale)
     return schemas.ReportOut(**report)
 
 

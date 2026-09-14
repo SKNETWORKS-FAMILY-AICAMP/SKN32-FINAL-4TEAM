@@ -10,6 +10,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
+from src.i18n import Locale, normalize_locale
 from src.auth.deps import Principal
 from src.errors import Conflict, NotFound, ValidationFailed
 from src.repo.engine_repo import EngineRepo
@@ -103,14 +104,14 @@ def _report_lang(prepo: PlanRepo, revision_id: UUID) -> str:
 
 
 def confirm(conn, list_id: UUID, principal: Principal, *, name: str, planned_purchase_at: str | None,
-            target_amount: int | None, memo: str, if_match: int | None = None) -> dict:
+            target_amount: int | None, memo: str, if_match: int | None = None, locale: Locale = "ko-KR") -> dict:
     user_id = _require_login(conn, principal)
     prepo = PlanRepo(conn)
     revision = _owned(prepo, list_id, principal)
     if revision["owner_user_id"] != user_id:
         raise NotFound("목록을 찾을 수 없습니다.")
     if revision["state"] == "confirmed":
-        return get_report(conn, list_id, principal)
+        return get_report(conn, list_id, principal, locale=locale)
     if if_match is not None and if_match != revision["lock_version"]:
         raise Conflict("목록이 다른 곳에서 변경되었습니다.", code="stale_revision")
 
@@ -194,16 +195,17 @@ def confirm(conn, list_id: UUID, principal: Principal, *, name: str, planned_pur
         conn, plan_id=revision["plan_id"], revision_id=revision["id"],
         run_id=UUID(stored["run_id"]), version=revision["lock_version"], user_id=user_id,
     )
-    return get_report(conn, list_id, principal)
+    return get_report(conn, list_id, principal, locale=locale)
 
 
-def get_report(conn, list_id: UUID, principal: Principal) -> dict:
+def get_report(conn, list_id: UUID, principal: Principal, *, locale: Locale = "ko-KR") -> dict:
+    locale = normalize_locale(locale)
     user_id = _require_login(conn, principal)
     prepo = PlanRepo(conn)
     revision = _owned(prepo, list_id, principal)
     if revision["owner_user_id"] != user_id or revision["state"] != "confirmed":
         raise NotFound("확정된 목록을 찾을 수 없습니다.")
-    lang = _report_lang(prepo, revision["id"])
+    lang = "en" if locale == "en-US" else "ko"
 
     owner = UserRepo(conn).get(revision["owner_user_id"])
     items = []
@@ -214,7 +216,7 @@ def get_report(conn, list_id: UUID, principal: Principal) -> dict:
             "product": snapshot.get("product") or {},
             "price": int(line["line_amount"]), "qty": int(line["pack_count"]),
             "timing": snapshot.get("timing", "now"), "review": snapshot.get("review"),
-            "evidence_text": snapshot.get("evidence_text", ""),
+            "evidence_text": _report_evidence(snapshot, locale),
         })
     watch = NotificationRepo(conn).get_for_revision(revision["id"])
 
@@ -276,3 +278,13 @@ def set_alert(conn, list_id: UUID, principal: Principal, *, enabled: bool, targe
     ends_at = datetime.now(timezone.utc) + timedelta(days=_PRICE_WATCH_WINDOW_DAYS)
     watch = nrepo.upsert_active(revision["id"], target_amount=amount, ends_at=ends_at)
     return {"price_watch": _price_watch_out(watch, confirmed_target)}
+
+
+def _report_evidence(snapshot: dict, locale: Locale) -> str:
+    text = snapshot.get("evidence_text", "") or ""
+    if locale == "en-US":
+        if snapshot.get("evidence_text_en"):
+            return snapshot["evidence_text_en"]
+        if any("가" <= char <= "힣" for char in text):
+            return "The recommendation explanation was saved in Korean. An English translation is not available for this saved report."
+    return text

@@ -16,6 +16,10 @@ def test_answer_values_restore_boolean_chip_from_html_string():
 
 
 def test_baby_explicit_empty_answers_keep_a_confirmed_display_value():
-    assert _display({"key": "health_skin"}, [], {}) == "특이사항 없음"
-    assert _display({"key": "owned_items"}, [], {"language": "en"}) == "None owned"
-    assert _display({"key": "health_skin"}, None, {}) is None
+    # _display's 3rd positional param is `locale` (develop's i18n refactor,
+    # 2026-09-14) — pass it by keyword to avoid re-breaking on a future signature
+    # reorder the way this test previously did (it used to pass a `values` dict
+    # positionally where `locale` now sits).
+    assert _display({"key": "health_skin"}, []) == "특이사항 없음"
+    assert _display({"key": "owned_items"}, [], locale="en-US") == "None owned"
+    assert _display({"key": "health_skin"}, None) is None

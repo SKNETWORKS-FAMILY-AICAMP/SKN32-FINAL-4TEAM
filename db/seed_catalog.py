@@ -12,6 +12,7 @@ from __future__ import annotations
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.parse import quote_plus
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
@@ -52,7 +53,11 @@ def main() -> int:
             variant_id = repo.upsert_variant(
                 product_id, "default", attributes={"slot": slot, "perf_tier": tier},
             )
-            offer_id = repo.upsert_offer(variant_id, merchant_id, pk, f"https://example.com/buy/{pk}")
+            # 실제 판매 페이지가 없으므로(합성 카탈로그) 상품명으로 실제 쇼핑몰 검색 결과 페이지로
+            # 연결한다 — 개별 상품 URL을 몰라도 항상 유효하게 열리고, 검색 결과 페이지 링크는
+            # 저작권·이용약관 이슈가 사실상 없다(단순 링크, 콘텐츠 복제 없음).
+            purchase_url = f"https://www.amazon.com/s?k={quote_plus(row['name'])}"
+            offer_id = repo.upsert_offer(variant_id, merchant_id, pk, purchase_url)
             repo.add_observation(
                 offer_id, source_id, observed_at=datetime.now(timezone.utc),
                 price=price, stock_status="available", quality_status="valid",

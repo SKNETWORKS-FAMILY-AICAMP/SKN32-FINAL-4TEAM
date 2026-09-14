@@ -20,6 +20,7 @@ import sys
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
+from urllib.parse import quote_plus
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
@@ -185,8 +186,10 @@ def seed_catalog(conn, records: list[dict], *, dataset_version: str, corpus: str
             merchant_id = repo.upsert_merchant(
                 "baby-demo" if corpus == "synthetic" else "baby-real",
                 r["offer"]["merchant_key"], "데모 유아용품 판매처" if corpus == "synthetic" else r["offer"]["merchant_key"])
+            # 실제 판매 URL이 없는 합성 항목은 상품명으로 실제 쇼핑몰 검색 결과 페이지로
+            # 연결한다 — db/seed_catalog.py(컴퓨터 카탈로그)와 같은 이유·같은 방식.
             purchase_url = r["offer"].get("purchase_url") or (
-                f"synthetic://catalog/{r['product_key']}/{r['variant_key']}")
+                f"https://www.amazon.com/s?k={quote_plus(r['name'])}")
             offer_id = repo.upsert_offer(
                 variant_id, merchant_id, r["offer"]["external_offer_id"], purchase_url)
             report.offers += 1

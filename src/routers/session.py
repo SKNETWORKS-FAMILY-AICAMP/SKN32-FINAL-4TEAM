@@ -6,6 +6,7 @@ from src import schemas
 from src.auth.deps import Principal, optional_principal
 from src.db import get_conn
 from src.errors import NotFound
+from src.i18n import Locale, resolve_locale
 from src.repo.plan_repo import PlanRepo
 from src.services import recommendation_service, session_service
 
@@ -22,42 +23,88 @@ def create(response: Response, principal: Principal = Depends(optional_principal
     return schemas.SessionOut(list_id=result["list_id"])
 
 @router.get("/{list_id}", response_model=schemas.ConditionState)
-def get_session(list_id: UUID, principal: Principal = Depends(optional_principal)) -> schemas.ConditionState:
+def get_session(
+    list_id: UUID,
+    principal: Principal = Depends(optional_principal),
+    locale: Locale = Depends(resolve_locale),
+) -> schemas.ConditionState:
     with get_conn() as conn:
-        return schemas.ConditionState(**session_service.get_session_state(conn, list_id, principal))
+        return schemas.ConditionState(**session_service.get_session_state(conn, list_id, principal, locale))
 
 @router.post("/{list_id}/category", response_model=schemas.ConditionState)
-def choose_category(list_id: UUID, body: schemas.CategoryIn, request: Request, principal: Principal = Depends(optional_principal)) -> schemas.ConditionState:
+def choose_category(
+    list_id: UUID,
+    body: schemas.CategoryIn,
+    request: Request,
+    principal: Principal = Depends(optional_principal),
+    locale: Locale = Depends(resolve_locale),
+) -> schemas.ConditionState:
     # 프론트 언어 토글(localStorage) → X-TrueFit-Lang 헤더. 없으면 한국어(전과 동일).
     language = (request.headers.get("x-truefit-lang") or "").lower() or None
     with get_conn() as conn:
-        return schemas.ConditionState(**session_service.choose_category(conn, list_id, body.category, body.mode, principal, language=language))
+        return schemas.ConditionState(**session_service.choose_category(
+            conn, list_id, body.category, body.mode, principal, locale, language=language,
+        ))
 
 @router.patch("/{list_id}/slot", response_model=schemas.ConditionState)
-def patch_slot(list_id: UUID, body: schemas.SlotPatchIn, principal: Principal = Depends(optional_principal)) -> schemas.ConditionState:
+def patch_slot(
+    list_id: UUID,
+    body: schemas.SlotPatchIn,
+    principal: Principal = Depends(optional_principal),
+    locale: Locale = Depends(resolve_locale),
+) -> schemas.ConditionState:
     with get_conn() as conn:
-        return schemas.ConditionState(**session_service.patch_slot(conn, list_id, body.field, body.value, principal))
+        return schemas.ConditionState(**session_service.patch_slot(
+            conn, list_id, body.field, body.value, principal, locale,
+        ))
 
 @router.post("/{list_id}/message", response_model=schemas.ConditionState)
-def message(list_id: UUID, body: schemas.MessageIn, principal: Principal = Depends(optional_principal)) -> schemas.ConditionState:
+def message(
+    list_id: UUID,
+    body: schemas.MessageIn,
+    principal: Principal = Depends(optional_principal),
+    locale: Locale = Depends(resolve_locale),
+) -> schemas.ConditionState:
     with get_conn() as conn:
-        return schemas.ConditionState(**session_service.handle_message(conn, list_id, body.text, principal))
+        return schemas.ConditionState(**session_service.handle_message(conn, list_id, body.text, principal, locale))
 
 @router.post("/{list_id}/answer", response_model=schemas.ConditionState)
-def answer(list_id: UUID, body: schemas.AnswerIn, principal: Principal = Depends(optional_principal)) -> schemas.ConditionState:
+def answer(
+    list_id: UUID,
+    body: schemas.AnswerIn,
+    principal: Principal = Depends(optional_principal),
+    locale: Locale = Depends(resolve_locale),
+) -> schemas.ConditionState:
     with get_conn() as conn:
-        return schemas.ConditionState(**session_service.handle_answer(conn, list_id, body.question_id, body.selected, principal))
+        return schemas.ConditionState(**session_service.handle_answer(
+            conn, list_id, body.question_id, body.selected, principal, locale,
+        ))
 
 @router.post("/{list_id}/reset", response_model=schemas.ConditionState)
-def reset(list_id: UUID, principal: Principal = Depends(optional_principal)) -> schemas.ConditionState:
+def reset(
+    list_id: UUID,
+    principal: Principal = Depends(optional_principal),
+    locale: Locale = Depends(resolve_locale),
+) -> schemas.ConditionState:
     with get_conn() as conn:
-        return schemas.ConditionState(**session_service.reset_conditions(conn, list_id, principal))
+        return schemas.ConditionState(**session_service.reset_conditions(conn, list_id, principal, locale))
 
 @router.post("/{list_id}/recommend", response_model=schemas.RecommendAcceptedOut, status_code=status.HTTP_202_ACCEPTED)
-def recommend(list_id: UUID, body: schemas.RecommendIn = schemas.RecommendIn(), background_tasks: BackgroundTasks = None, principal: Principal = Depends(optional_principal)) -> schemas.RecommendAcceptedOut:
+def recommend(
+    list_id: UUID,
+    body: schemas.RecommendIn = schemas.RecommendIn(),
+    background_tasks: BackgroundTasks = None,
+    principal: Principal = Depends(optional_principal),
+    locale: Locale = Depends(resolve_locale),
+) -> schemas.RecommendAcceptedOut:
     with get_conn() as conn:
         revision = session_service._owned(PlanRepo(conn), list_id, principal)
-        accepted = recommendation_service.start_recommendation(conn, revision["id"], strategy=body.strategy or "default")
+        accepted = recommendation_service.start_recommendation(
+            conn,
+            revision["id"],
+            strategy=body.strategy or "default",
+            locale=locale,
+        )
     background_tasks.add_task(recommendation_service.execute_recommendation, revision["id"], UUID(accepted["run_id"]))
     return schemas.RecommendAcceptedOut(**accepted)
 
@@ -78,10 +125,15 @@ def patch_item(list_id: UUID, item_id: UUID, body: schemas.ItemPatchIn, principa
     return schemas.RecommendResultOut(**stored)
 
 @router.get("/{list_id}/items/{item_id}/alternatives", response_model=schemas.AlternativesOut)
-def alternatives(list_id: UUID, item_id: UUID, principal: Principal = Depends(optional_principal)) -> schemas.AlternativesOut:
+def alternatives(
+    list_id: UUID,
+    item_id: UUID,
+    principal: Principal = Depends(optional_principal),
+    locale: Locale = Depends(resolve_locale),
+) -> schemas.AlternativesOut:
     with get_conn() as conn:
         revision = session_service._owned(PlanRepo(conn), list_id, principal)
-        stored = recommendation_service.list_alternatives(conn, revision["id"], item_id)
+        stored = recommendation_service.list_alternatives(conn, revision["id"], item_id, locale=locale)
     return schemas.AlternativesOut(**stored)
 
 @router.post("/{list_id}/items/{item_id}/swap", response_model=schemas.RecommendResultOut)
@@ -92,13 +144,30 @@ def swap(list_id: UUID, item_id: UUID, body: schemas.SwapIn, principal: Principa
     return schemas.RecommendResultOut(**stored)
 
 @router.post("/{list_id}/result-message", response_model=schemas.ResultMessageOut)
-def result_message(list_id: UUID, body: schemas.ResultMessageIn, principal: Principal = Depends(optional_principal)) -> schemas.ResultMessageOut:
+def result_message(
+    list_id: UUID,
+    body: schemas.ResultMessageIn,
+    principal: Principal = Depends(optional_principal),
+    locale: Locale = Depends(resolve_locale),
+) -> schemas.ResultMessageOut:
     with get_conn() as conn:
         revision = session_service._owned(PlanRepo(conn), list_id, principal)
-        stored = recommendation_service.handle_result_message(conn, revision["id"], body.text)
+        stored = recommendation_service.handle_result_message(
+            conn,
+            revision["id"],
+            body.text,
+            locale=locale,
+        )
     return schemas.ResultMessageOut(**stored)
 
 @router.post("/{list_id}/spec-file", response_model=schemas.ConditionState)
-def spec_file(list_id: UUID, body: schemas.SpecFileIn, principal: Principal = Depends(optional_principal)) -> schemas.ConditionState:
+def spec_file(
+    list_id: UUID,
+    body: schemas.SpecFileIn,
+    principal: Principal = Depends(optional_principal),
+    locale: Locale = Depends(resolve_locale),
+) -> schemas.ConditionState:
     with get_conn() as conn:
-        return schemas.ConditionState(**session_service.attach_spec_file(conn, list_id, body.file_name, body.content, principal))
+        return schemas.ConditionState(**session_service.attach_spec_file(
+            conn, list_id, body.file_name, body.content, principal, locale,
+        ))

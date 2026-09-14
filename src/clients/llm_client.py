@@ -82,7 +82,14 @@ def call_llm(
     print(f"[MOCK] LLM 호출: {preview}...")
 
     sys_text = system or ""
-    if "검증 쟁점" in sys_text:
+    if "검증 쟁점" in sys_text or "verification issue" in sys_text:
+        if "OUTPUT_LOCALE=en-US" in sys_text:
+            return {
+                "text": (
+                    "[MOCK] This issue statement reflects only the observed value "
+                    "and evidence."
+                )
+            }
         return {"text": "[MOCK] 관측값과 근거를 그대로 옮긴 쟁점 문장입니다."}
 
     # 그 외 구조화 출력 요청 → 호출자가 시나리오 정답값을 직접 주입하므로 빈 골격 반환

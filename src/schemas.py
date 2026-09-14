@@ -273,6 +273,7 @@ class RecommendResultOut(BaseModel):
     lock_version: int | None = None
     run_id: str
     status: str                      # running | done | failed
+    content_language: Literal["ko-KR", "en-US"] = "ko-KR"
     progress: list[ProgressStepOut] = Field(default_factory=list)
     category: str
     conditions_summary: str = ""

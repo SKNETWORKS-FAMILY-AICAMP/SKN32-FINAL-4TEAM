@@ -67,8 +67,8 @@ def _parse_korean_number(text: str) -> int | None:
 
 
 def _parse_won(text: str) -> int | None:
-    """'150만원' '1500000원' '1.5억' '삼백만원' 같은 표현 → 정수 원."""
-    text = text.replace(",", "")
+    """'150만원', '₩1,500,000', '1.5 million won', '삼백만원' 같은 표현 → 정수 원."""
+    text = text.replace(",", "").lower()
     m = re.search(r"(\d+(?:\.\d+)?)\s*억", text)
     if m:
         return int(float(m.group(1)) * 100_000_000)
@@ -81,6 +81,16 @@ def _parse_won(text: str) -> int | None:
     m = re.search(r"(\d{4,})\s*원", text)
     if m:
         return int(m.group(1))
+    m = re.search(r"(?:₩|krw\s*)(\d{4,})", text)
+    if m:
+        return int(m.group(1))
+    m = re.search(r"(\d+(?:\.\d+)?)\s*(million|thousand|m|k)\s*(?:won|krw)?\b", text)
+    if m:
+        multiplier = 1_000_000 if m.group(2) in {"million", "m"} else 1_000
+        return int(float(m.group(1)) * multiplier)
+    m = re.search(r"(\d{4,})\s*(?:won|krw)\b", text)
+    if m:
+        return int(m.group(1))
     return _parse_korean_number(text)          # 숫자 없이 한글 단어로만 말한 금액 (예: 삼백만원)
 
 
@@ -90,37 +100,46 @@ def _parse_months(text: str) -> int | None:
         return int(m.group(1))
     if re.search(r"출산\s*예정|임신|태어나기\s*전", text):
         return None
+    m = re.search(r"(\d+)\s*(?:months?|mos?|mo)\b", text, re.IGNORECASE)
+    if m:
+        return int(m.group(1))
+    m = re.search(r"(\d+)\s*(?:years?|yrs?|yr)\b", text, re.IGNORECASE)
+    if m:
+        return int(m.group(1)) * 12
     return None
 
 
 _PURPOSE = [
-    ("game", ["게임", "롤", "옵치", "배그", "발로란트"]),
-    ("creation", ["작업", "창작", "편집", "영상", "디자인", "3d", "렌더"]),
-    ("office", ["사무", "문서", "엑셀", "인터넷", "office"]),
-    ("study", ["공부", "학습", "온라인 강의", "인강"]),
+    ("game", ["게임", "롤", "옵치", "배그", "발로란트", "game", "gaming", "esports"]),
+    ("creation", ["작업", "창작", "편집", "영상", "디자인", "3d", "렌더", "creator", "editing", "video", "render", "design"]),
+    ("office", ["사무", "문서", "엑셀", "인터넷", "office", "work", "spreadsheet", "browsing"]),
+    ("study", ["공부", "학습", "온라인 강의", "인강", "study", "school", "class", "lecture"]),
 ]
 
 _PRIORITY = [
-    ("performance", ["성능", "빠른", "고사양"]),
-    ("value", ["가성비", "저렴", "싸게", "가격"]),
-    ("quiet", ["조용", "저소음", "소음"]),
+    # "가격"은 빼져 있다 — 자유 채팅으로 예산을 말할 때("가격은 150만원까지") 거의 항상 섞여
+    # 나와서, 우선순위를 말한 적 없는 사용자도 priority가 자동으로 "가성비"로 채워지는 오탐이 있었다.
+    ("performance", ["성능", "빠른", "고사양", "performance", "fast", "high-end", "fps"]),
+    ("value", ["가성비", "저렴", "싸게", "value", "budget", "affordable", "cheap"]),
+    ("quiet", ["조용", "저소음", "소음", "quiet", "silent", "low noise"]),
 ]
 
 # 키워드 → baby.yaml/CONTRACTS 의 정식 need 라벨(부분 문자열이 아니라 그대로 저장 가능한 값).
 _NEEDS_MAP: list[tuple[str, list[str]]] = [
-    ("수유", ["수유", "젖병", "분유"]),
-    ("이유식·식사", ["이유식", "식사"]),
-    ("수면", ["수면", "잠", "재우"]),
-    ("외출", ["외출", "산책", "유모차", "카시트"]),
-    ("목욕·위생", ["목욕", "위생", "샴푸"]),
-    ("기저귀·배변", ["기저귀", "배변"]),
-    ("의류", ["의류", "옷"]),
-    ("놀이", ["놀이", "장난감"]),
-    ("안전·건강", ["안전", "건강"]),
+    ("수유", ["수유", "젖병", "분유", "feeding", "bottle", "nursing", "formula"]),
+    ("이유식·식사", ["이유식", "식사", "weaning", "solid food", "baby food", "meal"]),
+    ("수면", ["수면", "잠", "재우", "sleep", "crib", "nap"]),
+    ("외출", ["외출", "산책", "유모차", "카시트", "outing", "stroller", "car seat", "carrier", "travel"]),
+    ("목욕·위생", ["목욕", "위생", "샴푸", "bath", "hygiene", "wash", "shampoo"]),
+    ("기저귀·배변", ["기저귀", "배변", "diaper", "potty"]),
+    ("의류", ["의류", "옷", "clothes", "clothing"]),
+    ("놀이", ["놀이", "장난감", "play", "toy"]),
+    ("안전·건강", ["안전", "건강", "safety", "health"]),
 ]
 
 
 def _first_match(text: str, table: list[tuple[str, list[str]]]) -> str | None:
+    text = text.lower()
     for value, keywords in table:
         if any(k in text for k in keywords):
             return value
@@ -150,6 +169,7 @@ def extract_computer(text: str) -> dict:
 
 def extract_baby(text: str) -> dict:
     out: dict = {}
+    lowered = text.lower()
     budget = _parse_won(text)
     if budget:
         out["budget_max"] = budget
@@ -159,9 +179,9 @@ def extract_baby(text: str) -> dict:
     matched_needs = [label for label, keywords in _NEEDS_MAP if any(k in text for k in keywords)]
     if matched_needs:
         out["needs"] = matched_needs
-    if re.search(r"아토피", text):
+    if re.search(r"아토피|atopic|atopy", lowered):
         out["health_skin"] = ["아토피"]
-    elif re.search(r"민감", text):
+    elif re.search(r"민감|sensitive|eczema", lowered):
         out["health_skin"] = ["민감성 피부"]
     # "피부"/"건강"/"특이사항" 이 명시된 맥락에서만 none 으로 판단한다 — "보유 물품이 없어요" 같은
     # 무관한 문장의 "없어요" 만 보고 건강 상태를 단정하던 버그를 막는다.
