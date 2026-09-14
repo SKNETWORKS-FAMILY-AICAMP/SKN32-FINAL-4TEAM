@@ -157,6 +157,13 @@ def _coerce(meta: dict, raw):
         if amount is not None:
             return amount
         raise ValueError("원 단위 정수로 (예: 1500000 또는 150만원)")
+    if t == "money":
+        if isinstance(s, bool):
+            raise ValueError("0보다 큰 정수 금액이 필요")
+        amount = int(s) if isinstance(s, (int, float)) else _parse_amount(str(s))
+        if amount is not None and amount > 0:
+            return amount
+        raise ValueError("0보다 큰 정수 금액으로 (예: 1500000 또는 150만원)")
     if t == "bool":
         if isinstance(s, bool):
             return s

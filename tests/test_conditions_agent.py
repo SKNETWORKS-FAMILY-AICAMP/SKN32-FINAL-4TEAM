@@ -69,6 +69,28 @@ def test_nullable_int_clears_and_bool_parses():
     assert d.patches["noise_sensitive"] is True
 
 
+@pytest.mark.parametrize("raw, expected", [
+    ("1000000", 1_000_000), ("50000000", 50_000_000), ("100만원", 1_000_000),
+    ("$1000", 1_000), ("1000만원", 10_000_000),
+])
+def test_money_type_parses_like_int(raw, expected):
+    # baby.yaml 의 budget_max 는 type: money — int 전용 분기만 있으면 항상 실패했었다
+    d = _draft("baby")
+    out = d.set("budget_max", raw)
+    assert not out.startswith("오류"), out
+    assert d.patches["budget_max"] == expected
+
+
+def test_money_type_nullable_clears_and_rejects_non_positive():
+    d = _draft("baby")
+    d.set("budget_max", "null")
+    assert d.patches["budget_max"] is None
+    msg = d.set("budget_max", "0")
+    assert msg.startswith("오류") and d.patches["budget_max"] is None   # 실패한 set 은 이전 값을 안 건드린다
+    msg = d.set("budget_max", "-100")
+    assert msg.startswith("오류")
+
+
 def test_extra_appends_without_duplicates():
     d = _draft("computer", {"extra": ["흰색 케이스"]})
     d.add_extra("흰색 케이스")
