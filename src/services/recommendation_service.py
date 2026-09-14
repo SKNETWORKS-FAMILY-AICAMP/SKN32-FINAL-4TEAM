@@ -175,6 +175,14 @@ def execute_recommendation(revision_id: UUID, run_id: UUID) -> None:
                 )
 
             erepo.complete_run(run_id)
+
+            # P8 FB03: 결과가 (처음으로) 만들어졌다는 append-only 행. GET/폴링은 이 함수를
+            # 다시 부르지 않으므로(get_stored_result만 읽는다) run당 한 번만 기록된다.
+            from src.services import feedback_service
+            feedback_service.emit_shown(
+                conn, plan_id=full["plan_id"], revision_id=revision_id, run_id=run_id,
+                version=full["lock_version"],
+            )
         # ↑ with 블록이 끝나며 여기서 커밋된다 — 부품·가격·검증이 done으로 확정.
     except Exception:  # noqa: BLE001 — 실패해도 running으로 영원히 남지 않게 별도 커넥션으로 failed 처리
         with get_conn() as fail_conn:
@@ -513,9 +521,21 @@ def _find_candidate(rows: list[dict], item_id: UUID) -> dict:
 
 def patch_item(conn, revision_id: UUID, item_id: UUID, *, selected: bool | None,
                 qty: int | None, timing: str | None) -> dict:
+    from src.repo.plan_repo import PlanRepo
+    from src.services import feedback_service
+
     erepo, run = _require_done_run(conn, revision_id)
-    _find_candidate(erepo.get_candidates(run["id"]), item_id)
+    current = _find_candidate(erepo.get_candidates(run["id"]), item_id)
     erepo.update_candidate_state(item_id, selected=selected, qty=qty, timing=timing)
+
+    # P8 FB03: selected true→false는 "이 항목을 뺐다" — 담아 두는 동안의 수량/시점 조정은
+    # 그 자체로 이벤트가 아니다(빈 것을 담았다 뺐다 하는 게 아니라, 실제로 제외했을 때만).
+    if current["selected"] and selected is False:
+        revision = PlanRepo(conn).get_revision(revision_id)
+        feedback_service.emit_removed(
+            conn, plan_id=revision["plan_id"], revision_id=revision_id,
+            run_id=run["id"], item_id=item_id, version=revision["lock_version"],
+        )
     return get_stored_result(conn, revision_id)
 
 
@@ -554,6 +574,9 @@ def swap_item(conn, revision_id: UUID, item_id: UUID, candidate_id: UUID) -> dic
     """candidate_id는 alternatives가 돌려준 variant_id다. item_id(행 자체)는 그대로 두고
     내용만 바꿔치기한다 — 계약상 item_id는 후보 교체 후에도 고정."""
     from src.repo.product_repo import ProductRepo
+    from src.repo.plan_repo import PlanRepo
+    from src.services import feedback_service
+
     erepo, run = _require_done_run(conn, revision_id)
     current = _find_candidate(erepo.get_candidates(run["id"]), item_id)
     slot_variants = ProductRepo(conn).candidates_by_slot().get(current["slot"], [])
@@ -562,6 +585,14 @@ def swap_item(conn, revision_id: UUID, item_id: UUID, candidate_id: UUID) -> dic
         raise NotFound("해당 후보를 찾을 수 없습니다.")
     erepo.update_candidate_variant(item_id, variant_id=candidate_id,
                                     offer_observation_id=target.get("offer_observation_id"))
+
+    # P8 FB03: 실제로 바꿔치기가 성공한 뒤에만 기록한다 — 위의 not-found 거부는 아무 것도
+    # 남기지 않는다.
+    revision = PlanRepo(conn).get_revision(revision_id)
+    feedback_service.emit_replaced(
+        conn, plan_id=revision["plan_id"], revision_id=revision_id,
+        run_id=run["id"], item_id=item_id, version=revision["lock_version"],
+    )
     return get_stored_result(conn, revision_id)
 
 

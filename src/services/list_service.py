@@ -16,7 +16,7 @@ from src.repo.engine_repo import EngineRepo
 from src.repo.notification_repo import NotificationRepo
 from src.repo.plan_repo import PlanRepo
 from src.repo.user_repo import UserRepo
-from src.services import auth_service, recommendation_service
+from src.services import auth_service, feedback_service, recommendation_service
 from src.services.session_service import _owned, _token_hash
 
 _DEFAULT_NAME_BY_CATEGORY = {"computer": "컴퓨터 장바구니", "baby": "유아용품 장바구니"}
@@ -143,6 +143,12 @@ def confirm(conn, list_id: UUID, principal: Principal, *, name: str, planned_pur
             revision["id"], row["offer_id"], row["offer_observation_id"], int(row["price"]), snapshot
         )
 
+    # P8 FB03: draft→confirmed 전환에 성공한 요청만 여기 도달한다(위의 Conflict가 이미
+    # 중복 확정을 막는다) — 실패한 확정 시도는 아무 것도 남기지 않는다.
+    feedback_service.emit_confirmed(
+        conn, plan_id=revision["plan_id"], revision_id=revision["id"],
+        run_id=UUID(stored["run_id"]), version=revision["lock_version"], user_id=user_id,
+    )
     return get_report(conn, list_id, principal)
 
 

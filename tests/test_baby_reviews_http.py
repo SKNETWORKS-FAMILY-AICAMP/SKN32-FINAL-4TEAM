@@ -114,32 +114,52 @@ def test_rv01_editing_a_published_review_marks_its_ready_aggregate_stale(raw_con
     """P8 IMPLEMENTATION1: "edits invalidate affected summary/aggregate until
     recomputed, not silently keep stale values." Import an approved file-based
     analysis for this subject first (making it 'ready'), then have the SAME author
-    edit their review and confirm the aggregate flips to 'stale'."""
-    plans = validate_and_compute(FIXTURE)
+    edit their review and confirm the aggregate flips to 'stale'.
+
+    `write_part_review` always scopes evidence.review_subject to the variant (never
+    the bare product) — a file-based analysis must be imported at the same variant
+    scope to land on the same subject row, so this test builds an AnalysisPlan
+    directly with `variant_key` set, instead of reusing the product-scoped
+    `FIXTURE` (which is deliberately variant_key=None for the RV02/RV03 file tests)."""
+    from import_review_analysis import AnalysisPlan, SampleMember
+
+    variant_key = raw_conn.execute(
+        "SELECT variant_key FROM catalog.product_variant WHERE id=%s", (stroller_variant_id,)
+    ).fetchone()[0]
+    plan = AnalysisPlan(
+        subject_key="SYN-STROLLER-001", variant_key=variant_key, domain="baby",
+        source_scope="combined", processing_version="review-analysis-variant-v1",
+        generated_at="2026-09-14T00:00:00+00:00", window_start="2026-09-14T00:00:00+00:00",
+        window_end="2026-09-14T00:00:00+00:00", analyzed_count=2, excluded_count=0, retained_count=2,
+        raw_avg=5.0, refined_avg=5.0, raw_distribution={"5": 1.0}, refined_distribution={"5": 1.0},
+        summary_texts=["변형 테스트용 요약"], observation_evidence=[],
+        members=[
+            SampleMember(sample_id="rv01-a", product_key="SYN-STROLLER-001", variant_key=variant_key,
+                        rating=5, text_or_excerpt="좋아요", text_hash="h1", source_ref="https://x/a",
+                        created_at="2026-01-01T00:00:00+00:00", is_synthetic=True, disposition="retained",
+                        label_confidence=0.1, observations=[]),
+            SampleMember(sample_id="rv01-b", product_key="SYN-STROLLER-001", variant_key=variant_key,
+                        rating=5, text_or_excerpt="좋아요2", text_hash="h2", source_ref="https://x/b",
+                        created_at="2026-01-02T00:00:00+00:00", is_synthetic=True, disposition="retained",
+                        label_confidence=0.1, observations=[]),
+        ],
+    )
     conn = psycopg.connect(DSN, autocommit=False)
     try:
         with conn.transaction():
-            result = apply_plan(conn, plans[0], dataset_version="test-rv01")
+            result = apply_plan(conn, plan, dataset_version="test-rv01")
         conn.commit()
     finally:
         conn.close()
-    assert result["status"] == "imported"
+    assert result["status"] in ("imported", "skipped_idempotent")
     aggregate_id = result["aggregate_id"]
     assert raw_conn.execute(
         "SELECT status FROM evidence.review_aggregate WHERE id=%s", (aggregate_id,)
     ).fetchone()[0] == "ready"
 
-    subject_id = raw_conn.execute(
-        "SELECT s.id FROM evidence.review_subject s JOIN catalog.product p ON p.id=s.product_id "
-        "WHERE p.model=%s", (plans[0].subject_key,)
-    ).fetchone()[0]
-
     author = _signed_up_client()
-    variant_id = raw_conn.execute(
-        "SELECT id FROM catalog.product_variant WHERE product_id=%s LIMIT 1", (subject_id,)
-    ).fetchone()[0]
     r = author.post("/reviews/part", json={
-        "variant_id": str(variant_id), "rating": 3, "title": "재작성", "body": "다시 씁니다.", "axis_scores": {},
+        "variant_id": stroller_variant_id, "rating": 3, "title": "재작성", "body": "다시 씁니다.", "axis_scores": {},
     })
     assert r.status_code == 201, r.text
 

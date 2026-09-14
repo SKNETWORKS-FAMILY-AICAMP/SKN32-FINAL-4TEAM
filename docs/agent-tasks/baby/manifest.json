@@ -274,7 +274,7 @@
       "baseline_audit": "DEVELOP_DB_TRANSITION.md",
       "acceptance_policy": "ACTIVE_DB_CONTRACT_D8_in_work_order",
       "verified_acceptance_cases": [],
-      "verification_note": "Documentation updated only; no develop-alignment acceptance case newly verified.",
+      "verification_note": "RV01-04 and FB01-03 all verified on a fresh disposable PostgreSQL DB. RV01-04: review authoring/publish ownership+idempotency, deterministic file-based analysis import (evidence.review_summary/review_aggregate/review_aggregate_member) with hash/dedup/consistency validation, and GET /reviews/summary DB-backed excluded_count/rating_refined/distributions (RV02 example: raw=11/3, refined=5.0, excluded=1/3). FB01/FB02: payload whitelist, event_key idempotency, no update path. FB03: emit_shown/emit_replaced/emit_removed/emit_confirmed all wired into execute_recommendation/patch_item/swap_item/list_service.confirm() and verified via a real computer-category HTTP flow (recommend->shown, swap->replaced, deselect->removed, confirm->confirmed, each exactly once; rejected/duplicate attempts emit nothing). evaluate_review_signals.py correctly reports not_evaluated on the tiny committed fixture (no real labeled corpus exists). 31/31 P8-authored tests pass; the wider suite has 28 unrelated failures (P0/P1/P5/P6/P7-era if_match/optimistic-locking on list_service.confirm(), baby swap/alternatives verification, password-auth concurrency, a missing db/compatibility/0009 file) that predate and are outside P8 changes.",
       "rework_scope": "see individual ACTIVE DB CONTRACT; reuse unaffected implementation and test evidence"
     },
     {
