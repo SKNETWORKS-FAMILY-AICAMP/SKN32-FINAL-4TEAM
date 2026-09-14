@@ -173,10 +173,11 @@ def test_english_marketing_draft_is_rejected(monkeypatch):
     ) is None
 
 
-def test_english_confidence_score_wording_is_allowed(monkeypatch):
+def test_english_headline_without_confidence_is_accepted(monkeypatch):
+    # 신뢰도 숫자 누락 시 재시도하던 가드를 뺐다(docs/decisions/0003) — 신뢰도 없는 정상 초안이 채택돼야 한다
     def fake_call(*_args, **_kwargs):
         return {
-            "headline": "The verification confidence score is 92/100 at a total of ₩300,000.",
+            "headline": "Used ₩300,000 of the ₩1,000,000 budget.",
             "items": [
                 {
                     "slot": "CPU",
@@ -227,14 +228,11 @@ def test_english_explanation_fallback_is_localized(monkeypatch):
         locale="en-US",
     )
 
-    assert explanation.headline == (
-        "Used ₩300,000 of the ₩1,000,000 budget; build verification confidence "
-        "is 92/100 (1 evidence gap)."
-    )
-    assert explanation.items[0].reason == (
-        "Test CPU — meets the requirements, ranked #1, ₩300,000"
-    )
-    assert explanation.caveats[0] == "Evidence for RAG could not be verified."
+    # 신뢰도·회색축은 사용자 문장에서 뺐다(docs/decisions/0003)
+    assert explanation.headline.startswith("Used ") and explanation.headline.endswith(" budget.")
+    assert "confidence" not in explanation.headline and "confidence" not in explanation.summary
+    assert explanation.items[0].reason.startswith("Test CPU — meets the requirements, ranked #1, ")
+    assert explanation.caveats == []
 
 
 def test_english_rule_templates_do_not_leave_korean_ui_copy(monkeypatch):
@@ -261,10 +259,8 @@ def test_english_rule_templates_do_not_leave_korean_ui_copy(monkeypatch):
         locale="en-US",
     )
 
-    assert explanation.caveats == ["Evidence for review authenticity could not be verified."]
-    assert stage5_explain._review_line("missing", [], locale="en-US")[0].startswith(
-        "No review observations ("
-    )
+    assert explanation.caveats == []          # 회색축 문구는 사용자 문장에서 뺐다(docs/decisions/0003)
+    assert stage5_explain._review_line("missing", [], "en")[0].startswith("No review observations (")
 
 
 @pytest.mark.parametrize(("message", "slots", "expected"), [

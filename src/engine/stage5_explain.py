@@ -248,22 +248,18 @@ def _llm_draft(build: BuildResult, verification: VerificationResult,
     """
     tgt = verification.targets[0] if verification.targets else None
     cur = currency_of(conditions)
+    # 세트 신뢰도·회색축은 입력에서 뺐다 — 규칙 스캐폴드 값(100−감점, RAG 미연결)이라 사용자에게 보일 단계가
+    # 아니고, 입력에 있으면 규칙에서 빼도 모델이 인용한다(docs/decisions/0003). 값은 verification.confidence 에 남는다.
     if locale == "en-US":
-        gray_axes = [_english_label(axis) for axis in (tgt.gray_axes if tgt else [])]
         lines = [
             f"Budget cap: {fmt_money(build.budget.get('max', 0), cur)}",
             f"Amount used: {fmt_money(build.totals.get('price', 0), cur)}",
-            f"Verification confidence: {tgt.confidence if tgt else 'unavailable'}/100 "
-            f"(passed: {tgt.passed if tgt else 'unavailable'})",
-            f"Axes without verified evidence: {gray_axes or 'none'}",
             "Configuration:",
         ]
     else:
         lines = _conditions_lines(conditions) + [
             f"예산 상한: {fmt_money(build.budget.get('max', 0), cur)}",
             f"사용 금액: {fmt_money(build.totals.get('price', 0), cur)}",
-            f"검증 신뢰도: {tgt.confidence if tgt else '없음'} (통과: {tgt.passed if tgt else '없음'})",
-            f"근거가 확인되지 않은 축: {(tgt.gray_axes if tgt else []) or '없음'}",
             "구성:",
         ]
     for it in build.items:
@@ -290,6 +286,12 @@ def _llm_draft(build: BuildResult, verification: VerificationResult,
         except Exception as exc:
             log(f"      [5] 문장 생성 실패 ({type(exc).__name__}) → 규칙 템플릿")
             return None
+        # 영어 출력에서 모델이 slot 에 표시 라벨("Motherboard")을 쓰는 일이 잦다 — 입력이 둘 다 주므로 당연하다.
+        # 라벨이 want 의 슬롯으로 한 번에 되돌아가면 받아 준다(2026-09-15 실측: 기각 사유 1위).
+        back = {v.casefold(): k for k, v in _EN_LABELS.items() if k in want}
+        for i in draft.items:
+            if i.slot not in want and i.slot.casefold() in back:
+                i.slot = back[i.slot.casefold()]
         if {i.slot for i in draft.items} != want:
             continue
         generated_text = "\n".join([draft.headline, draft.summary, *(item.reason for item in draft.items), *draft.caveats])
@@ -305,8 +307,6 @@ def _llm_draft(build: BuildResult, verification: VerificationResult,
         if bad_slots:
             log(f"      [5] 슬롯 {bad_slots} reason 은 금지어/타 슬롯 부품 → 그 슬롯만 규칙 템플릿")
             draft.items = [i for i in draft.items if i.slot not in bad_slots]
-        if tgt and str(tgt.confidence) not in draft.headline:
-            continue  # headline이 검증 신뢰도 숫자를 빠뜨렸다 — 규칙 4 위반
         if len({i.reason for i in draft.items}) < len(draft.items):
             # 지금 슬롯마다 후보를 1개만 저장해서 전부 "1순위" — 규칙 5의 첫 템플릿이
             # 모든 품목에 똑같이 걸리기 쉽다. 서로 다른 품목인데 문장이 겹치면(토씨만
@@ -324,26 +324,15 @@ def _fallback_reason(item, locale: Locale, cur: str = "KRW") -> str:
     return f"{item.name} — 조건 충족, {item.rank_from_3b}순위, {fmt_money(item.price, cur)}"
 
 
-def _gray_axis_caveat(axis: str, locale: Locale) -> str:
-    if locale == "en-US":
-        return f"Evidence for {_english_label(axis)} could not be verified."
-    return f"{axis} 근거는 확인되지 않았습니다"
-
-
-def _fallback_headline(build: BuildResult, confidence: int, gray: list[str],
-                       locale: Locale, cur: str = "KRW") -> str:
+def _fallback_headline(build: BuildResult, locale: Locale, cur: str = "KRW") -> str:
     budget = build.budget.get("max", 0)
     used = build.totals.get("price", 0)
     if locale == "en-US":
-        gap_label = "evidence gap" if len(gray) == 1 else "evidence gaps"
-        suffix = "." if not gray else f" ({len(gray)} {gap_label})."
-        return (f"Used {fmt_money(used, cur)} of the {fmt_money(budget, cur)} budget; "
-                f"build verification confidence is {confidence}/100{suffix}")
-    return (f"예산 {fmt_money(budget, cur)} 중 {fmt_money(used, cur)} 사용, 세트 검증 신뢰도 {confidence}점"
-            + ("." if not gray else f" (회색축 {len(gray)}개)."))
+        return f"Used {fmt_money(used, cur)} of the {fmt_money(budget, cur)} budget."
+    return f"예산 {fmt_money(budget, cur)} 중 {fmt_money(used, cur)} 사용."
 
 
-def _fallback_summary(build: BuildResult, confidence: int, locale: Locale, cur: str = "KRW") -> str:
+def _fallback_summary(build: BuildResult, locale: Locale, cur: str = "KRW") -> str:
     budget = build.budget.get("max", 0)
     used = build.totals.get("price", 0)
     biggest = max(build.items, key=lambda i: i.price, default=None)
@@ -351,12 +340,12 @@ def _fallback_summary(build: BuildResult, confidence: int, locale: Locale, cur: 
         return (
             f"{len(build.items)} parts, {fmt_money(used, cur)} of the {fmt_money(budget, cur)} budget."
             + (f" The largest share is {biggest.slot} ({fmt_money(biggest.price, cur)})." if biggest else "")
-            + f" Set verification confidence is {confidence}; per-part reasons are on each item."
+            + " Per-part reasons are on each item."
         )
     return (
         f"{len(build.items)}개 부품, 예산 {fmt_money(budget, cur)} 중 {fmt_money(used, cur)}을 썼습니다."
         + (f" 비중이 가장 큰 슬롯은 {biggest.slot}({fmt_money(biggest.price, cur)})입니다." if biggest else "")
-        + f" 세트 검증 신뢰도는 {confidence}점이며, 부품별 선택 이유는 각 항목에서 볼 수 있습니다."
+        + " 부품별 선택 이유는 각 항목에서 볼 수 있습니다."
     )
 
 
@@ -366,7 +355,6 @@ def run(build: BuildResult, verification: VerificationResult, log: LogFn,
     contrib = _contribution(build)
     tgt = verification.targets[0] if verification.targets else None
     gray = tgt.gray_axes if tgt else []
-    conf = tgt.confidence if tgt else 0
 
     # 리뷰 관측(review_line_by_slot·evidence)은 규칙이 만든 것을 그대로 둔다 — LLM 은 건드리지 않는다.
     draft = _llm_draft(build, verification, rank, log, locale=locale, conditions=conditions)
@@ -387,12 +375,15 @@ def run(build: BuildResult, verification: VerificationResult, log: LogFn,
             basis=[f"rank{it.rank_from_3b}"],
             evidence=evidence,
         ))
-    # caveats 는 규칙이 소유한다 — 회색축과 리뷰 관측 둘 다 코드가 정확히 알고 있어서,
-    # LLM 이 같은 내용을 다른 표현으로 또 쓰면 화면에 중복으로 나간다.
-    caveats = [_gray_axis_caveat(a, locale) for a in gray] + review_caveats
+    # caveats 는 규칙이 소유한다 — 코드가 정확히 알고 있어서, LLM 이 같은 내용을 다른 표현으로 또 쓰면
+    # 화면에 중복으로 나간다. 회색축("근거는 확인되지 않았습니다")은 개발 상태 설명이라 사용자 문장에서 뺐다
+    # (docs/decisions/0003) — 아래 로그에만 남긴다.
+    caveats = list(review_caveats)
     headline = (draft.headline if draft and draft.headline
-                else _fallback_headline(build, conf, gray, locale, cur))
-    summary = (draft.summary if draft and draft.summary else _fallback_summary(build, conf, locale, cur)) + _extra_note(conditions)
+                else _fallback_headline(build, locale, cur))
+    summary = (draft.summary if draft and draft.summary else _fallback_summary(build, locale, cur)) + _extra_note(conditions)
+    if gray:
+        log(f"      근거 미확인 축(화면에는 안 나감): {', '.join(gray)}")
     log(f"      기여도: 가격 {contrib['가격']}% / 성능 {contrib['성능']}% / 호환성 {contrib['호환성']}%")
     log(f"      문장: {'LLM' if draft else '규칙 템플릿'}")
     log(f"      headline: {headline}")

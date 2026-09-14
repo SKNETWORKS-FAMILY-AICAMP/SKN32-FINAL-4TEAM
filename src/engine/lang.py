@@ -1,7 +1,8 @@
 """사용자 언어 (ko|en) — 02 조건 대화가 감지해 조건 `language` 로 남기고, [3-C]·[5]·결과 조립이 읽는다.
 
 데모는 영어로 진행한다(2026-09-14). 저장·계산은 언어와 무관하고, 사용자에게 나가는 문장만 갈린다.
-리뷰 관측 문장(관계·행동 축 산출물)은 데이터라 한국어 그대로다.
+리뷰 관측 원문(산출물 카드 문장)은 데이터라 한국어 그대로고, 유저용 문장(`review.plain`)은 두 언어 다 수치에서
+렌더한다(`src/services/review_plain.py`).
 """
 from __future__ import annotations
 
@@ -9,7 +10,7 @@ _LLM_LANGUAGE_LINE = {
     "en": "\n\nOutput language: English. Write plain sentences (no labels, headings or bullet prefixes). "
           "Keep numbers, units and slot/part names exactly as given — do not translate slot names such as 메인보드 or 저장장치, "
           "do not convert amounts — copy every amount exactly as written in the input (its currency symbol included). "
-          "Say 'confidence 94' exactly as given — never the word 'score'. "
+          "Never use the word 'score' and do not mention any verification score or confidence. "
           "No evaluative words (excellent, powerful, best, perfect, outstanding, strong); state facts only.",
 }
 

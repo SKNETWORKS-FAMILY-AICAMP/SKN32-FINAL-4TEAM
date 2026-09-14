@@ -300,7 +300,7 @@ def system_prompt(result: dict, user_text: str, history: list[dict], prefetched:
         f"카테고리: {result.get('category')} · 조건: {result.get('conditions_summary') or '-'}",
         f"예산 상한: {_won(result.get('budget_max'))} · 총액: {_won(t.get('selected_price'))} · 잔여: {_won(t.get('budget_remaining'))}"
         + (" · ⚠ 예산 초과" if t.get("over_budget") else ""),
-        f"세트 검증 신뢰도: {v.get('confidence')} · 쟁점: {issues}",
+        f"세트 검증 쟁점: {issues}",
         "구성표:",
         _build_table(result),
         "",

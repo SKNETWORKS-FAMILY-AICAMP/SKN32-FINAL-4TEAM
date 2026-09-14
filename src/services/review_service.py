@@ -16,6 +16,7 @@ from src.repo.review_repo import ReviewRepo, ReviewSubjectRepo
 from src.repo.review_repo import (OBS_LABEL, SUSPECT_SOURCE, ReviewSummaryDemoFile,
                                  default_risk_store, default_suspect_counts)
 from src.schemas import ProductRiskOut, ReviewSummaryOut, ReviewTelemetry, SyntheticDemoOut
+from src.services import review_plain
 
 if TYPE_CHECKING:
     from src.i18n import Locale
@@ -175,19 +176,8 @@ def get_summary(product_key: str, lang: str = "ko") -> ReviewSummaryOut:
         product_manipulation_risk=risk_out, synthetic_demo=synthetic)
 
 
-_FALLBACK_REVIEW_MIN, _FALLBACK_REVIEW_SPAN = 7, 7  # 관측 없는 상품에 붙일 소량 표시값 (7~13건)
-
-
-def _fallback_review_count(product_key: str) -> int:
-    """관계·행동 축 산출물에 없는 상품에 붙일 소량 표시용 건수(7~13, 데모 전용).
-
-    catalog_repo._mock_price와 같은 해시 시드 방식 — product_key마다 항상 같은 값이 나와서
-    새로고침할 때마다 숫자가 바뀌는 것처럼 보이지 않는다. 실측이 아니므로 일부러 작은 값만
-    준다 — 큰 수를 주면 관측값(수백~수천 건)과 구분이 안 돼 진짜처럼 보인다.
-    """
-    import hashlib
-    seed = int(hashlib.sha256((product_key + "review_count").encode("utf-8")).hexdigest()[:8], 16)
-    return _FALLBACK_REVIEW_MIN + seed % _FALLBACK_REVIEW_SPAN
+# 관측 산출물에 없는 상품의 리뷰 수는 모른다 — 전에는 해시 시드로 7~13 을 붙였는데(데모용 표시값) 응답에
+# 실측/표시용 구분이 없어 프론트가 못 걸렀다. 모르면 None (docs/decisions/0003).
 
 
 def _review_signals(product_key: str) -> dict | None:
@@ -210,15 +200,24 @@ def _review_signals(product_key: str) -> dict | None:
     if f is None:
         return None
 
+    # 대조군 중앙값을 값 옆에 같이 낸다 — 값만 있으면 "13.5%" 가 큰지 작은지 화면이 판단할 수 없다
+    m = store.controls
+
+    def _median(key: str):
+        return round(float(m[key]), 4) if m.get(key) is not None else None
+
     signals: dict = {
-        "rating5_share": {"ratio": round(float(f["p5"]), 4)} if f.get("p5") is not None else None,
+        "rating5_share": ({"ratio": round(float(f["p5"]), 4), "median": _median("p5")}
+                          if f.get("p5") is not None else None),
         "burst7": (
             {"count": int(f["burst7_count"]), "ratio": round(float(f["burst7"]), 4),
-             "launch_week": store.is_launch_burst(f)}
+             "launch_week": store.is_launch_burst(f), "median": _median("burst7")}
             if f.get("burst7_count") is not None and f.get("burst7") is not None else None
         ),
         "shared_reviewers": (
-            {"count": int(f["shared_reviewers"]), "linked_products": int(f["deg"])}
+            {"count": int(f["shared_reviewers"]), "linked_products": int(f["deg"]),
+             "median_count": int(m["shared_reviewers"]) if m.get("shared_reviewers") is not None else None,
+             "median_linked_products": int(m["deg"]) if m.get("deg") is not None else None}
             if f.get("shared_reviewers") is not None and f.get("deg") is not None else None
         ),
         "suspect_2plus": None,
@@ -229,13 +228,18 @@ def _review_signals(product_key: str) -> dict | None:
     v = sus.get(key) if sus else None
     if v and v.get("n"):
         n, k = int(v["n"]), int(v["ge2"])
-        signals["suspect_2plus"] = {"count": k, "ratio": round(k / n, 4)}
+        base = sus.baseline.get("rate_pct")
+        signals["suspect_2plus"] = {"count": k, "ratio": round(k / n, 4),
+                                    "baseline": round(float(base) / 100, 4) if base is not None else None}
     return signals
 
 
-# 리뷰 클렌징 담당(요청 C)이 정해줄 고정 해석 안내문. 도착 전까지는 비어 있고,
-# cleansing_summary는 pending으로 나가 프론트가 그 섹션을 숨긴다.
-_CLEANSING_SUMMARY_TEXT: dict[str, str] = {}
+# 고정 해석 안내문(요청 C) — 카드 하단 면책 한 줄. 지표마다 "상품 단위 신호이며 개별 리뷰의 진위가 아닙니다" 를
+# 붙이던 것을 여기 한 번으로 모은다(docs/리뷰관측_문장_초안.md "원칙 4"). 판정이 아니라는 뜻은 유지하되 말만 쉽게.
+_CLEANSING_SUMMARY_TEXT: dict[str, str] = {
+    "ko": "리뷰가 올라온 '모양'만 본 결과예요. 어떤 리뷰가 진짜인지는 판단하지 않아요.",
+    "en": "This only looks at the pattern of how reviews were posted. It does not judge whether any review is genuine.",
+}
 
 
 def _cleansing_summary(lang: str = "ko") -> dict:
@@ -244,25 +248,24 @@ def _cleansing_summary(lang: str = "ko") -> dict:
 
 
 def review_brief(product_key: str, lang: str = "ko") -> dict | None:
-    """추천 결과/리포트 화면의 미니 리뷰 배지 — total_count + 구조화된 신호(signals) + 클렌징 요약.
+    """추천 결과/리포트 화면의 미니 리뷰 배지 — total_count + 구조화된 신호(signals) + 클렌징 요약 + 유저용 문장(plain).
 
     excluded_ratio·rating_refined(정제 전/후 비교)는 판정기가 없어 못 낸다(docs/decisions/0001).
-    관계·행동 축 산출물(실측)에 상품이 없으면, 화면이 전부 "정보 없음"으로 비어 보이지 않게
-    소량(7~13건)의 표시용 건수를 붙인다 — docs/decisions/0001과 달리 이건 진위 판정이 아니라
-    단순 노출용 개수라 실측과 섞이는 문제가 없다. 아예 카탈로그에 없는 product_key만 None.
+    total_count 도 관측 산출물에 상품이 없으면 모르는 값이라 None — 프론트가 "리뷰 정보 없음" 으로 그린다.
+    plain 은 그 경우에도 사유 한 줄(reason)을 낸다.
 
     lang은 추천을 만든 언어(lang_of(values))를 그대로 받는다 — 다른 결과 문장과 같은 규칙
     (docs/개발요청_리뷰클렌징_안내문_언어.md). 그 언어의 안내문이 없으면 다른 언어로 대신
     채우지 않고 pending으로 둔다 — 프론트가 섹션을 숨긴다.
     """
+    plain = review_plain.render(product_key, lang)
     try:
         summary = get_summary(product_key)
     except NotFound:
-        return {"total_count": _fallback_review_count(product_key), "excluded_ratio": None,
-                "rating_refined": None, "signals": None, "cleansing_summary": _cleansing_summary(lang)}
-    total = summary.total_count or _fallback_review_count(product_key)
-    return {"total_count": total, "excluded_ratio": None, "rating_refined": None,
-            "signals": _review_signals(product_key), "cleansing_summary": _cleansing_summary(lang)}
+        return {"total_count": None, "excluded_ratio": None, "rating_refined": None,
+                "signals": None, "cleansing_summary": _cleansing_summary(lang), "plain": plain}
+    return {"total_count": summary.total_count or None, "excluded_ratio": None, "rating_refined": None,
+            "signals": _review_signals(product_key), "cleansing_summary": _cleansing_summary(lang), "plain": plain}
 
 
 def usage_context_with_telemetry(usage_context: dict | None, telemetry: ReviewTelemetry | None) -> dict:

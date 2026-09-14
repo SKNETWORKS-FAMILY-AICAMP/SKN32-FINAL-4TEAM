@@ -651,10 +651,10 @@ def memo_suggestion(result: dict, values: dict) -> str:
     if values.get("extra"):
         checks.append(L(lang, "추가 요청 미반영: ", "Extra requests not applied: ") + ", ".join(map(str, values["extra"]))
                       + L(lang, " — 직접 확인", " — check manually"))
-    v = result.get("verification") or {}
-    if v.get("confidence") is not None:
-        checks.append(L(lang, f"세트 검증 신뢰도 {v['confidence']}점", f"set verification confidence {v['confidence']}")
-                      + (L(lang, " (쟁점 있음)", " (issues noted)") if v.get("issues") else ""))
+    # 세트 신뢰도 점수는 메모에 넣지 않는다 — 규칙 스캐폴드 값이라 사용자에게 보일 단계가 아니다(docs/decisions/0003).
+    # 쟁점이 있다는 사실만 남긴다.
+    if (result.get("verification") or {}).get("issues"):
+        checks.append(L(lang, "세트 검증 쟁점 있음 — 추천 과정 보기에서 확인", "Set verification issues noted — see the decision trace"))
     if checks:
         lines.append(L(lang, "[확인] ", "[Check] ") + " · ".join(checks))
     text = "\n".join(lines)

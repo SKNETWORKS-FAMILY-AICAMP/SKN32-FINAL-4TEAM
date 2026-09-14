@@ -1,0 +1,31 @@
+flowchart LR
+  U["Person<br/>browser, Korean or English"]
+  subgraph App["TrueFit — FastAPI, one origin, 38 operations"]
+    direction TB
+    SVC["Services<br/>session · recommendation · lists · auth · reviews"]
+    subgraph Strands["Strands Agents SDK"]
+      CA["Conditions agent<br/>set_condition · add_extra_condition · clear_condition"]
+      RA["Result agent<br/>list_alternatives · swap · set_qty · set_timing<br/>remove_or_restore · explain"]
+    end
+    ENG["Recommendation engine<br/>requirement → candidates → hard filter → rank<br/>→ optimize ⇄ verify → explain"]
+  end
+  subgraph Ev["Evidence"]
+    RX["Review relation axis<br/>Amazon Reviews'23 → per-product facts"]
+    CG["Care-guide RAG<br/>18 guides, in-memory embeddings"]
+    MR["Manual search provider<br/>local-file, outside the RDB"]
+  end
+  DB[("PostgreSQL 16<br/>10 schemas · 38 tables")]
+  LLM["OpenAI via Strands OpenAIModel<br/>chat + embeddings"]
+  U -- "free text, chips, edits" --> SVC
+  SVC --> CA
+  SVC --> RA
+  SVC --> ENG
+  CA -- "schema-validated patches" --> SVC
+  RA -- "existing service calls only" --> SVC
+  ENG --> RX
+  ENG --> CG
+  ENG --> MR
+  ENG -- "issue sentences · explanation" --> LLM
+  CA --> LLM
+  RA --> LLM
+  SVC --> DB

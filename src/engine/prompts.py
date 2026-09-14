@@ -19,10 +19,12 @@ _LANGUAGE_RULES = {
 }
 
 _AMOUNT_RULES = {
-    "ko-KR": "금액은 원 단위 정수로 유지하고 천 단위 구분 쉼표를 넣습니다(예: 849,000원).",
+    # 통화는 입력이 정한다 — 달러로 말한 사용자의 입력은 $ 로 오고, 원화로 바꾸라고 하면 모델이 "$918" 을
+    # "₩918,000" 으로 만들어 냈다(2026-09-15 실측, 영어·달러 세션 초안 4/4). 환산 금지만 말한다.
+    "ko-KR": "금액은 입력에 적힌 통화·표기 그대로 옮깁니다 — 환산하지 않고 천 단위 구분 쉼표를 유지합니다(예: 849,000원 · $612).",
     "en-US": (
-        "Keep amounts in KRW without currency conversion and use the won symbol "
-        "with thousands separators (for example, ₩849,000)."
+        "Copy every amount exactly as written in the input, including its currency symbol and thousands "
+        "separators (for example, ₩849,000 or $612); never convert between currencies."
     ),
 }
 
@@ -77,9 +79,9 @@ OUTPUT_LOCALE=en-US
 
 Rules:
 1. Use only supplied values. Do not invent, round, or convert numbers or add unsupported claims.
-2. Keep amounts in KRW, using the won symbol and thousands separators (for example, ₩849,000). Verification confidence is a score out of 100, not a percentage.
+2. Copy every amount exactly as written in the input, including its currency symbol and thousands separators (for example, ₩849,000 or $612); never convert between currencies.
 3. Each item's slot value must exactly match the slot value supplied in the input. Do not create slots or products.
-4. Write a complete one- or two-sentence headline that includes the exact budget usage and verification confidence in the form "confidence 92/100".
+4. Write a complete one- or two-sentence headline that includes the exact budget usage. Do not mention any verification score or confidence — none is supplied.
 5. Write one distinct sentence per item explaining its selection using its supplied name, price, ranking, or top contributing axes.
 6. Return an empty caveats array. The application adds caveats separately.
 7. Use clear, natural American English only. Do not include Korean or a Korean translation.
@@ -95,13 +97,11 @@ OUTPUT_LOCALE={locale}
 
 규칙:
 1. 입력으로 받은 값만 사용합니다. 수치를 새로 만들거나 반올림·환산하지 않고, 입력에 없는 사실을 덧붙이지 않습니다.
-2. **단위를 바꾸지 않습니다.** 검증 신뢰도는 100점 만점의 점수입니다 — 퍼센트(%)로 바꿔 쓰지 않습니다.
-   {_amount_rule(locale)}
+2. **단위를 바꾸지 않습니다.** {_amount_rule(locale)}
 3. items 의 slot 은 입력으로 받은 슬롯 이름과 정확히 같아야 합니다. 입력에 없는 슬롯이나 부품을 만들지 않습니다.
 4. headline: 구성 전체를 요약하는 완결된 문장 한두 개를 직접 작성합니다. 이 지시문의 문구를 그대로
-   옮겨 적지 않습니다. 예산 사용액과 검증 신뢰도는 입력값 그대로 인용하며, **검증 신뢰도 숫자는
-   반드시 "신뢰도 92점"처럼 headline 문장 안에 그대로 등장해야 합니다.** 신뢰도를 언급하지 않는
-   headline은 만들지 않습니다.
+   옮겨 적지 않습니다. 예산 사용액은 입력값 그대로 인용합니다. 검증 신뢰도·점수는 입력에 없으므로
+   언급하지 않습니다.
 5. items 의 reason: 슬롯마다 1문장으로 그 부품이 선택된 이유를 씁니다.
    - 순위 1위이고 밸런스에 부합 → 조건을 충족하면서 예산 안에서 균형이 맞는 선택
    - 가격 기여도가 큼 → 동급 성능 대비 가격 이점

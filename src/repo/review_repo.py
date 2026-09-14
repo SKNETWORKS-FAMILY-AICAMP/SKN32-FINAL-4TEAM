@@ -221,16 +221,42 @@ class ProductRiskStore:
                             if isinstance(c, dict) and c.get("product_key")}
         # 데모 부품 슬러그 → ASIN (scripts/map_parts_to_asin.py). 엔진 키와 요약 키 둘 다 받는다
         self.alias: dict[str, str] = {}
+        # ASIN 이 없는 행의 note ("데이터 기간(~2023-09) 밖: 2024-01 출시" · "후보 없음") — 관측이 없는
+        # 이유를 갈라 말하려면 이게 필요하다. 문턱 미만과 기간 밖을 같은 말로 내면 안 된다.
+        self.map_notes: dict[str, str] = {}
         if alias_csv and Path(alias_csv).exists():
             import csv
             with open(alias_csv, encoding="utf-8") as f:
                 for r in csv.DictReader(f):
-                    if r.get("asin"):
-                        self.alias[r["product_key"]] = r["asin"]
-                        self.alias[r["summary_key"]] = r["asin"]
+                    for k in (r.get("product_key"), r.get("summary_key")):
+                        if not k:
+                            continue
+                        if r.get("asin"):
+                            self.alias[k] = r["asin"]
+                        else:
+                            self.map_notes[k] = r.get("note") or ""
 
     def resolve(self, key: str) -> str:
         return self.alias.get(key, key)
+
+    COVERAGE_OBSERVED = "observed"
+    COVERAGE_BELOW_THRESHOLD = "below_threshold"   # ASIN 은 있는데 산출물에 없다 — 리뷰 수 문턱 미만
+    COVERAGE_OUT_OF_PERIOD = "out_of_period"       # 데이터 기간 뒤 출시
+    COVERAGE_NO_MATCH = "no_match"                 # 원천 데이터에서 상품을 못 찾았다
+    COVERAGE_UNMAPPED = "unmapped"                 # 매핑 표에 없는 키
+
+    def coverage(self, key: str) -> tuple[str, str]:
+        """(왜 관측이 있거나 없는지, 매핑 표의 note). 산출물이 있는데도 관측이 없는 이유를 원인별로 낸다."""
+        if self.get(key) is not None:
+            return self.COVERAGE_OBSERVED, ""
+        if key in self.alias:
+            return self.COVERAGE_BELOW_THRESHOLD, ""
+        note = self.map_notes.get(key)
+        if note is None:
+            return self.COVERAGE_UNMAPPED, ""
+        if note.startswith("데이터 기간"):
+            return self.COVERAGE_OUT_OF_PERIOD, note
+        return self.COVERAGE_NO_MATCH, note
 
     def get(self, product_key: str) -> dict | None:
         return self.products.get(self.resolve(product_key))

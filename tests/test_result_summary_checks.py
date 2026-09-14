@@ -71,7 +71,9 @@ def test_memo_suggestion_collects_facts_only():
     assert "[뺀 것] 쿨러" in memo
     assert "[직접 바꾼 것] GPU RX 7600 → RTX 5090 (+84,000원) — 호환·검증은 교체 전 구성 기준" in memo
     assert "[요약] 게임용 구성, 신뢰도 94점." in memo
-    assert "[확인] 추가 요청 미반영: 흰색 케이스 — 직접 확인 · 세트 검증 신뢰도 94점 (쟁점 있음)" in memo
+    # 신뢰도 점수는 메모에 넣지 않는다(docs/decisions/0003) — 쟁점이 있다는 사실만
+    assert "[확인] 추가 요청 미반영: 흰색 케이스 — 직접 확인 · 세트 검증 쟁점 있음 — 추천 과정 보기에서 확인" in memo
+    assert "신뢰도 94점" not in memo.split("[확인]")[1]
     assert len(memo) <= 1000
 
 
