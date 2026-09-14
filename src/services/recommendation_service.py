@@ -848,7 +848,7 @@ def get_stored_result(conn, revision_id: UUID) -> dict | None:
             "price": price, "price_source": "synthetic",
             "price_observed_at": row["observed_at"].isoformat() if row["observed_at"] else None,
             "qty": row["qty"], "selected": row["selected"], "timing": row["timing"], "budget_share": None,
-            "review": review_service.review_brief(row["product_key"]),
+            "review": review_service.review_brief(row["product_key"], lang),
             "reason": {"status": row["reason_status"], "text": row["reason"]},
             "checks": {"status": row["checks_status"], "text": row["checks"]},
             "alternatives_count": alternatives_count,

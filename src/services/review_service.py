@@ -243,22 +243,26 @@ def _cleansing_summary(lang: str = "ko") -> dict:
     return {"status": "ready", "text": text} if text else {"status": "pending", "text": None}
 
 
-def review_brief(product_key: str) -> dict | None:
+def review_brief(product_key: str, lang: str = "ko") -> dict | None:
     """추천 결과/리포트 화면의 미니 리뷰 배지 — total_count + 구조화된 신호(signals) + 클렌징 요약.
 
     excluded_ratio·rating_refined(정제 전/후 비교)는 판정기가 없어 못 낸다(docs/decisions/0001).
     관계·행동 축 산출물(실측)에 상품이 없으면, 화면이 전부 "정보 없음"으로 비어 보이지 않게
     소량(7~13건)의 표시용 건수를 붙인다 — docs/decisions/0001과 달리 이건 진위 판정이 아니라
     단순 노출용 개수라 실측과 섞이는 문제가 없다. 아예 카탈로그에 없는 product_key만 None.
+
+    lang은 추천을 만든 언어(lang_of(values))를 그대로 받는다 — 다른 결과 문장과 같은 규칙
+    (docs/개발요청_리뷰클렌징_안내문_언어.md). 그 언어의 안내문이 없으면 다른 언어로 대신
+    채우지 않고 pending으로 둔다 — 프론트가 섹션을 숨긴다.
     """
     try:
         summary = get_summary(product_key)
     except NotFound:
         return {"total_count": _fallback_review_count(product_key), "excluded_ratio": None,
-                "rating_refined": None, "signals": None, "cleansing_summary": _cleansing_summary()}
+                "rating_refined": None, "signals": None, "cleansing_summary": _cleansing_summary(lang)}
     total = summary.total_count or _fallback_review_count(product_key)
     return {"total_count": total, "excluded_ratio": None, "rating_refined": None,
-            "signals": _review_signals(product_key), "cleansing_summary": _cleansing_summary()}
+            "signals": _review_signals(product_key), "cleansing_summary": _cleansing_summary(lang)}
 
 
 def usage_context_with_telemetry(usage_context: dict | None, telemetry: ReviewTelemetry | None) -> dict:
