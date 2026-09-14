@@ -177,11 +177,43 @@ class ProductOut(BaseModel):
     purchase_url: str | None = None
 
 
+class ReviewSignalRatioOut(BaseModel):
+    ratio: float
+
+
+class ReviewSignalBurst7Out(BaseModel):
+    count: int
+    ratio: float
+    launch_week: bool
+
+
+class ReviewSignalCountRatioOut(BaseModel):
+    count: int
+    ratio: float
+
+
+class ReviewSignalSharedReviewersOut(BaseModel):
+    count: int
+    linked_products: int
+
+
+class ReviewSignalsOut(BaseModel):
+    """관계·행동 축 관측값을 문장이 아니라 숫자로 — 프론트가 막대그래프를 그리는 데 쓴다
+    (docs/개발요청_리뷰클렌징_요약_구조화.md 요청 A). 개별 신호를 못 채우면 그 키만 None."""
+
+    rating5_share: ReviewSignalRatioOut | None = None
+    burst7: ReviewSignalBurst7Out | None = None
+    suspect_2plus: ReviewSignalCountRatioOut | None = None
+    shared_reviewers: ReviewSignalSharedReviewersOut | None = None
+
+
 class ReviewBriefOut(BaseModel):
     total_count: int
     # 정제 전/후 비교는 판정기가 없어 못 낸다(docs/decisions/0001) — 항상 null.
     excluded_ratio: float | None = None
     rating_refined: float | None = None
+    signals: ReviewSignalsOut | None = None
+    cleansing_summary: TextStatusOut | None = None
 
 
 class ItemOut(BaseModel):

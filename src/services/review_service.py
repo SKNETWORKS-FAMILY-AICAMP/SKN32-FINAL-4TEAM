@@ -190,8 +190,61 @@ def _fallback_review_count(product_key: str) -> int:
     return _FALLBACK_REVIEW_MIN + seed % _FALLBACK_REVIEW_SPAN
 
 
+def _review_signals(product_key: str) -> dict | None:
+    """관계·행동 축 산출물의 숫자를 문장이 아니라 구조화된 dict로 낸다.
+
+    문서(docs/개발요청_리뷰클렌징_요약_구조화.md) 요청 A — 프론트가 문장을 정규식으로
+    다시 쪼개지 않게, 이미 산출된 값(review_repo.ProductRiskStore/SuspectCountFile)을
+    그대로 숫자로만 옮긴다. 새로 계산하는 값은 없다. 산출물에 상품이 없으면 None 전체,
+    개별 신호(예: 다작 계정 연결)만 없으면 그 키만 None — 있는 척 채우지 않는다.
+    """
+    store = default_risk_store()
+    if store is None:
+        return None
+    key = f = None
+    for cand in candidate_keys(product_key):
+        found = store.get(cand)
+        if found is not None:
+            key, f = cand, found
+            break
+    if f is None:
+        return None
+
+    signals: dict = {
+        "rating5_share": {"ratio": round(float(f["p5"]), 4)} if f.get("p5") is not None else None,
+        "burst7": (
+            {"count": int(f["burst7_count"]), "ratio": round(float(f["burst7"]), 4),
+             "launch_week": store.is_launch_burst(f)}
+            if f.get("burst7_count") is not None and f.get("burst7") is not None else None
+        ),
+        "shared_reviewers": (
+            {"count": int(f["shared_reviewers"]), "linked_products": int(f["deg"])}
+            if f.get("shared_reviewers") is not None and f.get("deg") is not None else None
+        ),
+        "suspect_2plus": None,
+    }
+    sus = default_suspect_counts()
+    # SuspectCountFile은 별도 산출물이라 n이 관측 산출물의 n과 다를 수 있다 — 여기서는
+    # 그 파일 자신의 n/ge2로만 비율을 낸다(review_repo.SuspectCountFile.sentence()와 같은 계산).
+    v = sus.get(key) if sus else None
+    if v and v.get("n"):
+        n, k = int(v["n"]), int(v["ge2"])
+        signals["suspect_2plus"] = {"count": k, "ratio": round(k / n, 4)}
+    return signals
+
+
+# 리뷰 클렌징 담당(요청 C)이 정해줄 고정 해석 안내문. 도착 전까지는 비어 있고,
+# cleansing_summary는 pending으로 나가 프론트가 그 섹션을 숨긴다.
+_CLEANSING_SUMMARY_TEXT: dict[str, str] = {}
+
+
+def _cleansing_summary(lang: str = "ko") -> dict:
+    text = _CLEANSING_SUMMARY_TEXT.get(lang)
+    return {"status": "ready", "text": text} if text else {"status": "pending", "text": None}
+
+
 def review_brief(product_key: str) -> dict | None:
-    """추천 결과/리포트 화면의 미니 리뷰 배지 — total_count만 채운다.
+    """추천 결과/리포트 화면의 미니 리뷰 배지 — total_count + 구조화된 신호(signals) + 클렌징 요약.
 
     excluded_ratio·rating_refined(정제 전/후 비교)는 판정기가 없어 못 낸다(docs/decisions/0001).
     관계·행동 축 산출물(실측)에 상품이 없으면, 화면이 전부 "정보 없음"으로 비어 보이지 않게
@@ -201,9 +254,11 @@ def review_brief(product_key: str) -> dict | None:
     try:
         summary = get_summary(product_key)
     except NotFound:
-        return {"total_count": _fallback_review_count(product_key), "excluded_ratio": None, "rating_refined": None}
+        return {"total_count": _fallback_review_count(product_key), "excluded_ratio": None,
+                "rating_refined": None, "signals": None, "cleansing_summary": _cleansing_summary()}
     total = summary.total_count or _fallback_review_count(product_key)
-    return {"total_count": total, "excluded_ratio": None, "rating_refined": None}
+    return {"total_count": total, "excluded_ratio": None, "rating_refined": None,
+            "signals": _review_signals(product_key), "cleansing_summary": _cleansing_summary()}
 
 
 def usage_context_with_telemetry(usage_context: dict | None, telemetry: ReviewTelemetry | None) -> dict:
