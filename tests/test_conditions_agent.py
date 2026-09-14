@@ -91,7 +91,7 @@ def test_tool_result_carries_next_question_from_rules():
 def test_system_prompt_lists_option_codes_and_language():
     d = _draft("baby", {"category": "baby"})
     p = ca.system_prompt(d, "출산 예정이에요")
-    assert "출산 예정→0" in p                # 질문 칩의 라벨→값 매핑이 모델에 보인다
+    assert "0~3개월→1" in p                  # 현재 유아 질문 칩의 라벨→값 매핑이 모델에 보인다
     assert '"특이사항 없음" 이면 값은 none' in p
     assert p.endswith("답변 언어: 한국어 존댓말.")
     assert ca.system_prompt(d, "we're expecting").endswith("including the closing question.")

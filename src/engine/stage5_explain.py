@@ -71,6 +71,40 @@ def explain_manual(service, request):
     return service.answer(replace(request, purpose="recommendation"))
 
 
+def explain_baby_candidate(service, candidate: dict, check, run_context: dict):
+    """[5 baby] Per-candidate explanation — CONTRACTS P3 boundary function.
+
+    Runs a separate recommendation-purpose RAG query from verify_baby_candidate's
+    validation-purpose query; the refs returned here are the ones actually used for
+    the user-facing explanation, not a copy of the verification's cited evidence
+    (CONTRACTS VE05: verification refs and explanation refs may differ).
+    """
+    from src.dto import ExplanationWithRefs
+    from src.rag.contracts import SearchRequest
+
+    candidate_id = candidate.get("candidate_id", "")
+    product_key, variant_key = candidate.get("product_key"), candidate.get("variant_key")
+    if not product_key or not variant_key:
+        return ExplanationWithRefs(candidate_id=candidate_id, status="failed",
+                                   error_code="missing_catalog_identifier")
+    request = SearchRequest(
+        domain="baby", product_key=product_key, variant_key=variant_key,
+        query="제품 사양과 특징 설명", market=candidate.get("market", "KR"),
+        language=candidate.get("language", "ko"), corpus=candidate.get("corpus", "real"),
+        purpose="recommendation", recommendation_run_id=run_context.get("recommendation_run_id"),
+    )
+    answer = explain_manual(service, request)
+    if answer["status"] == "error":
+        return ExplanationWithRefs(candidate_id=candidate_id, status="failed",
+                                   error_code=answer.get("error_code"))
+    if answer["status"] != "success":
+        return ExplanationWithRefs(candidate_id=candidate_id, status="pending",
+                                   error_code=answer.get("reason"))
+    refs = [{"evidence_id": h["evidence_id"], "locator": h["locator"]} for h in answer.get("hits", [])]
+    return ExplanationWithRefs(candidate_id=candidate_id, status="ready",
+                               text=answer.get("answer"), refs=refs)
+
+
 def _contribution(build: BuildResult) -> dict[str, int]:
     # TODO: RankResult 의 slot별 breakdown 을 전달받아
     #   contribution[축] = Σ(slot_weight · breakdown[축]) / total 로 집계.
@@ -156,6 +190,12 @@ def _llm_draft(build: BuildResult, verification: VerificationResult,
             continue
         if tgt and str(tgt.confidence) not in draft.headline:
             continue  # headline이 검증 신뢰도 숫자를 빠뜨렸다 — 규칙 4 위반
+        if len({i.reason for i in draft.items}) < len(draft.items):
+            # 지금 슬롯마다 후보를 1개만 저장해서 전부 "1순위" — 규칙 5의 첫 템플릿이
+            # 모든 품목에 똑같이 걸리기 쉽다. 서로 다른 품목인데 문장이 겹치면(토씨만
+            # 다른 것도 포함해 완전 동일한 경우만 여기서 걸러진다) 프롬프트 지시(규칙 5
+            # 구분 문구)를 안 지킨 것이므로 규칙 템플릿(품목별로 원래 다른 값)으로 내린다.
+            continue
         return draft
     log("      [5] 검사 불통과 → 규칙 템플릿")
     return None

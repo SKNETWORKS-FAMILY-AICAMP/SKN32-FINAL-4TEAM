@@ -1,0 +1,25 @@
+# Baby basket optimizer scoring profile (P4_basket_optimizer.md).
+#
+# Versioned DATA, not code — src.engine.stage3b_rank.rank_baby_candidates() reads this
+# file (via load_baby_optimizer_profile()) rather than hard-coding weights, so a weight
+# change is a data revision, not a code change, and score_method_version can be bumped
+# whenever the weights below change (CONTRACTS ALGORITHM step 3: "Persist score method
+# version/breakdown").
+#
+# Axes:
+#   price  — always computable when a candidate has a valid integer price (min-max
+#            normalized against the other valid-priced candidates competing for the
+#            same requirement; higher price -> lower score).
+#   review — BabyCandidate.review_summary["avg_rating"] (0-5) normalized to 0-1 when
+#            present. CONTRACTS explicitly forbids fabricating a missing review: when
+#            review_summary/avg_rating is absent, this axis is skipped for that
+#            candidate and its weight is excluded from the denominator instead of being
+#            treated as a fixed/neutral value (unlike PC's fixed review=0.5 in
+#            stage3b_rank._score, which this profile does not reuse for baby).
+#
+# No undocumented preferred-brand bonus and no third axis exists here; adding one
+# requires a new key in `weights` plus a bumped score_method_version.
+score_method_version: "baby-optimizer-v1"
+weights:
+  price: 0.7
+  review: 0.3

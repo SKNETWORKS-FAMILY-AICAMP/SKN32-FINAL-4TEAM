@@ -1,10 +1,12 @@
 """세션 생성과 조건 대화 서비스 (계약: docs/frontend_외부수정요청.md §D-4-1)."""
 from __future__ import annotations
+import datetime as _dt
 import hashlib, logging, re, secrets
+from typing import TypedDict
 from uuid import UUID
 from src.agent import conditions_agent
 from src.auth.deps import Principal
-from src.categories import load_category
+from src.categories import available_categories, load_category
 from src.engine import slot_rules
 from src.errors import Conflict, FileTooLarge, NotFound, ValidationFailed
 from src.repo.plan_repo import PlanRepo
@@ -24,6 +26,82 @@ def _category(name: str) -> dict:
         raise ValidationFailed("지원하지 않는 카테고리입니다.", field="category") from None
 
 
+class NormalizedConditions(TypedDict, total=False):
+    category: str
+    mode: str | None
+    age_stage: dict | None
+    due_date: str | None
+    needs: list
+    health_skin: list
+    owned_items: list
+    budget_max: int | None
+    weight_kg: float | None
+    independent_sitting: bool | None
+
+
+def normalize_baby_conditions(values: dict) -> NormalizedConditions:
+    """세션 조건을 유아 요구사항 엔진의 고정 입력 형태로 변환한다."""
+    raw_age = values.get("age_months")
+    months = raw_age.get("value") if isinstance(raw_age, dict) else raw_age
+    exact = bool(raw_age.get("exact", True)) if isinstance(raw_age, dict) else True
+    return {
+        "category": "baby", "mode": values.get("mode"),
+        "age_stage": {"months": months, "label": _age_stage_label(months), "exact": exact}
+        if "age_months" in values else None,
+        "due_date": values.get("due_date"), "needs": list(values.get("needs") or []),
+        "health_skin": list(values.get("health_skin") or []),
+        "owned_items": list(values.get("owned_items") or []),
+        "budget_max": values.get("budget_max"), "weight_kg": values.get("weight_kg"),
+        "independent_sitting": values.get("independent_sitting"),
+    }
+
+
+_NEEDS_ALLOWED = {"수유", "이유식·식사", "수면", "외출", "목욕·위생", "기저귀·배변", "의류", "놀이", "안전·건강"}
+
+
+def _validate_baby_value(cat_def: dict, field: str, value, *, mode: str | None, none_token: str | None = None):
+    schema = (cat_def.get("slot_schema") or {}).get(field)
+    if schema is None:
+        raise ValidationFailed("허용되지 않는 필드입니다.", field="field")
+    if schema.get("mode_only") and schema["mode_only"] != mode:
+        raise ValidationFailed(f"{mode} 모드에서는 사용할 수 없는 필드입니다.", field=field)
+    kind = schema["type"]
+    if kind == "int":
+        if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+            raise ValidationFailed("0 이상의 정수여야 합니다.", field=field)
+    elif kind == "money":
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or int(value) != value or value <= 0:
+            raise ValidationFailed("0보다 큰 정수 금액이어야 합니다.", field=field)
+        value = int(value)
+    elif kind == "float":
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or value <= 0:
+            raise ValidationFailed("0보다 큰 숫자여야 합니다.", field=field)
+        value = float(value)
+    elif kind == "bool":
+        if not isinstance(value, bool):
+            raise ValidationFailed("true/false 값이어야 합니다.", field=field)
+    elif kind == "date":
+        try:
+            _dt.date.fromisoformat(value)
+        except (TypeError, ValueError):
+            raise ValidationFailed("날짜 형식이 올바르지 않습니다.", field=field) from None
+    elif kind == "list":
+        if not isinstance(value, list):
+            raise ValidationFailed("목록 형태여야 합니다.", field=field)
+        if not value and schema.get("none_allowed"):
+            return []
+        if not value:
+            raise ValidationFailed("최소 1개 이상 선택해야 합니다.", field=field)
+        if field == "needs" and any(item not in _NEEDS_ALLOWED for item in value):
+            raise ValidationFailed("허용되지 않는 값입니다.", field=field)
+        if none_token and none_token in value:
+            if len(value) != 1:
+                raise ValidationFailed("'없음'은 다른 항목과 함께 선택할 수 없습니다.", field=field)
+            return []
+        value = list(value) if field == "owned_items" else list(dict.fromkeys(value))
+    return value
+
+
 def _owned(repo: PlanRepo, list_id: UUID, principal: Principal) -> dict:
     revision = repo.get_current_revision(list_id)
     if revision is None:
@@ -36,19 +114,29 @@ def _owned(repo: PlanRepo, list_id: UUID, principal: Principal) -> dict:
 
 
 def create_session(conn, principal: Principal) -> dict:
-    token = secrets.token_urlsafe(32)
-    conversation_id = ConversationRepo(conn).create(user_id=principal.user_id, guest_session_hash=_token_hash(token))
+    token = principal.browser_token
+    reused = False
+    if principal.user_id is None:
+        if token and ConversationRepo(conn).guest_identity_known(_token_hash(token)):
+            reused = True
+        else:
+            token = secrets.token_urlsafe(32)
+    conversation_id = ConversationRepo(conn).create(
+        user_id=principal.user_id,
+        guest_session_hash=None if principal.user_id is not None else _token_hash(token),
+    )
     plan = PlanRepo(conn).create_plan(conversation_id, "새 추천", principal.user_id)
     version = PlanRepo(conn)._one(
         "SELECT dv.id FROM config.domain_version dv "
         "JOIN config.domain d ON d.id = dv.domain_id "
-        "WHERE d.status = 'active' ORDER BY dv.version_no DESC LIMIT 1"
+        "WHERE d.status = 'active' AND d.code = ANY(%s) ORDER BY d.code, dv.version_no DESC LIMIT 1",
+        (available_categories(),),
     )
     if version is None:
         raise ValidationFailed("게시된 도메인 버전이 없습니다.")
     revision = PlanRepo(conn).new_revision(plan, version["id"], "새 추천")
     PlanRepo(conn).set_current_revision(plan, revision)
-    return {"list_id": str(plan), "browser_token": token}
+    return {"list_id": str(plan), "browser_token": None if principal.user_id is not None else token, "reused": reused}
 
 
 # ── ConditionState 조립 ──────────────────────────────────────────────────
@@ -70,8 +158,10 @@ def _age_stage_label(months: int | None) -> str:
 
 def _field_value(meta: dict, values: dict):
     if meta.get("computed"):
-        months = values.get(meta["computed"])
-        return {"months": months, "label": _age_stage_label(months)}
+        raw = values.get(meta["computed"])
+        months = raw.get("value") if isinstance(raw, dict) else raw
+        exact = bool(raw.get("exact", True)) if isinstance(raw, dict) else True
+        return {"months": months, "label": _age_stage_label(months), "exact": exact}
     return values.get(meta["key"])
 
 
@@ -102,7 +192,8 @@ def _build_fields(cat_def: dict, values: dict) -> list[dict]:
             continue
         value = _field_value(meta, values)
         raw = values.get(meta["computed"]) if meta.get("computed") else value
-        status = "confirmed" if raw not in (None, [], "") else "missing"
+        source_key = meta.get("computed") or meta["key"]
+        status = "confirmed" if source_key in values and raw is not None else "missing"
         out.append({
             "key": meta["key"], "label": meta["label"], "value": value,
             "display": _display(meta, value), "status": status, "editable": True,
@@ -119,7 +210,7 @@ def _required_keys(cat_def: dict, values: dict) -> list[str]:
 
 
 def compute_missing(cat_def: dict, values: dict) -> list[str]:
-    return [k for k in _required_keys(cat_def, values) if values.get(k) in (None, [], "")]
+    return [k for k in _required_keys(cat_def, values) if k not in values or values[k] is None]
 
 
 def _next_question(cat_def: dict, values: dict) -> dict | None:
@@ -139,6 +230,28 @@ def _next_question(cat_def: dict, values: dict) -> dict | None:
     return None
 
 
+def _canonicalize_answer_values(question: dict, selected: list) -> list:
+    """질문 선택지를 API에 정의된 원래 타입으로 되돌린다.
+
+    HTML의 ``data-*`` 속성은 숫자와 불리언도 문자열로 만든다. ``values``가 있는
+    선택지는 표시 라벨이나 문자열화된 값을 받아도 YAML의 원래 값으로 정규화한다.
+    """
+    options = question.get("options") or []
+    values = question.get("values") or []
+    if not values:
+        return list(selected)
+
+    normalized = []
+    for item in selected:
+        canonical = next(
+            (value for option, value in zip(options, values)
+             if item == option or item == value or str(item).casefold() == str(value).casefold()),
+            item,
+        )
+        normalized.append(canonical)
+    return normalized
+
+
 def _messages_out(rows: list[dict]) -> list[dict]:
     return [{"id": str(r["id"]), "role": r["role"], "text": r["content"], "created_at": r["created_at"].isoformat()} for r in rows]
 
@@ -147,19 +260,21 @@ def _state(conn, list_id: UUID, principal: Principal) -> dict:
     prepo = PlanRepo(conn)
     revision = _owned(prepo, list_id, principal)
     full = prepo.load_full(revision["id"])
-    values = {row["condition_key"]: row["value"].get("value") for row in full["conditions"]}
+    values = {row["condition_key"]: (row["value"] if row["condition_key"] == "age_months" else row["value"].get("value")) for row in full["conditions"]}
     category = values.get("category")
     messages = _messages_out(ConversationRepo(conn).messages(revision["conversation_id"]))
     if category is None:
-        return {"list_id": str(list_id), "category": None, "messages": messages, "fields": [],
-                "next_question": None, "can_recommend": False, "accepts_spec_file": False}
+        return {"list_id": str(list_id), "category": None, "mode": None, "messages": messages, "fields": [],
+                "next_question": None, "can_recommend": False, "accepts_spec_file": False,
+                "revision_id": str(revision["id"]), "lock_version": revision["lock_version"]}
     cat_def = _category(category)
     return {
-        "list_id": str(list_id), "category": category, "messages": messages,
+        "list_id": str(list_id), "category": category, "mode": values.get("mode"), "messages": messages,
         "fields": _build_fields(cat_def, values),
         "next_question": _next_question(cat_def, values),
         "can_recommend": not compute_missing(cat_def, values),
-        "accepts_spec_file": values.get("mode") == "upgrade",
+        "accepts_spec_file": category == "computer" and values.get("mode") == "upgrade",
+        "revision_id": str(revision["id"]), "lock_version": revision["lock_version"],
     }
 
 
@@ -174,8 +289,19 @@ def choose_category(conn, list_id: UUID, category: str, mode: str | None, princi
     if mode is not None and mode not in cat_def["modes"]:
         raise ValidationFailed("카테고리에 맞지 않는 mode입니다.", field="mode")
     mode = mode or cat_def["modes"][0]
+    values, previous_category = _current_values(repo, current["id"])
+    previous_mode = values.get("mode")
+    repo.bind_domain_version(current["id"], category)
     repo.upsert_condition(current["id"], "category", {"value": category}, "explicit")
     repo.upsert_condition(current["id"], "mode", {"value": mode}, "explicit")
+    if previous_category is not None and previous_category != category:
+        for key in values:
+            if key not in {"category", "mode"}:
+                repo.clear_condition(current["id"], key)
+    elif category == "baby" and previous_mode is not None and previous_mode != mode:
+        keys = ("due_date",) if mode == "born" else ("age_months", "weight_kg", "independent_sitting")
+        for key in keys:
+            repo.clear_condition(current["id"], key)
     nq = _next_question(cat_def, {"mode": mode})
     if nq:
         ConversationRepo(conn).add_message(current["conversation_id"], "assistant", nq["text"])
@@ -185,13 +311,22 @@ def choose_category(conn, list_id: UUID, category: str, mode: str | None, princi
 def patch_slot(conn, list_id: UUID, field: str, value, principal: Principal) -> dict:
     repo = PlanRepo(conn)
     current = _owned(repo, list_id, principal)
+    values, category = _current_values(repo, current["id"])
+    if category == "baby":
+        cat_def = _category(category)
+        if value is None:
+            if field not in (cat_def.get("slot_schema") or {}):
+                raise ValidationFailed("허용되지 않는 필드입니다.", field="field")
+            repo.clear_condition(current["id"], field)
+            return _state(conn, list_id, principal)
+        value = _validate_baby_value(cat_def, field, value, mode=values.get("mode"))
     repo.upsert_condition(current["id"], field, {"value": value}, "explicit")
     return _state(conn, list_id, principal)
 
 
 def _current_values(repo: PlanRepo, revision_id: UUID) -> tuple[dict, str | None]:
     full = repo.load_full(revision_id)
-    values = {row["condition_key"]: row["value"].get("value") for row in full["conditions"]}
+    values = {row["condition_key"]: (row["value"] if row["condition_key"] == "age_months" else row["value"].get("value")) for row in full["conditions"]}
     return values, values.get("category")
 
 
@@ -254,18 +389,22 @@ def handle_answer(conn, list_id: UUID, question_id: str, selected: list, princip
     if q is None:
         raise ValidationFailed("알 수 없는 질문입니다.", field="question_id")
 
+    raw_selected = list(selected)
+    selected = _canonicalize_answer_values(q, raw_selected)
     key = q["maps_to"]
     none_opt = q.get("none_option")
     if none_opt and list(selected) == [none_opt]:
-        value = ["none"]
+        value = [] if category == "baby" else ["none"]
     elif q["select"] == "multi":
         value = list(selected)
     else:
         value = selected[0] if selected else None
 
     convo = ConversationRepo(conn)
-    user_text = ", ".join(str(s) for s in selected) if selected else "(선택 없음)"
+    user_text = ", ".join(str(s) for s in raw_selected) if raw_selected else "(선택 없음)"
     msg_id = convo.add_message(current["conversation_id"], "user", user_text)
+    if category == "baby":
+        value = _validate_baby_value(cat_def, key, value, mode=values.get("mode"), none_token=none_opt)
     repo.upsert_condition(current["id"], key, {"value": value}, "explicit", msg_id)
     values[key] = value
 

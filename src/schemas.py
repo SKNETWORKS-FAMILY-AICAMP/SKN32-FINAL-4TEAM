@@ -126,6 +126,9 @@ class NextQuestionOut(BaseModel):
 class ConditionState(BaseModel):
     list_id: str
     category: str | None = None
+    mode: str | None = None
+    revision_id: str | None = None
+    lock_version: int | None = None
     messages: list[MessageOut] = Field(default_factory=list)
     fields: list[FieldOut] = Field(default_factory=list)
     next_question: NextQuestionOut | None = None
@@ -176,8 +179,9 @@ class ProductOut(BaseModel):
 
 class ReviewBriefOut(BaseModel):
     total_count: int
-    excluded_ratio: float
-    rating_refined: float
+    # 정제 전/후 비교는 판정기가 없어 못 낸다(docs/decisions/0001) — 항상 null.
+    excluded_ratio: float | None = None
+    rating_refined: float | None = None
 
 
 class ItemOut(BaseModel):
@@ -431,17 +435,25 @@ class ReviewSummaryOut(BaseModel):
       0% 로 그려서 없는 분포를 단정한다
 
     실측과 합성은 섞지 않는다 — 합성값은 `synthetic_demo` 안에만, `is_synthetic` 표지와 함께.
+
+    P8: `excluded_count`·`excluded_ratio`·`rating_refined`·`distribution_refined`는
+    더 이상 항상 null이 아니다 — evidence.review_aggregate에 검수 승인된 파일 기반
+    분석(review_service._db_backed_analysis)이 있으면 실제 값을 낸다. 판정기가 없는
+    관계·행동 축 관측 경로(PC 부품)는 그 분석이 없으므로 계속 null만 낸다 — 필드
+    타입만 넓혔을 뿐 기존 PC 경로의 동작은 바뀌지 않는다.
     """
     product_key: str
     total_count: int = 0
-    excluded_count: None = None
-    excluded_ratio: None = None
+    excluded_count: Optional[int] = None
+    excluded_ratio: Optional[float] = None
     rating_raw: Optional[float] = None
-    rating_refined: None = None
+    rating_refined: Optional[float] = None
     distribution_raw: dict[str, float] = {}
     distribution_refined: dict[str, float] = {}
     summaries: list[dict[str, Any]] = []
     data_notice: str
+    analysis_version: Optional[str] = None
+    status: str = "unavailable"          # unavailable | ready — DB 분석 유무
     # ── 계약 밖 추가 ──
     product_name: Optional[str] = None
     product_manipulation_risk: ProductRiskOut

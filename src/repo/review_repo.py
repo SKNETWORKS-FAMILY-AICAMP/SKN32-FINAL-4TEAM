@@ -1,4 +1,7 @@
-"""리뷰 저장소 — community.review(_revision) + evidence.review_subject/summary/aggregate(_member).
+"""리뷰 저장소 — community.review/review_revision + evidence.review_subject/summary/aggregate(_member).
+
+P0 v3: review/review_revision, pc_build/pc_build_version 은 community.review 하나로 병합됐고
+(record_type 'review'|'build'), pc_build_component 는 community.review_component 로 이름이 바뀌었다.
 
 리뷰 진위 탐지·오프라인 클렌징·review_summary 산출 로직은 리뷰 담당 팀원.
 이 repo 는 그 산출물을 읽고([3-B]/[3-C]가 소비), 서비스 작성 리뷰(A7)를 저장한다.
@@ -7,46 +10,176 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 from uuid import UUID
 
 from src.db.base import Repo
+from psycopg.types.json import Jsonb
 
 
 class ReviewSubjectRepo(Repo):
     def get_or_create(self, *, product_id: UUID | None = None, variant_id: UUID | None = None,
                       offer_id: UUID | None = None, build_version_id: UUID | None = None) -> UUID:
         """정확히 하나만 non-null (CHECK). 각 FK 부분 UNIQUE."""
-        raise NotImplementedError
+        refs = {"product_id": product_id, "variant_id": variant_id, "offer_id": offer_id, "build_version_id": build_version_id}
+        chosen = [(key, value) for key, value in refs.items() if value is not None]
+        if len(chosen) != 1:
+            raise ValueError("exactly one review subject reference is required")
+        key, value = chosen[0]
+        row = self._one(f"SELECT id FROM evidence.review_subject WHERE {key}=%s", (value,))
+        if row is None:
+            row = self._one(f"INSERT INTO evidence.review_subject ({key}) VALUES (%s) RETURNING id", (value,))
+        return row["id"]
+
+    def resolve_by_key(self, product_key: str, variant_key: str | None = None) -> UUID | None:
+        """P8 파일 기반 분석 적재용 — `catalog.product.model`/`product_variant.variant_key`로
+        찾는다. 카탈로그에 없으면 None(파일이 존재하지 않는 상품을 가리키는 것과 다르지 않다 —
+        가짜 subject를 만들지 않는다)."""
+        if variant_key:
+            row = self._one(
+                """SELECT v.id AS variant_id FROM catalog.product_variant v JOIN catalog.product p ON p.id=v.product_id
+                   WHERE p.model=%s AND v.variant_key=%s""", (product_key, variant_key))
+            if row is None:
+                return None
+            return self.get_or_create(variant_id=row["variant_id"])
+        row = self._one("SELECT id FROM catalog.product WHERE model=%s", (product_key,))
+        if row is None:
+            return None
+        return self.get_or_create(product_id=row["id"])
 
 
 class ReviewRepo(Repo):
     # ── 서비스 작성 리뷰 (A7) ──
     def create(self, author_user_id: UUID, subject_id: UUID) -> UUID:
-        raise NotImplementedError
+        return self._one("""INSERT INTO community.review(author_user_id,subject_id) VALUES(%s,%s)
+          ON CONFLICT(author_user_id,subject_id) DO UPDATE SET updated_at=now() RETURNING id""", (author_user_id,subject_id))["id"]
 
-    def add_revision(self, review_id: UUID, domain_version_id: UUID, *, rating: int,
+    def add_revision(self, review_id: UUID, *, domain_version_id: UUID, rating: int,
                      title: str, body: str, axis_scores: dict, usage_context: dict) -> UUID:
-        raise NotImplementedError
+        number = self._one("SELECT COALESCE(MAX(revision_no),0)+1 AS n FROM community.review_revision WHERE review_id=%s", (review_id,))["n"]
+        row = self._one("""INSERT INTO community.review_revision(review_id,revision_no,domain_version_id,rating,title,body,axis_scores,usage_context)
+          VALUES(%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id""", (review_id,number,domain_version_id,rating,title,body,Jsonb(axis_scores),Jsonb(usage_context)))
+        self._exec("UPDATE community.review SET status='draft',updated_at=now() WHERE id=%s", (review_id,))
+        self._exec("""UPDATE evidence.review_aggregate a SET status='stale',updated_at=now() FROM community.review r
+          WHERE r.id=%s AND a.subject_id=r.subject_id AND a.status='ready'""", (review_id,))
+        return row["id"]
 
     def publish(self, review_id: UUID, revision_id: UUID) -> None:
         """current_revision 전환 + 관련 요약·집계 stale(C12, §8.4)."""
-        raise NotImplementedError
+        self._exec("UPDATE community.review_revision SET moderation_status='approved',published_at=COALESCE(published_at,now()),updated_at=now() WHERE id=%s AND review_id=%s", (revision_id,review_id))
+        self._exec("UPDATE community.review SET current_revision_id=%s,status='published',updated_at=now() WHERE id=%s", (revision_id,review_id))
 
-    # ── 집계·요약 읽기 ([3-B] 리뷰축 / [3-C] 리뷰 진위 / S5) ──
-    def get_summary(self, subject_id: UUID, *, source_scope: str = "combined") -> dict | None:
-        """정제 전/후 평점, cleanse_ratio, axis_scores, 대표 요약 3건 + 출처·조회시점."""
-        raise NotImplementedError
+    def owned(self, review_id: UUID, user_id: UUID) -> dict | None:
+        return self._one("SELECT * FROM community.review WHERE id=%s AND author_user_id=%s", (review_id,user_id))
 
-    def top_summaries(self, subject_id: UUID, limit: int = 3) -> list[dict]:
-        raise NotImplementedError
+    def baby_domain_version(self) -> UUID | None:
+        row = self._one("SELECT dv.id FROM config.domain_version dv JOIN config.domain d ON d.id=dv.domain_id WHERE d.code='baby' ORDER BY dv.version_no DESC LIMIT 1")
+        return None if row is None else row["id"]
+
+    # ── 집계·요약 읽기 ([3-B] 리뷰축 / [3-C] 리뷰 진위 / S5, P8 파일 기반 분석) ──
+    def get_summary(self, subject_id: UUID, *, domain_version_id: UUID | None = None,
+                    source_scope: str = "combined") -> dict | None:
+        """검수 승인된(파일 임포트가 만든) 최신 `ready` review_aggregate 한 행.
+
+        domain_version_id를 주면 그 버전으로 좁힌다(유아/PC 집계 분리, schema-v1
+        "domain_version별 분리"). status='ready'만 본다 — stale/revoked는 공개하지 않는다
+        (P8 IMPLEMENTATION3 "현재 승인된 revision만 공개·집계")."""
+        params: list = [subject_id, source_scope]
+        where_domain = ""
+        if domain_version_id is not None:
+            where_domain = "AND domain_version_id=%s"
+            params.append(domain_version_id)
+        return self._one(f"""SELECT * FROM evidence.review_aggregate
+          WHERE subject_id=%s AND source_scope=%s {where_domain} AND status='ready'
+          ORDER BY window_end DESC LIMIT 1""", tuple(params))
+
+    def top_summaries(self, aggregate: dict, limit: int = 3) -> list[dict]:
+        """aggregate.ratings.summary_texts (import CLI가 쓴 대표 요약 문장)에서 상위 N개."""
+        texts = (aggregate.get("ratings") or {}).get("summary_texts") or []
+        observed_at = aggregate["window_end"].isoformat() if aggregate.get("window_end") else None
+        return [{"text": t, "source": "파일 기반 리뷰 분석 (검수 승인)", "observed_at": observed_at}
+                for t in texts[:limit]]
 
     def get_review_authenticity(self, product_key: str) -> dict:
         """[3-C] get_review_authenticity 계약 (기획서 §10-6).
         {orig_rating, cleaned_rating, cleanse_ratio, axis_scores, total_reviews,
          top_summaries, confidence_note}
-        """
+
+        DB 경로 미구현 — [3-B]/[3-C]는 지금 파일 기반 ProductRiskStore(관계·행동 축)를
+        쓴다(review_service.get_summary). 이 메서드는 그 계약의 자리를 남겨 둘 뿐 호출되지
+        않는다."""
         raise NotImplementedError
+
+    # ── P8 파일 기반 분석 적재 (import_review_analysis.py가 호출) ──
+    def get_or_create_source(self, name: str) -> UUID:
+        row = self._one("SELECT id FROM evidence.source WHERE name=%s", (name,))
+        if row is None:
+            row = self._one(
+                "INSERT INTO evidence.source(name,source_type) VALUES (%s,'derived') RETURNING id", (name,))
+        return row["id"]
+
+    def upsert_review_summary(self, *, subject_id: UUID, source_id: UUID, external_review_key: str,
+                              original_url: str, normalized_rating, collected_at,
+                              processing_version: str, cleaning_status: str,
+                              exclusion_reason: str | None = None, summary: str) -> UUID:
+        """단일 표본(sample+label) 한 행. (source_id,external_review_key,processing_version)
+        UNIQUE(0002_unique.sql review_summary_external_key)로 같은 파일 재적재가 자연히
+        멱등이 된다 — 내용이 같으면 그대로, 달라지면 갱신(§ import는 같은 (id,버전) 조합에는
+        같은 내용만 오도록 사전에 검증한다)."""
+        return self._one(
+            """INSERT INTO evidence.review_summary
+                 (subject_id,source_id,origin,external_review_key,original_url,summary,
+                  normalized_rating,collected_at,processing_version,cleaning_status,exclusion_reason)
+               VALUES (%s,%s,'external',%s,%s,%s,%s,%s,%s,%s,%s)
+               ON CONFLICT (source_id,external_review_key,processing_version)
+                 WHERE external_review_key IS NOT NULL DO UPDATE SET
+                 summary=EXCLUDED.summary, normalized_rating=EXCLUDED.normalized_rating,
+                 cleaning_status=EXCLUDED.cleaning_status, exclusion_reason=EXCLUDED.exclusion_reason,
+                 updated_at=now()
+               RETURNING id""",
+            (subject_id, source_id, external_review_key, original_url, summary, normalized_rating,
+             collected_at, processing_version, cleaning_status, exclusion_reason))["id"]
+
+    def replace_aggregate(self, *, subject_id: UUID, domain_version_id: UUID, source_scope: str,
+                          processing_version: str, window_start, window_end,
+                          analyzed_count: int, excluded_count: int, retained_count: int,
+                          ratings: dict, axis_scores: dict,
+                          members: list[dict]) -> dict:
+        """P8 IMPLEMENTATION2 "Transactions atomically replace/current-mark summary +
+        aggregate + aggregate_members, while preserving provenance": 같은
+        (subject,domain_version,scope)의 기존 `ready` 행은 `stale`로 내리고 새 행을
+        `ready`로 올린다 — UPDATE로 내용을 덮지 않아 이전 버전이 감사 이력으로 남는다.
+
+        같은 processing_version이 내용까지 동일하게 다시 들어오면(재실행) 아무 것도
+        만들지 않고 기존 행을 그대로 반환한다(멱등). 같은 version인데 내용이 다르면
+        조용한 덮어쓰기 대신 명시적으로 거부한다 — 버전 이름은 그 내용의 식별자여야 한다."""
+        existing = self.get_summary(subject_id, domain_version_id=domain_version_id, source_scope=source_scope)
+        if existing is not None and existing["processing_version"] == processing_version:
+            same = (existing["analyzed_count"] == analyzed_count and existing["excluded_count"] == excluded_count
+                    and existing["retained_count"] == retained_count and dict(existing["ratings"]) == ratings)
+            if same:
+                return {"status": "skipped_idempotent", "aggregate_id": existing["id"]}
+            raise ValueError(
+                f"aggregate_version_conflict:{processing_version} — same version, different computed content")
+        self._exec(
+            """UPDATE evidence.review_aggregate SET status='stale', updated_at=now()
+               WHERE subject_id=%s AND domain_version_id=%s AND source_scope=%s AND status='ready'""",
+            (subject_id, domain_version_id, source_scope))
+        row = self._one(
+            """INSERT INTO evidence.review_aggregate
+                 (subject_id,domain_version_id,source_scope,processing_version,window_start,window_end,
+                  analyzed_count,excluded_count,retained_count,ratings,axis_scores,status)
+               VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,'ready') RETURNING id""",
+            (subject_id, domain_version_id, source_scope, processing_version, window_start, window_end,
+             analyzed_count, excluded_count, retained_count, Jsonb(ratings), Jsonb(axis_scores)))
+        aggregate_id = row["id"]
+        for m in members:
+            self._exec(
+                """INSERT INTO evidence.review_aggregate_member(aggregate_id,summary_id,disposition,weight)
+                   VALUES (%s,%s,%s,%s) ON CONFLICT (aggregate_id,summary_id) DO NOTHING""",
+                (aggregate_id, m["summary_id"], m["disposition"], m.get("weight", 1)))
+        return {"status": "imported", "aggregate_id": aggregate_id}
 
 
 # ─────────────────────────────────────────────────────────────────────────────

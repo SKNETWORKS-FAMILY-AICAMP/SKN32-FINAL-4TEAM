@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import Any, Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 Category = Literal["computer", "baby"]
 Mode = Literal["build", "upgrade", "born", "prenatal"]
@@ -187,6 +187,141 @@ class Explanation(BaseModel):
 
 # (구 추천 결과 DTO는 §D-4-2 계약(RecommendResultOut, src/schemas.py)으로 대체되어 제거됨.
 #  서비스 계층은 이제 dict를 직접 만들어 schemas.RecommendResultOut 경계를 통과시킨다.)
+
+
+class BabyRequirement(BaseModel):
+    """Stable baby requirement boundary for P1--P8."""
+    id: str
+    revision_id: str
+    slot_key: str
+    group_key: str | None = None
+    required_qty: float = 1
+    unit_code: str = "each"
+    mandatory: bool = True
+    timing: Literal["now", "soon", "later"] = "now"
+    constraints: dict[str, Any] = Field(default_factory=dict)
+    # v3 (develop `da79839` schema): planning.item never existed there and must not
+    # reappear — ownership is represented directly from the revision's own
+    # plan_condition rows, never a separate DB "item" id. Each entry:
+    # {source_condition_id, label, qty, unit_code}; source_condition_id is a real
+    # planning.plan_condition.id in the SAME revision (see
+    # DEVELOP_DB_TRANSITION.md "Domain, requirements, ownership").
+    owned: list[dict[str, Any]] = Field(default_factory=list)
+    # Sum of owned[].qty capped at required_qty — always explicit, never a sentinel.
+    fulfilled_qty: float = 0
+
+
+class BabyCandidate(BaseModel):
+    candidate_id: str
+    requirement_id: str
+    product_id: str
+    variant_id: str | None = None
+    product_key: str
+    variant_key: str | None = None
+    name: str
+    slot_key: str
+    price: int | None = None
+    offer_observation_id: str | None = None
+    observed_at: str | None = None
+    stock_status: str = "unknown"
+    pack_quantity: float = 1
+    unit_code: str = "each"
+    unit_qty: float = 1
+    corpus: Literal["synthetic", "real"] = "real"
+    market: str = "KR"
+    language: str = "ko"
+    facts: dict[str, Any] = Field(default_factory=dict)
+    review_summary: dict[str, Any] | None = None
+    score_breakdown: dict[str, float] = Field(default_factory=dict)
+
+
+class CandidateCheck(BaseModel):
+    requirement_id: str | None = None
+    candidate_id: str
+    eligibility: Literal["pass", "fail", "unknown"]
+    verification: Literal["partial", "unknown", "verified"]
+    coverage: Literal["partial", "full", "none", "error"]
+    selection_allowed: bool
+    issues: list[dict[str, Any]] = Field(default_factory=list)
+    explanation_evidence: list[dict[str, Any]] = Field(default_factory=list)
+    error_code: str | None = None
+
+    @model_validator(mode="after")
+    def _selection_requires_pass(self) -> "CandidateCheck":
+        """P4 review R1: fail/unknown must never carry selection_allowed=True — this
+        is enforced at construction so a mismatched/hand-built DTO fails loudly at
+        the P3 producer boundary instead of silently reaching P4's auto-selection."""
+        if self.selection_allowed and self.eligibility != "pass":
+            raise ValueError("selection_allowed=True requires eligibility=='pass'")
+        return self
+
+
+class ExplanationWithRefs(BaseModel):
+    """P3 explain_baby_candidate() return — evidence used for the user-facing
+    explanation, kept separate from CandidateCheck.explanation_evidence (verification's
+    own cited evidence): the two are produced by different RAG queries/purposes and may
+    legitimately cite different manual sections (CONTRACTS VE05)."""
+    candidate_id: str
+    status: Literal["ready", "pending", "failed"]
+    text: str | None = None
+    refs: list[dict[str, Any]] = Field(default_factory=list)
+    error_code: str | None = None
+
+
+class BasketItem(BaseModel):
+    item_id: str
+    requirement_id: str
+    group_key: str | None = None
+    candidate_id: str | None = None
+    variant_id: str | None = None
+    status: Literal["owned", "to_purchase", "purchased"]
+    selected: bool = False
+    qty: float = 1
+    unit_code: str = "each"
+    unit_qty: float = 1
+    timing: Literal["now", "soon", "later"] = "now"
+    unit_price: int | None = None
+    offer_observation_id: str | None = None
+    validation: dict[str, Any] = Field(default_factory=dict)
+
+
+class BasketDecision(BaseModel):
+    items: list[BasketItem] = Field(default_factory=list)
+    totals: dict[str, Any] = Field(default_factory=dict)
+    # P4: richer than a bare slot-key string — each mandatory-now requirement that
+    # could not be fulfilled inside budget needs its own required_qty/cheapest
+    # subtotal/shortfall so a caller doesn't have to recompute those from scratch
+    # (CONTRACTS ALGORITHM step 5: "shortfall if computable ... unknown minimum
+    # cost means unknown shortfall, not zero").
+    missing_requirements: list[dict[str, Any]] = Field(default_factory=list)
+    feasible: bool
+    alternatives: dict[str, Any] = Field(default_factory=dict)
+
+
+# ── P4 basket optimizer: ranking boundary between stage3b_rank and stage4_optimize ──
+class ScoredCandidate(BaseModel):
+    """One BabyCandidate scored for one requirement. Kept separate from Candidate
+    (the PC [3-B] type) because baby scoring never fabricates a review fact and must
+    carry selection_allowed/eligibility straight from P3's CandidateCheck instead of
+    re-deriving them."""
+    candidate_id: str
+    requirement_id: str
+    price: int | None = None
+    unit_qty: float = 1
+    score: float | None = None                      # None only if no configured axis was computable
+    score_breakdown: dict[str, float] = Field(default_factory=dict)
+    selection_allowed: bool = False
+    eligibility: Literal["pass", "fail", "unknown"] = "unknown"
+    tie_break: tuple[int, str, str] = (0, "", "")    # (price, product_key, variant_key)
+
+
+class RankedCandidates(BaseModel):
+    profile_version: str
+    weights: dict[str, float] = Field(default_factory=dict)
+    by_requirement: dict[str, list[ScoredCandidate]] = Field(default_factory=dict)
+    # structurally invalid candidates (bad price/units/identity) or ones missing a
+    # CandidateCheck row entirely — tracked, never silently dropped (ALGORITHM step 1).
+    excluded: list[dict[str, Any]] = Field(default_factory=list)
 
 
 # ── 전체 결과 ───────────────────────────────────────────────────────────

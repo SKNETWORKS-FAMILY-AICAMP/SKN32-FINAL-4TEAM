@@ -12,12 +12,14 @@ from src.config import MOCK_MODE
 
 # 시나리오 로더가 주입하는 미니 코퍼스 (list[dict]: {domain, axis, text, source_url, collected_at})
 _MINI_CORPUS: list[dict[str, Any]] = []
+_MINI_CORPUS_LOADED = False  # load_mini_corpus가 실제로 호출됐는지 — 빈 corpus([])와 구분한다
 
 
 def load_mini_corpus(chunks: list[dict[str, Any]]) -> None:
     """시나리오 파일의 corpus 배열을 인메모리 코퍼스로 적재 (데모 전용)."""
-    global _MINI_CORPUS
+    global _MINI_CORPUS, _MINI_CORPUS_LOADED
     _MINI_CORPUS = list(chunks)
+    _MINI_CORPUS_LOADED = True
 
 
 def evidence_search(
@@ -25,10 +27,16 @@ def evidence_search(
 ) -> list[dict]:
     """근거 청크 검색.
 
+    시나리오가 load_mini_corpus()로 코퍼스를 주입해 뒀으면(=stage3c_verify.verify_set의
+    _debate_lines 경로) MOCK_MODE 값과 무관하게 그 인메모리 코퍼스를 쓴다. 이 경로는 축(axis)
+    단위로만 부르고 특정 상품 하나를 지정하지 않는데, 아래 실제 경로의 SearchRequest는 정확한
+    product_key를 필수로 요구해서(§ "Real calls require exact product scope") 시나리오 호출은
+    절대 채울 수 없다 — MOCK_MODE=0이어도 여기서 실제 DB 조회로 넘어가면 매번 TypeError로 죽는다.
+
     Returns:
         각 dict: text(발췌 요약), source_url, collected_at, score. 0건이면 빈 리스트("회색").
     """
-    if not MOCK_MODE:
+    if not MOCK_MODE and not _MINI_CORPUS_LOADED:
         from src.rag.contracts import RetrievalError, SearchRequest
 
         allowed = {
