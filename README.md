@@ -13,7 +13,7 @@ Buying for a purpose is a research chore that repeats every time: a PC build is 
 
 TrueFit is built on three refusals:
 
-1. **No verdict without a method.** It never says a review is fake or a part is "the best". It reports what can be checked — *"60 of 209 reviews landed in one 7-day window; the category median is 5.5%"* — and lets the reader decide.
+1. **No verdict without a method.** It never says a review is fake or a part is "the best". It reports what can be checked, in plain words — *"60 reviews (about 29%) were posted within the same week; for similar parts, usually only about 5% are"* — with the source figures one click away, and lets the reader decide.
 2. **Numbers from code, words from the model.** Ranking, verification, budget math and every value that gets stored are computed; the language model only turns free text into structured conditions and turns stored facts into sentences.
 3. **The agent proposes, the person decides.** Every recommendation is editable, every edit is a tool call on the same persisted plan, and nothing is purchased — links go to sellers.
 
@@ -24,7 +24,7 @@ Category → conditions chat → recommendation → confirm → report, in one b
 | Step | What happens |
 |---|---|
 | **Conditions** | Chips for required fields, free text for everything else. A Strands agent turns *"quiet gaming PC, around $1,500, Elden Ring, white case if possible"* into typed, validated conditions and asks for whatever is still missing |
-| **Recommendation** | The engine builds candidates per slot, filters, ranks (review observations demote, never exclude), optimizes the set, verifies it and re-searches once if confidence is low. Each item carries a reason, *before-you-buy* checks that cite a care guide, and a review observation line |
+| **Recommendation** | The engine builds candidates per slot, filters, ranks (review observations demote, never exclude), optimizes the set, verifies it and re-searches once if confidence is low. Each item carries a reason, *before-you-buy* checks that cite a care guide, and plain-language review observations — what stands out against similar parts, never a verdict |
 | **Edit by talking** | *"Swap the CPU for a cheaper one and tell me why the GPU was picked"* — a second Strands agent looks up alternatives, swaps, changes quantity or timing, or explains from stored evidence only |
 | **Confirm & report** | Name, purchase date, target amount, memo; the confirmed snapshot keeps seller links and an optional target-price watch |
 
@@ -35,7 +35,7 @@ Two domains share the engine: **PC builds** (optimize the set, then verify it as
 <table>
 <tr>
 <td width="50%"><img src="docs/screenshots/02-conditions.png" alt="Conditions chat: one free-text sentence becomes typed conditions"><br><sub>One sentence → purpose, budget ($1,500 → USD), priority, game title, and a free-form extra ("white case") — all set by the conditions agent through validated tool calls.</sub></td>
-<td width="50%"><img src="docs/screenshots/03-results.png" alt="Recommendation summary"><br><sub>The explanation is generated from stored facts only, and says what it could not do: the extra request was not applied automatically, and two checks are still unverified.</sub><br><br><img src="docs/screenshots/04-result-chat.png" alt="Result chat: swap the CPU and explain the GPU"><br><sub>The result agent swaps through the same service the buttons use, then explains the GPU from the stored reason.</sub></td>
+<td width="50%"><img src="docs/screenshots/03-results.png" alt="Recommendation summary"><br><sub>The explanation is generated from stored facts only, and says what it could not do: the extra request was not applied automatically.</sub><br><br><img src="docs/screenshots/04-result-chat.png" alt="Result chat: swap the CPU and explain the GPU"><br><sub>The result agent swaps through the same service the buttons use, then explains the GPU from the stored reason.</sub></td>
 </tr>
 </table>
 
@@ -119,7 +119,7 @@ flowchart LR
 </details>
 
 - **Engine** (`src/engine`): intent → requirement → candidates → hard filter → rank → *(PC)* optimize the set ⇄ verify, re-search once below the confidence threshold / *(baby)* verify each item → allocate budget → explain. `POST …/recommend` answers `202` at once; the run persists requirements, candidates, checks and explanation and `GET …/result` polls.
-- **Review evidence** (`src/workers/relation_axis.py`): without reading a single review text, a batch over Amazon Reviews'23 (43.9 M reviews, 18.3 M accounts) computes per-product observations — share of reviews in the busiest 7-day window, reviewers shared with other products, one-off accounts, verified-purchase rate — each against the median of the same product category (11,457 PC-part products with ≥30 reviews; 7-day burst median 5.5%, 99th percentile 20.5%). No manipulation labels exist, so there is **no detection rate and no "cleaned" rating** ([decision 0001](docs/decisions/0001-정제-후-평점을-판정기-없이-내지-않는다.md) *(Korean)*). Observations demote a candidate in ranking; they never exclude it.
+- **Review evidence** (`src/workers/relation_axis.py`): without reading a single review text, a batch over Amazon Reviews'23 (43.9 M reviews, 18.3 M accounts) computes per-product observations — share of reviews in the busiest 7-day window, reviewers shared with other products, one-off accounts, verified-purchase rate — each against the median of the same product category (11,457 PC-part products with ≥30 reviews; 7-day burst median 5.5%, 99th percentile 20.5%). No manipulation labels exist, so there is **no detection rate and no "cleaned" rating** ([decision 0001](docs/decisions/0001-정제-후-평점을-판정기-없이-내지-않는다.md) *(Korean)*). Observations demote a candidate in ranking; they never exclude it. On screen they are rendered from the numbers as plain sentences in both languages, and when the server has no figure — review count, set confidence — nothing is shown in its place ([decision 0003](docs/decisions/0003-데모-화면에서-세트-신뢰도·회색축·표시용-리뷰-수를-뺀다.md) *(Korean)*).
 - **Before-you-buy checks** (`src/rag/care_guides.py`): 18 synthetic part care guides embedded in memory at start-up; the closest passage is quoted per item.
 - **Baby manuals** (`src/rag/provider.py`): manuals are published to a search provider *outside* PostgreSQL (the `rag` schema was dropped after mentor review); a local-file implementation ships, a hosted store is the next step. Seat conditions (≥6 months, ≤22 kg, sits unaided) are checked only against reviewed sentences; with no provider configured the item is *unknown*, never silently accepted.
 - **Frontend** (`frontend/`): ten static pages served by the API on the same origin; every value comes from the API, cookies are httpOnly, a Korean/English toggle switches both UI and server language.
@@ -157,7 +157,7 @@ uv run uvicorn src.api:app --reload --port 8000              # http://127.0.0.1:
 
 | | Works | Not yet |
 |---|---|---|
-| PC | Full flow: conditions → run → reasons, checks, review line, alternatives, swap, qty/timing, result chat → confirm → report → price watch, all persisted | Synthetic prices; compatibility is approximate (socket, power, size); a swap does not re-verify |
+| PC | Full flow: conditions → run → reasons, checks, review observations, alternatives, swap, qty/timing, result chat → confirm → report → price watch, all persisted | Synthetic prices; compatibility is approximate (socket, power, size); a swap does not re-verify |
 | Baby | Conditions → run → per-item candidates with safety checks → allocation | The shipped synthetic catalog has no reviewed safety rules, so **no candidate passes gating** and the basket ends *done* with 0 items — the mechanism runs, the data does not let it choose |
 | Agents | Both agents in real sessions (screenshots above); English and Korean | Need an OpenAI key; dictionary-based UI translation leaves a few dynamic strings Korean |
 | Accounts | Email + password, httpOnly JWT, guest → account merge, withdrawal | Email verification and password reset deferred; `/auth/request-code`, `/auth/verify` are stubs |
