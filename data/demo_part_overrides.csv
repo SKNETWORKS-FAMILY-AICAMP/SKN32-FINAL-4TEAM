@@ -1,0 +1,11 @@
+product_key,price,perf_tier,socket,mem_type,form_factor,supports_form_factors
+amd-ryzen-7-7700,320000,7,AM5,,,
+amd-ryzen-5-7600,240000,6,AM5,,,
+nvidia-geforce-rtx-4070-super,480000,8,,,,
+g.skill-flare-x5-ddr5-6000-cl36-32gb-(2x16),90000,8,,DDR5,,
+asus-tuf-gaming-b650-plus-wifi,155000,9,AM5,DDR5,ATX,
+wd-black-sn770-1tb,100000,8,,,,
+corsair-rm750e,90000,8,,,,
+fractal-design-north,72000,9,,,,"ATX,mATX,ITX"
+noctua-nh-d15,58000,9,,,,
+nzxt-h5-flow,75000,7,,,,"ATX,mATX,ITX"

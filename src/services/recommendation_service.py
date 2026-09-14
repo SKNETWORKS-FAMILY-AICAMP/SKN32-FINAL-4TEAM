@@ -868,8 +868,12 @@ def get_stored_result(conn, revision_id: UUID) -> dict | None:
     validations = erepo.get_validations(run["id"])
     penalty = sum((v["measured_values"] or {}).get("penalty", 0) for v in validations)
     confidence = max(0, 100 - penalty)
+    # "구매 전 확인" 언어 — 조건의 language(자유 텍스트로 감지)가 없으면(칩만 누른 세션)
+    # 추천 요청 시점의 response_locale로 대체한다(요청 R5-a) — 칩만 누른 영어 세션이
+    # 한국어 문장을 받던 버그.
+    checks_lang = lang_of(values) if values.get("language") else ("en" if content_language == "en-US" else "ko")
     for item in items:
-        item["checks"] = _item_checks(item, validations, lang_of(values), guide=item.get("checks"))
+        item["checks"] = _item_checks(item, validations, checks_lang, guide=item.get("checks"))
     result["verification"] = {
         "status": "ready", "confidence": confidence,
         "issues": [

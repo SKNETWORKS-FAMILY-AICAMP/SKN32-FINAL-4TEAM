@@ -201,6 +201,7 @@ def verify_build(
 
     tgt = VerificationTarget(
         subject="Entire build" if locale == "en-US" else "세트 전체",
+        confidence=confidence, passed=passed,
         issues=issues, gray_axes=gray,
         transcript=[{"round": 1, "issues": [i.model_dump() for i in issues]}],
     )

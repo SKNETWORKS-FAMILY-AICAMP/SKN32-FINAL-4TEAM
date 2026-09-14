@@ -9,6 +9,7 @@ src.repo.catalog_repo(엔진 [3-0]이 읽는 CSV 경로)와 완전히 같은 결
 """
 from __future__ import annotations
 
+import csv
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -16,11 +17,27 @@ from urllib.parse import quote_plus
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from src.config import DATA_DIR  # noqa: E402
 from src.db import get_conn  # noqa: E402
 from src.repo.catalog_repo import TYPE_TO_SLOT, _load_rows, _mock_price, _mock_tier  # noqa: E402
 from src.repo.product_repo import ProductRepo  # noqa: E402
 
 _SOURCE_NAME = "데모 합성 카탈로그"
+_ASIN_MAP_CSV = DATA_DIR / "parts_asin_map.csv"
+
+
+def _load_asin_map() -> dict[str, str]:
+    """product_key → ASIN. 리뷰 분석에 쓴 것과 같은 매핑(data/parts_asin_map.csv) —
+    있으면 검색 링크 대신 그 상품의 실제 Amazon 상세 페이지로 바로 연결한다(요청 R3)."""
+    if not _ASIN_MAP_CSV.exists():
+        return {}
+    out: dict[str, str] = {}
+    with _ASIN_MAP_CSV.open(encoding="utf-8-sig") as f:
+        for row in csv.DictReader(f):
+            key, asin = (row.get("product_key") or "").strip(), (row.get("asin") or "").strip()
+            if key and asin:
+                out[key] = asin
+    return out
 
 
 def main() -> int:
@@ -36,6 +53,7 @@ def main() -> int:
             )
         source_id = source["id"]
         merchant_id = repo.upsert_merchant("demo", "demo-seller", "데모 판매처")
+        asin_map = _load_asin_map()
 
         n = 0
         for row in _load_rows():
@@ -53,10 +71,13 @@ def main() -> int:
             variant_id = repo.upsert_variant(
                 product_id, "default", attributes={"slot": slot, "perf_tier": tier},
             )
-            # 실제 판매 페이지가 없으므로(합성 카탈로그) 상품명으로 실제 쇼핑몰 검색 결과 페이지로
-            # 연결한다 — 개별 상품 URL을 몰라도 항상 유효하게 열리고, 검색 결과 페이지 링크는
-            # 저작권·이용약관 이슈가 사실상 없다(단순 링크, 콘텐츠 복제 없음).
-            purchase_url = f"https://www.amazon.com/s?k={quote_plus(row['name'])}"
+            # ASIN이 있으면(리뷰 분석에 쓴 것과 같은 매핑) 그 상품의 실제 상세 페이지로 —
+            # "우리가 분석한 그 상품 페이지"라는 연결이 생긴다(요청 R3). 없으면 상품명으로
+            # 실제 쇼핑몰 검색 결과 페이지로 연결한다 — 항상 유효하게 열리고, 검색 결과
+            # 페이지 링크는 저작권·이용약관 이슈가 사실상 없다(단순 링크, 콘텐츠 복제 없음).
+            asin = asin_map.get(pk)
+            purchase_url = (f"https://www.amazon.com/dp/{asin}" if asin
+                            else f"https://www.amazon.com/s?k={quote_plus(row['name'])}")
             offer_id = repo.upsert_offer(variant_id, merchant_id, pk, purchase_url)
             repo.add_observation(
                 offer_id, source_id, observed_at=datetime.now(timezone.utc),
