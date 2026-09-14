@@ -179,8 +179,9 @@ class ProductOut(BaseModel):
 
 class ReviewBriefOut(BaseModel):
     total_count: int
-    excluded_ratio: float
-    rating_refined: float
+    # 정제 전/후 비교는 판정기가 없어 못 낸다(docs/decisions/0001) — 항상 null.
+    excluded_ratio: float | None = None
+    rating_refined: float | None = None
 
 
 class ItemOut(BaseModel):

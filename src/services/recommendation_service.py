@@ -412,6 +412,7 @@ def get_stored_result(conn, revision_id: UUID) -> dict | None:
     from src.repo.engine_repo import EngineRepo
     from src.repo.plan_repo import PlanRepo
     from src.repo.product_repo import ProductRepo
+    from src.services import review_service
 
     erepo, prepo, prodrepo = EngineRepo(conn), PlanRepo(conn), ProductRepo(conn)
     run = erepo.get_latest_run(revision_id)
@@ -466,7 +467,7 @@ def get_stored_result(conn, revision_id: UUID) -> dict | None:
             "price": price, "price_source": "synthetic",
             "price_observed_at": row["observed_at"].isoformat() if row["observed_at"] else None,
             "qty": row["qty"], "selected": row["selected"], "timing": row["timing"], "budget_share": None,
-            "review": None,
+            "review": review_service.review_brief(row["product_key"]),
             "reason": {"status": row["reason_status"], "text": row["reason"]},
             "checks": {"status": "pending", "text": None},
             "alternatives_count": alternatives_count,
