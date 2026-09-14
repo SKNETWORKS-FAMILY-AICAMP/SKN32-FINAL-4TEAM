@@ -20,7 +20,7 @@ class _Ctx:
     def __init__(self, connection):
         self.conn = connection
 
-    def build_recommended_list(self) -> tuple[str, dict]:
+    def build_recommended_list(self, *, locale: str = "ko-KR") -> tuple[str, dict]:
         created = session_service.create_session(self.conn, Principal(user_id=None, browser_token=None))
         principal = Principal(user_id=None, browser_token=created["browser_token"])
         list_id = created["list_id"]
@@ -29,7 +29,12 @@ class _Ctx:
         for field, value in (("purpose", "game"), ("budget_max", 1500000), ("priority", "value")):
             session_service.patch_slot(self.conn, list_uuid, field, value, principal)
         revision_id = PlanRepo(self.conn).get_current_revision(list_uuid)["id"]
-        accepted = recommendation_service.start_recommendation(self.conn, revision_id, strategy="default")
+        accepted = recommendation_service.start_recommendation(
+            self.conn,
+            revision_id,
+            strategy="default",
+            locale=locale,
+        )
         recommendation_service.execute_recommendation(revision_id, uuid.UUID(accepted["run_id"]))
         return revision_id, principal
 
@@ -44,6 +49,15 @@ def ctx():
         yield _Ctx(connection)
     finally:
         connection.close()
+
+
+def test_result_preserves_generation_language(ctx):
+    revision_id, _ = ctx.build_recommended_list(locale="en-US")
+
+    result = recommendation_service.get_stored_result(ctx.conn, revision_id)
+
+    assert result is not None
+    assert result["content_language"] == "en-US"
 
 
 def test_patch_item_deselect_and_qty(ctx):

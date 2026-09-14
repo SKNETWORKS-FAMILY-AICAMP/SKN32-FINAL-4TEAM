@@ -9,12 +9,17 @@ from __future__ import annotations
 import hashlib
 import json
 from datetime import datetime, timezone
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 from src.categories import load_category
 from src.dto import PipelineResult, Slots
 from src.errors import Conflict, NotFound, ValidationFailed
+from src.i18n import normalize_locale
 from src.pipeline import run_pipeline as _run_scenario
+
+if TYPE_CHECKING:
+    from src.i18n import Locale
 
 
 def run_from_scenario(scenario_name: str) -> PipelineResult:
@@ -33,7 +38,13 @@ def _slots_from_conditions(category: str, cat_def: dict, values: dict) -> Slots:
     )
 
 
-def start_recommendation(conn, revision_id: UUID, *, strategy: str = "default") -> dict:
+def start_recommendation(
+    conn,
+    revision_id: UUID,
+    *,
+    strategy: str = "default",
+    locale: Locale = "ko-KR",
+) -> dict:
     """POST /recommend 가 호출 — run 행을 만들고 즉시 접수 응답만 반환한다 (202).
 
     실제 엔진 실행은 여기서 하지 않는다 — 호출 쪽(라우터)이 execute_recommendation을
@@ -62,10 +73,20 @@ def start_recommendation(conn, revision_id: UUID, *, strategy: str = "default") 
     if erepo.has_running_run(revision_id):
         raise Conflict("이미 추천을 실행하는 중입니다.", code="run_in_progress")
 
+    locale = normalize_locale(locale)
+    input_snapshot = {
+        "values": values,
+        "strategy": strategy,
+        "response_locale": locale,
+    }
+    input_hash = hashlib.sha256(
+        json.dumps(input_snapshot, sort_keys=True, ensure_ascii=False, default=str).encode()
+    ).hexdigest()
+
     run_id = erepo.start_run(
         revision_id, revision["domain_version_id"],
-        input_snapshot={"values": values, "strategy": strategy},
-        input_hash=hashlib.sha256(json.dumps(values, sort_keys=True, ensure_ascii=False, default=str).encode()).hexdigest(),
+        input_snapshot=input_snapshot,
+        input_hash=input_hash,
         draft_lock_version=revision["lock_version"],
         engine_versions={"pipeline": "computer-v1"},
     )
@@ -92,6 +113,9 @@ def execute_recommendation(revision_id: UUID, run_id: UUID) -> None:
     try:
         with get_conn() as conn:
             prepo, erepo, prodrepo = PlanRepo(conn), EngineRepo(conn), ProductRepo(conn)
+            run_row = erepo.get_run(run_id)
+            input_snapshot = (run_row.get("input_snapshot") if run_row else {}) or {}
+            response_locale = normalize_locale(input_snapshot.get("response_locale"))
             full = prepo.load_full(revision_id)
             values = {row["condition_key"]: row["value"].get("value") for row in full["conditions"]}
             category = values["category"]
@@ -111,7 +135,12 @@ def execute_recommendation(revision_id: UUID, run_id: UUID) -> None:
             rank = stage3b_rank.run(hf, spec, slots, noop)
             build = stage4_optimize.run(rank, spec, noop)
             build.list_id = str(revision_id)
-            verification = stage3c_verify.verify_build(build, category, noop)
+            verification = stage3c_verify.verify_build(
+                build,
+                category,
+                noop,
+                locale=response_locale,
+            )
 
             # 부품·가격·검증은 여기서 이미 확정됐다. [5] 설명 문장(LLM)은 아직 안 돌았으므로
             # reason=None 으로 저장한다 — add_candidate가 자동으로 reason_status='pending' 처리.
@@ -155,7 +184,13 @@ def execute_recommendation(revision_id: UUID, run_id: UUID) -> None:
             erepo = EngineRepo(conn)
             # rank 를 넘겨야 [3-B] 가 후보에 남긴 리뷰 관측 플래그를 [5] 가 읽는다.
             # 빼면 모든 슬롯이 "관측 없음" 이 되고, 감점만 남고 근거가 사라진다 (기본값이 None 이라 조용히).
-            explanation = stage5_explain.run(build, verification, noop, rank=rank)
+            explanation = stage5_explain.run(
+                build,
+                verification,
+                noop,
+                rank=rank,
+                locale=response_locale,
+            )
 
             for it in explanation.items:
                 candidate_id = candidate_id_by_slot.get(it.slot)
@@ -192,7 +227,10 @@ def execute_recommendation(revision_id: UUID, run_id: UUID) -> None:
             erepo.set_explanation(
                 run_id, headline=explanation.headline,
                 text=review_service.explanation_text_with_caveats(
-                    [it.reason for it in explanation.items], explanation.caveats),
+                    [it.reason for it in explanation.items],
+                    explanation.caveats,
+                    locale=response_locale,
+                ),
                 reasoning_log=trace,
             )
     except Exception:  # noqa: BLE001 — [5] 실패는 문장만 failed, 부품표는 이미 done인 채로 둔다
@@ -255,6 +293,9 @@ def get_stored_result(conn, revision_id: UUID) -> dict | None:
     if run is None:
         return None
 
+    input_snapshot = run.get("input_snapshot") or {}
+    content_language = normalize_locale(input_snapshot.get("response_locale"))
+
     revision = prepo.get_revision(revision_id)
     full = prepo.load_full(revision_id)
     values = {row["condition_key"]: row["value"].get("value") for row in full["conditions"]}
@@ -266,6 +307,7 @@ def get_stored_result(conn, revision_id: UUID) -> dict | None:
 
     result: dict = {
         "list_id": str(revision["plan_id"]), "run_id": str(run["id"]), "status": status,
+        "content_language": content_language,
         "progress": [
             {"step": "conditions", "label": "조건 정리", "status": "done"},
             {"step": "candidates", "label": "후보 수집", "status": "done" if status != "running" else "running"},
@@ -411,17 +453,27 @@ def swap_item(conn, revision_id: UUID, item_id: UUID, candidate_id: UUID) -> dic
 
 
 _SLOT_SYNONYMS: dict[str, str] = {
-    "그래픽카드": "GPU", "그래픽": "GPU", "지포스": "GPU", "라데온": "GPU", "gpu": "GPU",
-    "씨피유": "CPU", "프로세서": "CPU", "cpu": "CPU",
-    "램": "RAM", "메모리": "RAM", "ram": "RAM",
-    "메인보드": "메인보드", "마더보드": "메인보드",
-    "저장장치": "저장장치", "에스에스디": "저장장치", "ssd": "저장장치", "하드": "저장장치",
-    "파워": "파워", "전원": "파워",
-    "케이스": "케이스",
-    "쿨러": "쿨러", "쿨링": "쿨러",
+    "그래픽카드": "GPU", "그래픽": "GPU", "지포스": "GPU", "라데온": "GPU",
+    "graphics card": "GPU", "graphics": "GPU", "gpu": "GPU",
+    "씨피유": "CPU", "프로세서": "CPU", "processor": "CPU", "cpu": "CPU",
+    "램": "RAM", "메모리": "RAM", "memory": "RAM", "ram": "RAM",
+    "메인보드": "메인보드", "마더보드": "메인보드", "motherboard": "메인보드", "mainboard": "메인보드",
+    "저장장치": "저장장치", "에스에스디": "저장장치", "hard drive": "저장장치",
+    "storage": "저장장치", "ssd": "저장장치", "hdd": "저장장치", "하드": "저장장치",
+    "파워": "파워", "전원": "파워", "power supply": "파워", "psu": "파워",
+    "케이스": "케이스", "case": "케이스", "chassis": "케이스",
+    "쿨러": "쿨러", "쿨링": "쿨러", "cooler": "쿨러", "cooling": "쿨러",
 }
-_CHEAPER_WORDS = ("저렴", "싸게", "싼", "가성비", "낮은", "절약")
-_PRICIER_WORDS = ("고급", "좋은", "성능", "비싼", "상위", "프리미엄")
+_CHEAPER_WORDS = ("저렴", "싸게", "싼", "가성비", "낮은", "절약", "cheap", "cheaper", "budget", "save")
+_PRICIER_WORDS = ("고급", "좋은", "성능", "비싼", "상위", "프리미엄", "better", "premium", "faster", "upgrade")
+_SUMMARY_WORDS = ("총평", "전체 평가", "요약", "overall assessment", "overall review", "summary")
+_EN_SLOT_LABELS = {
+    "메인보드": "motherboard",
+    "저장장치": "storage",
+    "파워": "power supply",
+    "케이스": "case",
+    "쿨러": "cooler",
+}
 
 
 def _match_slot(text: str, known_slots: set[str]) -> str | None:
@@ -432,20 +484,66 @@ def _match_slot(text: str, known_slots: set[str]) -> str | None:
     return next((slot for slot in known_slots if slot.lower() in lowered), None)
 
 
-def handle_result_message(conn, revision_id: UUID, text: str) -> dict:
+def _result_change_direction(text: str) -> str | None:
+    lowered = text.lower()
+    if any(word in lowered for word in _CHEAPER_WORDS):
+        return "cheaper"
+    if any(word in lowered for word in _PRICIER_WORDS):
+        return "pricier"
+    return None
+
+
+def _is_result_summary_request(text: str) -> bool:
+    lowered = text.lower()
+    return any(word in lowered for word in _SUMMARY_WORDS)
+
+
+def handle_result_message(
+    conn,
+    revision_id: UUID,
+    text: str,
+    *,
+    locale: Locale = "ko-KR",
+) -> dict:
     """규칙 기반 결과 화면 채팅 — "그래픽카드를 더 저렴한 걸로" 같은 요청만 해석한다.
     슬롯·방향을 못 찾으면 아무것도 바꾸지 않고 이해하지 못했다는 답만 돌려준다."""
+    locale = normalize_locale(locale)
     erepo, run = _require_done_run(conn, revision_id)
+    result = get_stored_result(conn, revision_id)
+    if _is_result_summary_request(text):
+        explanation = (result or {}).get("explanation") or {}
+        summary = explanation.get("text") or explanation.get("headline")
+        if summary:
+            return {"reply": summary, "result": result}
+        reply = (
+            "The overall assessment is still being prepared. Please try again shortly."
+            if locale == "en-US"
+            else "전체 구성 총평을 아직 준비하고 있어요. 잠시 후 다시 물어봐 주세요."
+        )
+        return {"reply": reply, "result": result}
+
     rows = erepo.get_candidates(run["id"])
     known_slots = {r["slot"] for r in rows}
     slot = _match_slot(text, known_slots)
     if slot is None:
+        if locale == "en-US":
+            return {
+                "reply": "I couldn't tell which part to change. Include a part name "
+                         "(for example, graphics card) and a direction such as cheaper or better.",
+                "result": get_stored_result(conn, revision_id),
+            }
         return {"reply": "무엇을 바꿀지 이해하지 못했어요. 부품 이름(예: 그래픽카드)과 원하시는 "
                           "방향(더 저렴한/더 좋은)을 함께 말씀해 주세요.",
                 "result": get_stored_result(conn, revision_id)}
-    cheaper = any(w in text for w in _CHEAPER_WORDS)
-    pricier = any(w in text for w in _PRICIER_WORDS)
-    if not cheaper and not pricier:
+    change_direction = _result_change_direction(text)
+    cheaper = change_direction == "cheaper"
+    if change_direction is None:
+        if locale == "en-US":
+            label = _EN_SLOT_LABELS.get(slot, slot)
+            return {
+                "reply": f"How should I change the {label}? Try 'make it cheaper' or 'choose a better one'.",
+                "result": get_stored_result(conn, revision_id),
+            }
         return {"reply": f"{slot}를 어떻게 바꿔드릴까요? '더 저렴한 걸로' 또는 '더 좋은 걸로'처럼 말씀해 주세요.",
                 "result": get_stored_result(conn, revision_id)}
 
@@ -459,12 +557,25 @@ def handle_result_message(conn, revision_id: UUID, text: str) -> dict:
     candidates = [r for r in others if r["price"] < current_price] if cheaper \
         else [r for r in others if r["price"] > current_price]
     if not candidates:
+        if locale == "en-US":
+            label = _EN_SLOT_LABELS.get(slot, slot)
+            state = "least expensive" if cheaper else "highest-tier"
+            direction = "cheaper" if cheaper else "better"
+            return {
+                "reply": f"The selected {label} is already the {state} option. No {direction} candidate is available.",
+                "result": get_stored_result(conn, revision_id),
+            }
         state = "가장 저렴해요" if cheaper else "가장 고급이에요"
         return {"reply": f"지금 선택된 {slot}가 이미 {state}. 더 {'저렴한' if cheaper else '좋은'} 후보가 없어요.",
                 "result": get_stored_result(conn, revision_id)}
     target = min(candidates, key=lambda r: r["price"]) if cheaper else max(candidates, key=lambda r: r["price"])
     erepo.update_candidate_variant(current["id"], variant_id=target["variant_id"],
                                     offer_observation_id=target.get("offer_observation_id"))
-    direction = "더 저렴한" if cheaper else "더 좋은"
-    reply = f"{slot}를 {direction} '{target['name']}'(으)로 바꿨어요."
+    if locale == "en-US":
+        label = _EN_SLOT_LABELS.get(slot, slot)
+        direction = "less expensive" if cheaper else "higher-tier"
+        reply = f"Changed the {label} to the {direction} '{target['name']}'."
+    else:
+        direction = "더 저렴한" if cheaper else "더 좋은"
+        reply = f"{slot}를 {direction} '{target['name']}'(으)로 바꿨어요."
     return {"reply": reply, "result": get_stored_result(conn, revision_id)}

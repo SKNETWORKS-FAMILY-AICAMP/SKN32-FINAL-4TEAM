@@ -5,6 +5,7 @@ assembled_self_reported 확인 후 게시(C11). 외부 리뷰 원문 미저장.
 """
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 from src.config import REVIEW_SUMMARIES_DEMO
@@ -12,6 +13,9 @@ from src.errors import NotFound
 from src.repo.review_repo import (OBS_LABEL, SUSPECT_SOURCE, ReviewSummaryDemoFile,
                                  default_risk_store, default_suspect_counts)
 from src.schemas import ProductRiskOut, ReviewSummaryOut, ReviewTelemetry, SyntheticDemoOut
+
+if TYPE_CHECKING:
+    from src.i18n import Locale
 
 TELEMETRY_KEY = "telemetry"
 
@@ -226,9 +230,15 @@ def review_demotion_step(demoted_by_slot: dict[str, list[dict]] | None) -> dict 
     }
 
 
-def explanation_text_with_caveats(item_reasons: list[str], caveats: list[str]) -> str:
+def explanation_text_with_caveats(
+    item_reasons: list[str],
+    caveats: list[str],
+    *,
+    locale: Locale = "ko-KR",
+) -> str:
     """explanation_text = 추천 이유 목록 + 확인이 필요한 것. caveats 가 비면 이유만."""
     body = "\n".join(f"- {r}" for r in item_reasons)
     if not caveats:
         return body
-    return body + "\n\n확인이 필요한 것:\n" + "\n".join(f"- {c}" for c in caveats)
+    heading = "Things to check:" if locale == "en-US" else "확인이 필요한 것:"
+    return body + f"\n\n{heading}\n" + "\n".join(f"- {c}" for c in caveats)

@@ -12,8 +12,8 @@ _WON = re.compile(r"(\d+(?:[.,]\d+)?)\s*억|(\d+(?:[.,]\d+)?)\s*(?:천만|천\s*
 
 
 def _parse_won(text: str) -> int | None:
-    """'150만원' '1500000원' '1.5억' 같은 표현 → 정수 원."""
-    text = text.replace(",", "")
+    """'150만원', '₩1,500,000', '1.5 million won' 같은 표현 → 정수 원."""
+    text = text.replace(",", "").lower()
     m = re.search(r"(\d+(?:\.\d+)?)\s*억", text)
     if m:
         return int(float(m.group(1)) * 100_000_000)
@@ -26,6 +26,16 @@ def _parse_won(text: str) -> int | None:
     m = re.search(r"(\d{4,})\s*원", text)
     if m:
         return int(m.group(1))
+    m = re.search(r"(?:₩|krw\s*)(\d{4,})", text)
+    if m:
+        return int(m.group(1))
+    m = re.search(r"(\d+(?:\.\d+)?)\s*(million|thousand|m|k)\s*(?:won|krw)?\b", text)
+    if m:
+        multiplier = 1_000_000 if m.group(2) in {"million", "m"} else 1_000
+        return int(float(m.group(1)) * multiplier)
+    m = re.search(r"(\d{4,})\s*(?:won|krw)\b", text)
+    if m:
+        return int(m.group(1))
     return None
 
 
@@ -35,26 +45,46 @@ def _parse_months(text: str) -> int | None:
         return int(m.group(1))
     if re.search(r"출산\s*예정|임신|태어나기\s*전", text):
         return None
+    m = re.search(r"(\d+)\s*(?:months?|mos?|mo)\b", text, re.IGNORECASE)
+    if m:
+        return int(m.group(1))
+    m = re.search(r"(\d+)\s*(?:years?|yrs?|yr)\b", text, re.IGNORECASE)
+    if m:
+        return int(m.group(1)) * 12
     return None
 
 
 _PURPOSE = [
-    ("game", ["게임", "롤", "옵치", "배그", "발로란트"]),
-    ("creation", ["작업", "창작", "편집", "영상", "디자인", "3d", "렌더"]),
-    ("office", ["사무", "문서", "엑셀", "인터넷", "office"]),
-    ("study", ["공부", "학습", "온라인 강의", "인강"]),
+    ("game", ["게임", "롤", "옵치", "배그", "발로란트", "game", "gaming", "esports"]),
+    ("creation", ["작업", "창작", "편집", "영상", "디자인", "3d", "렌더", "creator", "editing", "video", "render", "design"]),
+    ("office", ["사무", "문서", "엑셀", "인터넷", "office", "work", "spreadsheet", "browsing"]),
+    ("study", ["공부", "학습", "온라인 강의", "인강", "study", "school", "class", "lecture"]),
 ]
 
 _PRIORITY = [
-    ("performance", ["성능", "빠른", "고사양"]),
-    ("value", ["가성비", "저렴", "싸게", "가격"]),
-    ("quiet", ["조용", "저소음", "소음"]),
+    ("performance", ["성능", "빠른", "고사양", "performance", "fast", "high-end", "fps"]),
+    ("value", ["가성비", "저렴", "싸게", "가격", "value", "budget", "affordable", "cheap"]),
+    ("quiet", ["조용", "저소음", "소음", "quiet", "silent", "low noise"]),
 ]
 
-_NEEDS = ["수유", "이유식", "수면", "외출", "목욕", "위생", "기저귀", "배변", "의류", "놀이", "안전", "건강"]
+_NEEDS = [
+    ("수유", ["수유", "feeding", "bottle", "nursing", "formula"]),
+    ("이유식", ["이유식", "weaning", "solid food", "baby food"]),
+    ("수면", ["수면", "sleep", "crib", "nap"]),
+    ("외출", ["외출", "outing", "stroller", "car seat", "carrier", "travel"]),
+    ("목욕", ["목욕", "bath"]),
+    ("위생", ["위생", "hygiene", "wash"]),
+    ("기저귀", ["기저귀", "diaper"]),
+    ("배변", ["배변", "potty"]),
+    ("의류", ["의류", "clothes", "clothing"]),
+    ("놀이", ["놀이", "play", "toy"]),
+    ("안전", ["안전", "safety"]),
+    ("건강", ["건강", "health"]),
+]
 
 
 def _first_match(text: str, table: list[tuple[str, list[str]]]) -> str | None:
+    text = text.lower()
     for value, keywords in table:
         if any(k in text for k in keywords):
             return value
@@ -84,22 +114,23 @@ def extract_computer(text: str) -> dict:
 
 def extract_baby(text: str) -> dict:
     out: dict = {}
+    lowered = text.lower()
     budget = _parse_won(text)
     if budget:
         out["budget_max"] = budget
     months = _parse_months(text)
     if months is not None:
         out["age_months"] = months
-    matched_needs = [n for n in _NEEDS if n in text]
+    matched_needs = [value for value, keywords in _NEEDS if any(k in lowered for k in keywords)]
     if matched_needs:
         out["needs"] = matched_needs
-    if re.search(r"아토피", text):
+    if re.search(r"아토피|atopic|atopy", lowered):
         out["health_skin"] = ["아토피"]
-    elif re.search(r"민감", text):
+    elif re.search(r"민감|sensitive|eczema", lowered):
         out["health_skin"] = ["민감성 피부"]
-    elif re.search(r"특이사항\s*없|없어요|괜찮아요", text):
+    elif re.search(r"특이사항\s*없|없어요|괜찮아요|no (?:skin )?issues?|normal skin", lowered):
         out["health_skin"] = ["none"]
-    if re.search(r"없어요|없음|아직\s*없", text) and "owned_items" not in out:
+    if re.search(r"없어요|없음|아직\s*없|\b(?:none|nothing|not yet|don't have|do not have)\b", lowered) and "owned_items" not in out:
         out["owned_items"] = ["none"]
     return out
 

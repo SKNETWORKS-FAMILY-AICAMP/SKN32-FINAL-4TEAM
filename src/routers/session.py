@@ -6,6 +6,7 @@ from src import schemas
 from src.auth.deps import Principal, optional_principal
 from src.db import get_conn
 from src.errors import NotFound
+from src.i18n import Locale, resolve_locale
 from src.repo.plan_repo import PlanRepo
 from src.services import recommendation_service, session_service
 
@@ -52,10 +53,21 @@ def reset(list_id: UUID, principal: Principal = Depends(optional_principal)) -> 
         return schemas.ConditionState(**session_service.reset_conditions(conn, list_id, principal))
 
 @router.post("/{list_id}/recommend", response_model=schemas.RecommendAcceptedOut, status_code=status.HTTP_202_ACCEPTED)
-def recommend(list_id: UUID, body: schemas.RecommendIn = schemas.RecommendIn(), background_tasks: BackgroundTasks = None, principal: Principal = Depends(optional_principal)) -> schemas.RecommendAcceptedOut:
+def recommend(
+    list_id: UUID,
+    body: schemas.RecommendIn = schemas.RecommendIn(),
+    background_tasks: BackgroundTasks = None,
+    principal: Principal = Depends(optional_principal),
+    locale: Locale = Depends(resolve_locale),
+) -> schemas.RecommendAcceptedOut:
     with get_conn() as conn:
         revision = session_service._owned(PlanRepo(conn), list_id, principal)
-        accepted = recommendation_service.start_recommendation(conn, revision["id"], strategy=body.strategy or "default")
+        accepted = recommendation_service.start_recommendation(
+            conn,
+            revision["id"],
+            strategy=body.strategy or "default",
+            locale=locale,
+        )
     background_tasks.add_task(recommendation_service.execute_recommendation, revision["id"], UUID(accepted["run_id"]))
     return schemas.RecommendAcceptedOut(**accepted)
 
@@ -90,10 +102,20 @@ def swap(list_id: UUID, item_id: UUID, body: schemas.SwapIn, principal: Principa
     return schemas.RecommendResultOut(**stored)
 
 @router.post("/{list_id}/result-message", response_model=schemas.ResultMessageOut)
-def result_message(list_id: UUID, body: schemas.ResultMessageIn, principal: Principal = Depends(optional_principal)) -> schemas.ResultMessageOut:
+def result_message(
+    list_id: UUID,
+    body: schemas.ResultMessageIn,
+    principal: Principal = Depends(optional_principal),
+    locale: Locale = Depends(resolve_locale),
+) -> schemas.ResultMessageOut:
     with get_conn() as conn:
         revision = session_service._owned(PlanRepo(conn), list_id, principal)
-        stored = recommendation_service.handle_result_message(conn, revision["id"], body.text)
+        stored = recommendation_service.handle_result_message(
+            conn,
+            revision["id"],
+            body.text,
+            locale=locale,
+        )
     return schemas.ResultMessageOut(**stored)
 
 @router.post("/{list_id}/spec-file", response_model=schemas.ConditionState)

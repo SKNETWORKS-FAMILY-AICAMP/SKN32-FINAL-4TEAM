@@ -3,7 +3,9 @@
 이전엔 recommendation_run_id/candidates 모양(구 계약)을 검증했으나, 프론트 계약서가
 list_id/run_id/items 모양(§D-4-2)으로 확정되면서 스키마가 교체됐다 — 이 테스트도 같이 갱신.
 """
+import pytest
 from fastapi import FastAPI
+from pydantic import ValidationError
 
 from src.schemas import ItemOut, ProductOut, RecommendAcceptedOut, RecommendResultOut, TextStatusOut
 
@@ -17,7 +19,10 @@ def test_recommendation_response_is_explicit_in_openapi() -> None:
 
     schema = app.openapi()["components"]["schemas"]
     response = schema["RecommendResultOut"]
-    assert {"list_id", "run_id", "status", "items", "totals", "verification", "explanation"} <= set(
+    assert {
+        "list_id", "run_id", "status", "content_language", "items", "totals",
+        "verification", "explanation",
+    } <= set(
         response["properties"]
     )
     assert response["properties"]["items"]["items"]["$ref"].endswith("/ItemOut")
@@ -44,6 +49,27 @@ def test_result_out_builds_from_plain_dict() -> None:
     )
     assert result.items[0].product.name == "GeForce RTX 4060"
     assert result.explanation.status == "pending"  # 기본값
+    assert result.content_language == "ko-KR"
+
+
+def test_result_language_accepts_only_supported_locales() -> None:
+    english = RecommendResultOut(
+        list_id="list-1",
+        run_id="run-1",
+        status="done",
+        category="computer",
+        content_language="en-US",
+    )
+    assert english.content_language == "en-US"
+
+    with pytest.raises(ValidationError):
+        RecommendResultOut(
+            list_id="list-1",
+            run_id="run-1",
+            status="done",
+            category="computer",
+            content_language="fr-FR",
+        )
 
 
 def test_mutable_schema_defaults_are_not_shared() -> None:

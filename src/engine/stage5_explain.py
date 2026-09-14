@@ -9,21 +9,48 @@
 """
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from src.clients.llm_client import call_llm
 from src.dto import (BuildResult, Explanation, ExplanationDraft, ExplanationItem, RankResult,
                      VerificationResult)
 from src.engine import LogFn
-from src.engine.prompts import EXPLAIN_SYSTEM
+from src.engine.prompts import explain_system
 from src.repo.review_repo import (OBS_LABEL, default_risk_store, default_suspect_counts,
                                  is_obs_flag, parse_obs_flag, risk_store_note)
 
-_AXIS_MAP = {"가격": "가격", "성능": "성능", "밸런스": "호환성", "호환여유": "호환성"}
+if TYPE_CHECKING:
+    from src.i18n import Locale
 
-# 앞 둘: 이 모듈은 점수를 만들지 않는다. 문장에 섞이면 관측이 점수로 읽힌다 (docs/decisions/0001).
-# 가운데 넷: 지시문 문구가 결과에 들어오면 모델이 프롬프트를 베낀 것이다 — 실제로 한 번 그랬다.
+_AXIS_MAP = {"가격": "가격", "성능": "성능", "밸런스": "호환성", "호환여유": "호환성"}
+_EN_LABELS = {
+    "가격": "price",
+    "성능": "performance",
+    "밸런스": "balance",
+    "호환성": "compatibility",
+    "호환여유": "compatibility headroom",
+    "예산": "budget",
+    "리뷰 진위 (담당 팀원)": "review authenticity",
+    "RAG 근거 (담당 팀원)": "RAG evidence",
+    "메인보드": "Motherboard",
+    "저장장치": "Storage",
+    "파워": "Power supply",
+    "케이스": "Case",
+    "쿨러": "Cooler",
+}
+_OBS_LABEL_EN = {
+    "burst7": "7-day concentration",
+    "one_off_rate": "single-review account rate",
+    "prolific_rate": "prolific reviewer rate",
+}
+
+# 앞 넷: 지시문 문구가 결과에 들어오면 모델이 프롬프트를 베낀 것이다 — 실제로 한 번 그랬다.
 # 마지막 여섯: 평가·마케팅 표현 — 규칙 7 위반(실호출에서 "강력한 성능"처럼 새나온 적 있다).
-_BANNED_IN_DRAFT = ("score", "점수", "1~2문장", "문장 한두 개", "슬롯마다", "지시문",
-                    "강력", "뛰어나", "최고", "압도적", "완벽", "훌륭")
+_BANNED_IN_DRAFT = (
+    "1~2문장", "문장 한두 개", "슬롯마다", "지시문",
+    "강력", "뛰어나", "최고", "압도적", "완벽", "훌륭",
+    "powerful", "excellent", "best", "perfect", "outstanding", "unmatched",
+)
 
 
 def _ranked_flags(rank: RankResult | None, slot: str, product_key: str) -> list[str]:
@@ -35,11 +62,34 @@ def _ranked_flags(rank: RankResult | None, slot: str, product_key: str) -> list[
     return []
 
 
-def _review_line(product_key: str, flags: list[str]) -> tuple[str, list[dict], str | None]:
+def _english_label(value: str) -> str:
+    return _EN_LABELS.get(value, value)
+
+
+def _risk_store_note_en(note: str) -> str:
+    if note == "리뷰 수 문턱 미만이거나 데이터 기간 밖":
+        return "below the review-count threshold or outside the data period"
+    if note.startswith("산출물 미탑재 — "):
+        return "risk artifact unavailable — " + note.split(" — ", 1)[1]
+    if note.startswith("대조군 범위 불일치 — "):
+        return "comparison-group scope mismatch — " + note.split(" — ", 1)[1]
+    if note.startswith("산출물을 읽지 못함 — "):
+        return "could not read the risk artifact — " + note.split(" — ", 1)[1]
+    return note
+
+
+def _review_line(
+    product_key: str,
+    flags: list[str],
+    *,
+    locale: Locale = "ko-KR",
+) -> tuple[str, list[dict], str | None]:
     """(슬롯 한 줄, 근거 목록, 주의 문장 또는 None). flags 가 없으면 관측 없음."""
     if not flags:
         # 왜 없는지를 원인별로 말한다 — 산출물 미탑재를 "문턱 미만" 으로 보이게 하면
         # 파일을 안 받은 사람이 그 사실을 모른다
+        if locale == "en-US":
+            return f"No review observations ({_risk_store_note_en(risk_store_note())})", [], None
         return f"리뷰 관측 없음 ({risk_store_note()})", [], None
     store = default_risk_store()
     facts = store.get(product_key) if store else None
@@ -56,7 +106,22 @@ def _review_line(product_key: str, flags: list[str]) -> tuple[str, list[dict], s
         if line:
             evidence.append({"kind": "review_suspect_rule", "text": line, "verify_url": None})
     if not over:
+        if locale == "en-US":
+            return f"Observed {n} reviews — no values above the comparison-group median", evidence, None
         return f"리뷰 {n}건 관측 — 대조군 중앙값 대비 특이 없음", evidence, None
+    if locale == "en-US":
+        parts = [
+            f"{_OBS_LABEL_EN.get(k, k)} {100 * v:.1f}% "
+            f"(comparison-group median {100 * m:.1f}%)"
+            for k, v, m in over
+        ]
+        line = f"Observed {n} reviews — " + " · ".join(parts) + " — review recommended"
+        labels = ", ".join(_OBS_LABEL_EN.get(k, k) for k, _, _ in over)
+        caveat = (
+            f"Review observations ({labels}) are product-level signals, not judgments "
+            "about individual review authenticity."
+        )
+        return line, evidence, caveat
     parts = [f"{OBS_LABEL.get(k, k)} {100 * v:.1f}% (부류 중앙값 {100 * m:.1f}%)" for k, v, m in over]
     line = f"리뷰 {n}건 관측 — " + " · ".join(parts) + " — 검토 권장"
     caveat = (f"리뷰 관측({', '.join(OBS_LABEL.get(k, k) for k, _, _ in over)})은 "
@@ -92,7 +157,8 @@ def _top_axes(rank: RankResult | None, slot: str, product_key: str) -> str:
 
 
 def _llm_draft(build: BuildResult, verification: VerificationResult,
-               rank: RankResult | None, log: LogFn) -> ExplanationDraft | None:
+               rank: RankResult | None, log: LogFn, *,
+               locale: Locale = "ko-KR") -> ExplanationDraft | None:
     """문장 초안 1회 생성. 검사를 통과한 것만 돌려주고 아니면 None → 규칙 템플릿 (§11-6).
 
     수치·부품명·통과여부는 아래 입력으로 확정해 준다. LLM 이 슬롯을 바꾸거나 다른 슬롯의
@@ -120,13 +186,14 @@ def _llm_draft(build: BuildResult, verification: VerificationResult,
     for _attempt in range(2):
         try:
             draft = ExplanationDraft.model_validate(
-                call_llm("\n".join(lines), system=EXPLAIN_SYSTEM, output_schema=schema))
+                call_llm("\n".join(lines), system=explain_system(locale), output_schema=schema))
         except Exception as exc:
             log(f"      [5] 문장 생성 실패 ({type(exc).__name__}) → 규칙 템플릿")
             return None
         if {i.slot for i in draft.items} != want:
             continue
-        if any(w in draft.model_dump_json() for w in _BANNED_IN_DRAFT):
+        draft_text = draft.model_dump_json().casefold()
+        if any(w.casefold() in draft_text for w in _BANNED_IN_DRAFT):
             continue
         if any(other and other in i.reason
                for i in draft.items
@@ -139,8 +206,34 @@ def _llm_draft(build: BuildResult, verification: VerificationResult,
     return None
 
 
+def _fallback_reason(item, locale: Locale) -> str:
+    if locale == "en-US":
+        return (f"{item.name} — meets the requirements, ranked #{item.rank_from_3b}, "
+                f"₩{item.price:,}")
+    return f"{item.name} — 조건 충족, {item.rank_from_3b}순위, {item.price:,}원"
+
+
+def _gray_axis_caveat(axis: str, locale: Locale) -> str:
+    if locale == "en-US":
+        return f"Evidence for {_english_label(axis)} could not be verified."
+    return f"{axis} 근거는 확인되지 않았습니다"
+
+
+def _fallback_headline(build: BuildResult, confidence: int, gray: list[str],
+                       locale: Locale) -> str:
+    budget = build.budget.get("max", 0)
+    used = build.totals.get("price", 0)
+    if locale == "en-US":
+        gap_label = "evidence gap" if len(gray) == 1 else "evidence gaps"
+        suffix = "." if not gray else f" ({len(gray)} {gap_label})."
+        return (f"Used ₩{used:,} of the ₩{budget:,} budget; build verification confidence "
+                f"is {confidence}/100{suffix}")
+    return (f"예산 {budget:,}원 중 {used:,}원 사용, 세트 검증 신뢰도 {confidence}점"
+            + ("." if not gray else f" (회색축 {len(gray)}개)."))
+
+
 def run(build: BuildResult, verification: VerificationResult, log: LogFn,
-        rank: RankResult | None = None) -> Explanation:
+        rank: RankResult | None = None, *, locale: Locale = "ko-KR") -> Explanation:
     log("[5] 설명 생성 ...")
     contrib = _contribution(build)
     tgt = verification.targets[0] if verification.targets else None
@@ -148,30 +241,31 @@ def run(build: BuildResult, verification: VerificationResult, log: LogFn,
     conf = tgt.confidence if tgt else 0
 
     # 리뷰 관측(review_line_by_slot·evidence)은 규칙이 만든 것을 그대로 둔다 — LLM 은 건드리지 않는다.
-    draft = _llm_draft(build, verification, rank, log)
+    draft = _llm_draft(build, verification, rank, log, locale=locale)
     reason_by_slot = {i.slot: i.reason for i in draft.items} if draft else {}
 
     items, review_lines, review_caveats = [], {}, []
     for it in build.items:
-        line, evidence, caveat = _review_line(it.product_key, _ranked_flags(rank, it.slot, it.product_key))
+        line, evidence, caveat = _review_line(
+            it.product_key,
+            _ranked_flags(rank, it.slot, it.product_key),
+            locale=locale,
+        )
         review_lines[it.slot] = line
         if caveat:
-            review_caveats.append(f"{it.slot} {caveat}")
+            slot_label = _english_label(it.slot) if locale == "en-US" else it.slot
+            review_caveats.append(f"{slot_label} {caveat}")
         items.append(ExplanationItem(
             slot=it.slot,
-            reason=(reason_by_slot.get(it.slot)
-                    or f"{it.name} — 조건 충족, {it.rank_from_3b}순위, {it.price:,}원"),
+            reason=(reason_by_slot.get(it.slot) or _fallback_reason(it, locale)),
             basis=[f"rank{it.rank_from_3b}"],
             evidence=evidence,
         ))
     # caveats 는 규칙이 소유한다 — 회색축과 리뷰 관측 둘 다 코드가 정확히 알고 있어서,
     # LLM 이 같은 내용을 다른 표현으로 또 쓰면 화면에 중복으로 나간다.
-    caveats = [f"{a} 근거는 확인되지 않았습니다" for a in gray] + review_caveats
-    headline = (draft.headline if draft and draft.headline else (
-        f"예산 {build.budget.get('max', 0):,}원 중 {build.totals.get('price', 0):,}원 사용, "
-        f"세트 검증 신뢰도 {conf}점"
-        + ("." if not gray else f" (회색축 {len(gray)}개).")
-    ))
+    caveats = [_gray_axis_caveat(a, locale) for a in gray] + review_caveats
+    headline = (draft.headline if draft and draft.headline
+                else _fallback_headline(build, conf, gray, locale))
     log(f"      기여도: 가격 {contrib['가격']}% / 성능 {contrib['성능']}% / 호환성 {contrib['호환성']}%")
     log(f"      문장: {'LLM' if draft else '규칙 템플릿'}")
     log(f"      headline: {headline}")
