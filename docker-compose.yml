@@ -1,7 +1,10 @@
-# 로컬 개발용 PostgreSQL 16 + pgvector.
-# RDS/Aurora PostgreSQL 16 과 동일한 마이그레이션이 적용된다 (db/migrate.py).
-#   docker compose up -d
+# 로컬 개발: db만 띄우고 앱은 호스트에서 uvicorn --reload로 돌린다.
+#   docker compose up -d db
 #   DATABASE_URL=postgresql://truefit:truefit@localhost:5432/truefit python db/migrate.py up
+#
+# 배포(AWS EC2 등): db + api를 같이 띄운다. .env는 이 파일과 같은 디렉터리에 있어야 한다.
+#   docker compose up -d --build
+#   docker compose exec api python db/migrate.py up   # 최초 1회, 마이그레이션 적용
 services:
   db:
     image: pgvector/pgvector:pg16
@@ -21,6 +24,18 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+
+  api:
+    build: .
+    env_file: .env
+    environment:
+      # 컨테이너 네트워크 안에서는 db가 localhost가 아니라 서비스명이다 — .env의 값을 덮어쓴다.
+      DATABASE_URL: postgresql://truefit:truefit@db:5432/truefit
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
 
 volumes:
   truefit_pgdata:
