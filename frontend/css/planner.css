@@ -253,8 +253,6 @@ body:has(.flow:not([hidden]))>header{display:none}
 .review-plain summary::before{content:'▸ '}
 .review-plain details[open] summary::before{content:'▾ '}
 .review-plain details ul{margin-top:6px}
-.review-plain .review-sources-label{margin:8px 0 2px;color:var(--tf-muted);font-size:12px}
-.review-plain .review-sources{color:var(--tf-muted);font-size:12px}
 .review-plain .review-verify{display:inline-block;margin-top:4px;color:inherit;font-size:12.5px}
 .review-plain .review-footer{margin:8px 0 0;color:var(--tf-muted);font-size:12px;line-height:1.5}
 .review-slide-footer{flex:none;border-top:1px solid var(--tf-border);padding:14px 20px 18px}

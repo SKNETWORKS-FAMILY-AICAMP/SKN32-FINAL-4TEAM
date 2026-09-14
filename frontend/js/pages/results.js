@@ -106,7 +106,7 @@ function tfReviewSignalsHtml(review, english) {
   + '<span class="review-signals-count">' + esc(countText) + '</span></h4>' + rows.join('') + '</div>';
 }
 // TF-DEV: Review Cleansing Summary — 서버가 만든 유저용 문장(review.plain, docs/리뷰관측_문장_초안.md)과 해석 안내문
-// (cleansing_summary, 요청 C)을 한 카드에 그린다: headline → points(살펴볼 점) → "자세히"(details·원문·아마존 링크) → 면책.
+// (cleansing_summary, 요청 C)을 한 카드에 그린다: headline → points(살펴볼 점) → "자세히"(details·아마존 링크) → 면책.
 // 프론트는 숫자로 문장을 만들거나 판정을 덧붙이지 않는다. 관측이 없으면(plain.reason) 사유 한 줄만 — 면책은 붙일 것이 없다.
 // plain 도 안내문도 없으면(옛 서버) 카드를 그리지 않는다.
 function tfReviewPlainBody(plain,english){
@@ -114,11 +114,11 @@ function tfReviewPlainBody(plain,english){
  const li=list=>(list||[]).map(t=>'<li>'+esc(t)+'</li>').join('');
  let body='<strong>'+esc(plain.headline)+'</strong>';
  if(plain.points?.length)body+='<ul class="review-points">'+li(plain.points)+'</ul>';
- const hasDetail=(plain.details?.length||plain.sources?.length||plain.verify_url);
+ const hasDetail=(plain.details?.length||plain.verify_url);
  if(hasDetail){
   body+='<details class="review-details"><summary>'+(english?'Details':'자세히')+'</summary>';
   if(plain.details?.length)body+='<ul>'+li(plain.details)+'</ul>';
-  if(plain.sources?.length)body+='<p class="review-sources-label">'+(english?'Source figures':'원문 수치')+'</p><ul class="review-sources">'+li(plain.sources)+'</ul>';
+  // plain.sources(산출물 원문 — "중앙값 · 신뢰구간" 표기)는 검토자용이라 화면에 내지 않는다(2026-09-15 결정). API 에는 남아 있다.
   if(plain.verify_url)body+='<a class="review-verify" href="'+esc(plain.verify_url)+'" target="_blank" rel="noopener">'+(english?'Check on Amazon ↗':'아마존에서 직접 보기 ↗')+'</a>';
   body+='</details>';
  }
