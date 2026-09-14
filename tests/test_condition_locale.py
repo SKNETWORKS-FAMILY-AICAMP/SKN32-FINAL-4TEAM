@@ -71,7 +71,7 @@ def test_existing_exact_assistant_messages_are_localized_on_read():
 
 
 def test_english_option_labels_are_accepted_as_answers():
-    question = load_category("computer")["question_sets"][0]
+    question = next(q for q in load_category("computer")["question_sets"] if q["id"] == "q_purpose")
 
     assert session_service._canonicalize_answer_values(question, ["Creative work"]) == ["creation"]
 
