@@ -2,253 +2,224 @@
 
 **English** · [한국어](README.ko.md)
 
-TrueFit turns a goal — *"a quiet gaming PC under ₩2,000,000"*, *"everything an 8-month-old needs for going out"* — into a concrete, budget-checked shopping list, and shows its work: why each item was chosen, which compatibility or safety checks passed or are still open, and what the review data actually shows about each product.
+> *"A quiet gaming PC for around $1,500."* — *"Everything an 8-month-old needs for going out."*
+> TrueFit turns a goal like that into a budget-checked shopping list, with the reasons, the open checks, and what the review data actually shows — and leaves the decision to the person.
 
-- **Two domains.** PC builds (set optimization + compatibility verification) and baby products (per-item safety gating + budget allocation).
-- **Agents where judgment needs language, code where it needs numbers.** Two [Strands Agents SDK](https://strandsagents.com/) agents run the free-text conversation and the result-screen edits through tool calls; ranking, verification scores, budget math and every persisted value come from code.
-- **Evidence, not scores.** Review analysis reports *observed facts* ("100 of 200 reviews landed within 7 days — category median 5.5%") and never a "fake review" verdict. Before-you-buy checks cite a care-guide passage. Explanations are generated from stored facts only.
+Built with the **Strands Agents SDK** for the AWS *Agents for Humans* hackathon, **Everyday Agents** track (home, money, family). MIT licensed.
 
-What it is **not**: it is not a store (purchase links go to sellers), the demo catalog prices and reviews are **synthetic** and labeled as such in the UI (`data_notice`), and it does not decide whether a review is fake or a part is "better".
+## The problem
 
-> Snapshot of branch `feat/sllm-work` on **2026-09-14** (upstream `develop` + 13 commits). Built for the AWS *Agents for Humans* hackathon; development continues to 2026-10-26. Sections marked *(Korean)* link to team documents written in Korean.
+Buying for a purpose is a research chore that repeats every time: a PC build is eight parts that must fit each other (socket, power, size) and a budget; baby gear is a dozen items whose safety depends on the child's age and weight and on recalls and certifications. The two sources people rely on are the least trustworthy — review scores that can be gamed, and recommendation sites that hand out a number without saying why.
 
-## What you see
+TrueFit is built on three refusals:
 
-Landing → Category → Conditions chat → Results → Confirm → Report, plus login/sign-up/account. Every screen is a separate static page under `frontend/` served by the API on the same origin; every value comes from the API and the database — no demo accounts, no client-side fake data. The UI has a Korean/English toggle; in an English session the server also writes its questions, chips, progress steps and explanations in English and reads unit-less budgets as US dollars (`USD_KRW_RATE`, fixed).
+1. **No verdict without a method.** It never says a review is fake or a part is "the best". It reports what can be checked — *"60 of 209 reviews landed in one 7-day window; the category median is 5.5%"* — and lets the reader decide.
+2. **Numbers from code, words from the model.** Ranking, verification, budget math and every value that gets stored are computed; the language model only turns free text into structured conditions and turns stored facts into sentences.
+3. **The agent proposes, the person decides.** Every recommendation is editable, every edit is a tool call on the same persisted plan, and nothing is purchased — links go to sellers.
 
-| Screen | Page | What happens |
-|---|---|---|
-| Category | `category.html` | Pick PC (new build / upgrade) or baby (expecting / born). Creates a guest session cookie — no login needed to get a recommendation |
-| Conditions | `conditions.html` | Mixed chat: chips for required fields, free text for anything else (`POST /session/{id}/message` → conditions agent when enabled, keyword rules otherwise). Upgrade mode accepts a text spec file |
-| Results | `results.html` | Items per slot with price, budget share, **reason**, **before-you-buy checks**, and a review line. Swap from alternatives, change quantity/timing, remove/restore, or type a request ("cheaper CPU") → result agent when enabled. "Show the process" opens `logs.html` |
-| Confirm | `confirm.html` | Name, planned purchase date, target amount, memo (pre-filled from the result). Login required from here on; a guest's baskets merge into the account on sign-up |
-| Report | `report.html` | Confirmed snapshot with seller links and an optional target-price watch |
+## What it does
 
-## Architecture
+Category → conditions chat → recommendation → confirm → report, in one browser flow. No login is needed until you save.
+
+| Step | What happens |
+|---|---|
+| **Conditions** | Chips for required fields, free text for everything else. A Strands agent turns *"quiet gaming PC, around $1,500, Elden Ring, white case if possible"* into typed, validated conditions and asks for whatever is still missing |
+| **Recommendation** | The engine builds candidates per slot, filters, ranks (review observations demote, never exclude), optimizes the set, verifies it and re-searches once if confidence is low. Each item carries a reason, *before-you-buy* checks that cite a care guide, and a review observation line |
+| **Edit by talking** | *"Swap the CPU for a cheaper one and tell me why the GPU was picked"* — a second Strands agent looks up alternatives, swaps, changes quantity or timing, or explains from stored evidence only |
+| **Confirm & report** | Name, purchase date, target amount, memo; the confirmed snapshot keeps seller links and an optional target-price watch |
+
+Two domains share the engine: **PC builds** (optimize the set, then verify it as a whole) and **baby products** (verify each item against manual, recall and certification rules first, then allocate the budget). The UI and the server both speak Korean and English; English sessions read unit-less budgets as US dollars.
+
+## See it
+
+<table>
+<tr>
+<td width="50%"><img src="docs/screenshots/02-conditions.png" alt="Conditions chat: one free-text sentence becomes typed conditions"><br><sub>One sentence → purpose, budget ($1,500 → USD), priority, game title, and a free-form extra ("white case") — all set by the conditions agent through validated tool calls.</sub></td>
+<td width="50%"><img src="docs/screenshots/03-results.png" alt="Recommendation summary"><br><sub>The explanation is generated from stored facts only, and says what it could not do: the extra request was not applied automatically, and two checks are still unverified.</sub><br><br><img src="docs/screenshots/04-result-chat.png" alt="Result chat: swap the CPU and explain the GPU"><br><sub>The result agent swaps through the same service the buttons use, then explains the GPU from the stored reason.</sub></td>
+</tr>
+</table>
+
+Screenshots are from a real session on 2026-09-14 (`gpt-4o-mini`, synthetic catalog). Prices in the demo are **synthetic** and the UI says so.
+
+## Built on Strands Agents
+
+Two agents, both opt-in, both constructed per request with the plan's current state in their tools.
+
+| Agent | Turn | Tools | What the code enforces |
+|---|---|---|---|
+| **Conditions agent** — [`src/agent/conditions_agent.py`](src/agent/conditions_agent.py) | `POST /session/{id}/message` | `set_condition` · `add_extra_condition` · `clear_condition` | Only fields in `config/categories/<cat>.yaml`'s `slot_schema` exist. Enum, type, range and currency are checked in the tool; a bad value comes back as an error string the model must correct. Which fields are required and what to ask next is computed by the service after every tool call and fed back. The agent never touches the database — its patches are applied by `session_service` with the same origin tag as the rule-based path |
+| **Result agent** — [`src/agent/result_agent.py`](src/agent/result_agent.py) | `POST /session/{id}/result-message` | `list_alternatives` · `swap` · `set_qty` · `set_timing` · `remove_or_restore` · `explain` | Every tool wraps an existing service call, so ownership checks and totals recomputation are the same as for the buttons. `swap` only accepts a candidate the service knows for that item — a forged id is rejected. `explain` returns the stored reason, budget share, verification issues and review observation — it cannot rate a part or a review |
+
+```python
+@tool
+def set_condition(field: str, value: str) -> str:
+    """Set one condition field. Amounts keep the unit the user said ("$1,500", "150만원") — code converts."""
+    return draft.set(field, value)        # validates against the category schema; returns an error string on failure
+
+agent = Agent(
+    model=OpenAIModel(client_args={"api_key": OPENAI_API_KEY}, model_id=LLM_MODEL, params={"temperature": 0.2}),
+    system_prompt=system_prompt(draft, text, history),   # field list, chip→value map, remaining required fields
+    tools=make_tools(draft),
+    messages=_history(history),
+    tool_executor=SequentialToolExecutor(),                # tools mutate one draft in order
+)
+result = agent(text)                                       # reply for the person; draft.patches for the service
+```
+
+What is non-obvious about the setup:
+
+- **Tools are the only way to change state, and they are validated like an API.** `"$1,500"` becomes `budget_max=2,100,000 KRW` + `currency=USD`; `"purple"` for the priority field comes back as an error listing the allowed values (`performance`, `value`, `quiet`) and the model retries. Every call and its outcome is logged per turn.
+- **The service, not the agent, decides what is required.** After each tool call the tool result carries the recomputed missing-field list and the next question, so the model asks exactly what the rule engine would have asked — and stops when `can_recommend` flips.
+- **The result agent operates on the persisted plan, not on a transcript.** Swaps and edits go through the same code path as the UI buttons and are visible there immediately. A swap does not silently re-verify the build; the tool result says so and the agent relays it.
+- **Same model, two jobs, one rule.** The engine uses the same OpenAI client for the verification-issue sentences and the explanation, but only ever with facts it computed. Turning the model off (`MOCK_MODE=1`) leaves every number unchanged and replaces the prose with placeholders.
+
+Enable: `MOCK_MODE=0 · LLM_PROVIDER=openai · LLM_MODEL · OPENAI_API_KEY` plus `CONDITIONS_AGENT=1` / `RESULT_AGENT=1`. The model provider is one function (`_model()`); Strands' Bedrock model class drops in there. Design notes *(Korean)*: [conditions agent](docs/조건대화_에이전트_strands.md) · [result agent](docs/결과화면_에이전트_strands.md).
+
+## How it works
+
+![Architecture](docs/architecture.png)
+
+<details>
+<summary>Mermaid source</summary>
 
 ```mermaid
 flowchart LR
-  subgraph Browser["Browser — frontend/ (10 static pages, KO/EN)"]
-    UI["TF_API fetch wrapper<br/>httpOnly cookies only"]
+  U["Person<br/>browser, Korean or English"]
+  subgraph App["TrueFit — FastAPI, one origin, 38 operations"]
+    direction TB
+    SVC["Services<br/>session · recommendation · lists · auth · reviews"]
+    subgraph Strands["Strands Agents SDK"]
+      CA["Conditions agent<br/>set_condition · add_extra_condition · clear_condition"]
+      RA["Result agent<br/>list_alternatives · swap · set_qty · set_timing<br/>remove_or_restore · explain"]
+    end
+    ENG["Recommendation engine<br/>requirement → candidates → hard filter → rank<br/>→ optimize ⇄ verify → explain"]
   end
-  subgraph API["FastAPI — src/api.py (38 operations)"]
-    S["/session · conversation, recommend, result edits"]
-    L["/lists · confirm, report, price watch"]
-    A["/auth · email + password, JWT cookie"]
-    RV["/reviews · summary (relation axis)"]
-  end
-  subgraph Agents["Strands Agents SDK (opt-in)"]
-    CA["Conditions agent<br/>set_condition · add_extra_condition · clear_condition"]
-    RA["Result agent<br/>list_alternatives · swap · set_qty · set_timing<br/>remove_or_restore · explain"]
-  end
-  subgraph Engine["Recommendation engine — src/engine"]
-    E["[1] intent → [2] requirement → [3-0] candidates → [3-A] hard filter<br/>→ [3-B] rank → [4] optimize ⇄ [3-C] verify → [5] explain"]
-  end
-  subgraph Evidence["Evidence sources"]
-    RX["Review relation axis<br/>Amazon Reviews'23 batch → JSON"]
-    CG["Part care-guide RAG<br/>18 guides, in-memory embeddings"]
-    MR["Manual search provider<br/>local-file, outside PostgreSQL"]
+  subgraph Ev["Evidence"]
+    RX["Review relation axis<br/>Amazon Reviews'23 → per-product facts"]
+    CG["Care-guide RAG<br/>18 guides, in-memory embeddings"]
+    MR["Manual search provider<br/>local-file, outside the RDB"]
   end
   DB[("PostgreSQL 16<br/>10 schemas · 38 tables")]
-  LLM["OpenAI API<br/>chat + embeddings"]
-  UI --> API
-  S --> CA & RA & Engine
-  Engine --> RX & CG & MR
-  API --> DB
-  CA & RA --> LLM
-  Engine -- "[3-C] issue sentences · [5] explanation" --> LLM
-  CG --> LLM
+  LLM["OpenAI via Strands OpenAIModel<br/>chat + embeddings"]
+  U -- "free text, chips, edits" --> SVC
+  SVC --> CA
+  SVC --> RA
+  SVC --> ENG
+  CA -- "schema-validated patches" --> SVC
+  RA -- "existing service calls only" --> SVC
+  ENG --> RX
+  ENG --> CG
+  ENG --> MR
+  ENG -- "issue sentences · explanation" --> LLM
+  CA --> LLM
+  RA --> LLM
+  SVC --> DB
 ```
 
-The engine runs the same stages for both domains up to ranking, then branches: **PC** optimizes the set first and verifies it as a whole (below the confidence threshold it swaps a candidate and re-runs — `computer_research` shows one such round); **baby** verifies each item first (manual applicability, recall, certification) and then allocates the budget across mandatory and optional items. `POST /session/{id}/recommend` returns `202` immediately and the run persists its requirements, candidates, checks and explanation to PostgreSQL; `GET …/result` polls.
+</details>
 
-## Agents (Strands Agents SDK)
+- **Engine** (`src/engine`): intent → requirement → candidates → hard filter → rank → *(PC)* optimize the set ⇄ verify, re-search once below the confidence threshold / *(baby)* verify each item → allocate budget → explain. `POST …/recommend` answers `202` at once; the run persists requirements, candidates, checks and explanation and `GET …/result` polls.
+- **Review evidence** (`src/workers/relation_axis.py`): without reading a single review text, a batch over Amazon Reviews'23 (43.9 M reviews, 18.3 M accounts) computes per-product observations — share of reviews in the busiest 7-day window, reviewers shared with other products, one-off accounts, verified-purchase rate — each against the median of the same product category (11,457 PC-part products with ≥30 reviews; 7-day burst median 5.5%, 99th percentile 20.5%). No manipulation labels exist, so there is **no detection rate and no "cleaned" rating** ([decision 0001](docs/decisions/0001-정제-후-평점을-판정기-없이-내지-않는다.md) *(Korean)*). Observations demote a candidate in ranking; they never exclude it.
+- **Before-you-buy checks** (`src/rag/care_guides.py`): 18 synthetic part care guides embedded in memory at start-up; the closest passage is quoted per item.
+- **Baby manuals** (`src/rag/provider.py`): manuals are published to a search provider *outside* PostgreSQL (the `rag` schema was dropped after mentor review); a local-file implementation ships, a hosted store is the next step. Seat conditions (≥6 months, ≤22 kg, sits unaided) are checked only against reviewed sentences; with no provider configured the item is *unknown*, never silently accepted.
+- **Frontend** (`frontend/`): ten static pages served by the API on the same origin; every value comes from the API, cookies are httpOnly, a Korean/English toggle switches both UI and server language.
 
-| Agent | Endpoint | Tools | Boundary |
-|---|---|---|---|
-| **Conditions agent** — `src/agent/conditions_agent.py` | `POST /session/{id}/message` | `set_condition`, `add_extra_condition`, `clear_condition` | May only touch fields in `config/categories/<cat>.yaml` `slot_schema`; enum/type/nullability is validated in code and a violation is returned to the model as an error to fix. Never touches the DB — patches are written by `session_service` with the same origin as the rule path. Asks the next missing required question |
-| **Result agent** — `src/agent/result_agent.py` | `POST /session/{id}/result-message` | `list_alternatives`, `swap`, `set_qty`, `set_timing`, `remove_or_restore`, `explain` | Wraps existing service functions; optimization, verification and ranking stay in the engine. `explain` returns stored reasons, issues and review observations only — no "is this review fake?", no "is this part better?" |
+## Run it
 
-Design rule kept throughout: **verdicts and numbers come from code; the LLM narrates.** The same OpenAI-backed `call_llm` also writes the [3-C] verification issue sentences and the [5] explanation from facts the engine hands it. Everything runs without a key in `MOCK_MODE=1` — you then see `[MOCK] …` placeholder sentences and the rule-based paths (keyword extraction; "slot + cheaper/better" edits).
+Python **3.11** and [`uv`](https://docs.astral.sh/uv/). Configuration comes from environment variables, with `.env` as fallback (`.env.example` lists them).
 
-Turn the agents on with all of `MOCK_MODE=0 · LLM_PROVIDER=openai · LLM_MODEL · OPENAI_API_KEY` plus `CONDITIONS_AGENT=1` / `RESULT_AGENT=1`. Design notes *(Korean)*: [conditions agent](docs/조건대화_에이전트_strands.md) · [result agent](docs/결과화면_에이전트_strands.md).
-
-## Quick start
-
-Python **3.11** and [`uv`](https://docs.astral.sh/uv/). Configuration is read from process environment variables, with `.env` in the project root as a fallback (`.env.example` lists them).
-
-### A. Console demo — no database, no API key
+**A. Console, no database, no key**
 
 ```bash
 uv sync --locked
-uv run python main.py --list
-uv run python main.py computer_pass        # 8 slots, passes verification in one round
-uv run python main.py computer_research    # injected score 72 → swap candidate → 86
-uv run python -m pytest -q                 # 264 passed, 162 skipped without a DB (see Tests)
+uv run python main.py computer_pass        # 8 slots, verified in one round (mock LLM, injected scores)
+uv run python main.py computer_research    # score 72 → swap a candidate → 86
 ```
 
-The console pipeline runs from scenario files in `data/scenarios/` with mock LLM output and **injected** verification scores; `stage4_optimize.py` picks per-slot candidates approximately. Do not read its confidence, contributions or synthetic prices as real product quality, market prices or compatibility.
-
-### B. Full stack — web UI + PostgreSQL
+**B. Web UI with PostgreSQL**
 
 ```bash
-cp .env.example .env                        # defaults: MOCK_MODE=1, agents off
-docker compose up -d db                     # pgvector/pgvector:pg16 on localhost:5432
+cp .env.example .env                        # MOCK_MODE=1, agents off
+docker compose up -d db
 export DATABASE_URL=postgresql://truefit:truefit@localhost:5432/truefit
-uv run python db/setup_all.py               # 15 migrations · domains · 51 PC parts · 153 review summaries
-uv run python scripts/generate_and_seed_baby_catalog.py   # 188 synthetic baby products (baby domain)
-uv run uvicorn src.api:app --reload --host 127.0.0.1 --port 8000
+uv run python db/setup_all.py                                # 15 migrations · domains · 51 PC parts · review summaries
+uv run python scripts/generate_and_seed_baby_catalog.py      # 188 synthetic baby products
+uv run uvicorn src.api:app --reload --port 8000              # http://127.0.0.1:8000 · API docs at /docs
 ```
 
-Open <http://127.0.0.1:8000> — the API serves the frontend on the same origin, so no second server. Swagger UI is at `/docs`; `GET /health` only says the process is up, not that the DB is reachable. [`db/README.md`](db/README.md) *(Korean)* is the canonical DB setup guide and includes a conda route without Docker. Every developer uses a local DB; there is no shared one.
+[`db/README.md`](db/README.md) *(Korean)* is the canonical DB guide (includes a conda route without Docker).
 
-### C. Real LLM and agents
+**C. Real model and agents** — in `.env`: `MOCK_MODE=0`, `LLM_PROVIDER=openai`, `LLM_MODEL=gpt-4o-mini`, `OPENAI_API_KEY=…`, `CONDITIONS_AGENT=1`, `RESULT_AGENT=1`. Run tests with `MOCK_MODE=1 uv run python -m pytest -q`, since the suite reads `.env` too.
 
-```ini
-MOCK_MODE=0
-LLM_PROVIDER=openai
-LLM_MODEL=gpt-4o-mini
-OPENAI_API_KEY=...
-CONDITIONS_AGENT=1
-RESULT_AGENT=1
-```
+**D. Docker** — `docker compose up -d --build` (db + api), then `docker compose exec api python db/setup_all.py`. Set `JWT_SECRET` (the dev default is refused when `APP_ENV=production`), `COOKIE_SECURE=1` behind HTTPS, `ALLOWED_ORIGINS` only if the UI lives on another origin. The image omits `scripts/`; seed the baby catalog from the host.
 
-The test suite reads `.env` too — run it with `MOCK_MODE=1 uv run python -m pytest -q` or the result-agent tests will call OpenAI.
+## Status — measured 2026-09-14
 
-### D. Deploy with Docker
-
-```bash
-docker compose up -d --build                     # db + api (image: Dockerfile)
-docker compose exec api python db/setup_all.py   # first run
-```
-
-The image does not include `scripts/`, so seed the baby catalog from the host against the published port. Set `JWT_SECRET` (the app refuses the dev default when `APP_ENV=production`), `COOKIE_SECURE=1` behind HTTPS, and `ALLOWED_ORIGINS` only if the UI is served from another origin — the API is same-origin by design and answers `403` to mutating requests carrying a foreign `Origin`.
-
-## What works today, and what does not
-
-| Area | Working | Limits |
+| | Works | Not yet |
 |---|---|---|
-| PC recommendation (web) | Guest session → conditions → run → result with reasons, checks, review line, alternatives, swap, quantity/timing, result chat → confirm → report → price watch, all persisted | Catalog of 51 parts with **synthetic prices**; compatibility checks are approximations (socket, power, size); a swap does not re-run verification (the UI offers "another build" for that) |
-| Baby recommendation (web) | Conditions (age, needs, health/skin, owned items, weight, sitting) → run → per-item candidates with safety checks → budget allocation | With the shipped synthetic catalog **no candidate passes gating** (no reviewed safety rule per category; active-recall flags), so the basket ends *done* with 0 selected items and the message "mandatory items cannot be filled within budget" — the mechanism runs, the data does not yet let it choose |
-| Conversation | Chips + free text; Strands conditions agent (opt-in) reflects "extra conditions/changes" that keyword rules miss; English sessions fully in English | Rule path only knows fixed keywords; the agent needs an OpenAI key |
-| Auth & lists | Email + password (argon2), httpOnly JWT cookie, guest → account merge, rename/delete, soft withdrawal | Email verification and password-reset mail are deferred (10/26); `/auth/request-code`, `/auth/verify` are stubs (`501`) |
-| Review evidence | Relation/behavior-axis facts for 25 of 51 demo parts, in [3-B] ranking (demotion, never exclusion), [5] explanation and `GET /reviews/summary` | No manipulation labels → **no detection rate and no cleaned rating** (`cleaned_rating` is always null — [decision 0001](docs/decisions/0001-정제-후-평점을-판정기-없이-내지-않는다.md) *(Korean)*). Review **writing** is out of demo scope |
-| RAG | *Before you buy* checks cite 18 synthetic part care guides via in-memory embeddings; baby manuals are published to a local-file search provider (`BABY_SEARCH_PROVIDER=local-file`; 5 chunks, 21/21 regression queries) that verifies seat conditions from reviewed sentences only | The PostgreSQL `rag` schema was dropped (migration 0011) after mentor review — chunks and vectors do not belong in the RDB. A hosted vector store is planned but not configured; without a provider the eligibility is *unknown*, never a silent fallback |
-| Database | 10 schemas / 38 tables after the 58 → 38 reduction, FK/UNIQUE/CHECK, `updated_at` triggers, one-shot `db/setup_all.py`, RDS-compatible SQL | Optimistic locking, state-transition and cross-schema invariants are enforced in services, not the DB |
-| Data tools | Amazon Reviews'23 batch, synthetic catalogs and manuals, spec scraper | No live price or spec feed; notification and feedback-learning workers are stubs |
+| PC | Full flow: conditions → run → reasons, checks, review line, alternatives, swap, qty/timing, result chat → confirm → report → price watch, all persisted | Synthetic prices; compatibility is approximate (socket, power, size); a swap does not re-verify |
+| Baby | Conditions → run → per-item candidates with safety checks → allocation | The shipped synthetic catalog has no reviewed safety rules, so **no candidate passes gating** and the basket ends *done* with 0 items — the mechanism runs, the data does not let it choose |
+| Agents | Both agents in real sessions (screenshots above); English and Korean | Need an OpenAI key; dictionary-based UI translation leaves a few dynamic strings Korean |
+| Accounts | Email + password, httpOnly JWT, guest → account merge, withdrawal | Email verification and password reset deferred; `/auth/request-code`, `/auth/verify` are stubs |
+| Reviews | Relation-axis facts for 25 of 51 demo parts in ranking, explanation and `GET /reviews/summary` | Review *writing* is out of demo scope; no collector for live sources yet |
+| Data | 10 schemas / 38 tables, one-shot setup, RDS-compatible SQL | No live price or spec feed; notification and learning workers are stubs |
 
-## API surface
+Tests on a fresh seeded DB, mock model: **402 passed, 17 failed, 8 skipped** (8 s); without a DB: 264 passed, 162 skipped, 1 failed. Failure breakdown below. Verified by hand the same day: PC and baby flows over HTTP, console scenarios, `rag_manual.py` 21/21, and the English session in the screenshots.
 
-38 operations in the OpenAPI document (`/docs`). Cookie auth: `truefit_guest` for anonymous sessions, `truefit_session` (JWT) after login.
+<details>
+<summary>The 17 failures, by cause</summary>
+
+- 6 — baby-track HTTP tests written against a pre-merge result shape (`status` per item)
+- 7 — auth-hardening acceptance tests not yet satisfied: rate limit on `email-availability`, lock-counter reset, JWT invalidation right after a password change, consent-timestamp erasure on withdrawal
+- 2 — double-confirm / lock-version conflict expected but not raised
+- 1 — baby requirement shape; 1 — migration list pinned to an older `develop` commit (flags `0014_candidate_checks.sql`; the test is stale, not the schema)
+- Skips: pandas not installed (2), tests that demand their own throwaway DB (6)
+</details>
+
+<details>
+<summary>API surface (38 operations, <code>/docs</code>)</summary>
 
 | Group | Operations | State |
 |---|---|---|
-| `/session` (14) | `POST /session`, `GET /session/{id}`, `POST …/category`, `PATCH …/slot`, `POST …/message`, `…/answer`, `…/reset`, `…/spec-file`, `POST …/recommend` (202), `GET …/result`, `PATCH …/items/{item_id}`, `GET …/items/{item_id}/alternatives`, `POST …/items/{item_id}/swap`, `POST …/result-message` | Working, no login required |
-| `/lists` (6) | `GET /lists`, `PATCH /lists/{id}`, `DELETE /lists/{id}`, `POST …/confirm` (with `If-Match` lock version), `GET …/report`, `POST …/alert` | Working; confirm/report/alert require login |
-| `/auth` (10) | `signup`, `login`, `logout`, `GET/PATCH me`, `password`, `withdraw`, `email-availability` | Working. `request-code`, `verify` → `501` (reserved for email verification) |
-| `/reviews` (5) | `GET /reviews/summary/{product_key}` (engine key, summary key or ASIN) | Working. `pending` / `part` / `publish` read and write review drafts against the DB; `build` → `501`. Review writing is out of demo scope |
-| `/dev` (2) | `GET /dev/scenarios`, `POST /dev/run` | Scenario pipeline without a DB; remove or guard before exposing publicly |
-| `/health` | `GET /health` | Process liveness only |
+| `/session` (14) | create, get, category, slot, message, answer, reset, spec-file, recommend (202), result, item patch, alternatives, swap, result-message | Working, no login |
+| `/lists` (6) | list, rename, delete, confirm (`If-Match`), report, alert | Working; confirm/report/alert need login |
+| `/auth` (10) | signup, login, logout, me (GET/PATCH), password, withdraw, email-availability | Working; request-code, verify → 501 |
+| `/reviews` (5) | summary/{product_key} (engine key, summary key or ASIN); pending, part, publish | Working; build → 501 |
+| `/dev` (2), `/health` | scenario runs without a DB; liveness | Guard `/dev` before public exposure |
 
-Errors use one envelope: `{"error": {"code", "message", "field"}}`. The contract the frontend is built against is [`docs/frontend_외부수정요청.md`](docs/frontend_외부수정요청.md) *(Korean)*.
+Errors share one envelope `{"error": {"code", "message", "field"}}`. Frontend contract: [`docs/frontend_외부수정요청.md`](docs/frontend_외부수정요청.md) *(Korean)*.
+</details>
 
-## Review evidence — relation and behavior axis
+## Next
 
-Without reading review text, the batch looks at **who reviewed what, when** and produces per-product observations that anyone can check or refute: share of reviews landing within 7 days, reviewers shared with other products, account composition — each against the median of the same product category as control. Source: Amazon Reviews'23 (Electronics: 43.9 M reviews, ≈12 GB, ≈6 min). Raw `.jsonl` files are not in the repository and `data/amazon23/` is git-ignored.
+1. A baby catalog that can pass its own gates — reviewed safety rules per category, certification and recall data on the synthetic products.
+2. A hosted vector store behind `src/rag/provider.py`, then manual evidence in PC checks too.
+3. Auth hardening the tests already describe; email verification and password reset.
+4. Re-verify after a swap; real spec and price feeds; exact compatibility rules.
+5. A review collector that captures author hash, posting time and variant subject from the first record ([what to capture](docs/review_collector.md) *(Korean)*), then a labeling protocol — only after that, a cleaned rating.
+6. Price tracking and notifications (workers are stubs).
 
-```bash
-uv sync --group review-analysis --group test          # pandas · numpy · scipy · httpx
-uv run python scripts/amazon23_edges.py <Electronics.jsonl> --cat electronics      # reviews → edge table (text dropped)
-uv run python scripts/amazon23_meta_slim.py <meta_Electronics.jsonl> --cat electronics
-uv run python scripts/map_parts_to_asin.py            # data/parts_list.csv ↔ ASIN (25/51 mapped; the rest launched after 2023-09)
-uv run python -m src.workers.review_cleanse_worker data/amazon23/electronics_edges.tsv \
-    --meta data/amazon23/electronics_meta.tsv --category "Computer Components|Data Storage" \
-    --out data/amazon23/pcparts_product_risk.json
-uv run python -m src.workers.review_cleanse_worker --lookup amd-ryzen-5-5600   # one product's card
-```
-
-- Where the output JSON is absent, `ProductRiskStore` is `None` and every consumer shows *no observation* — it never invents a value.
-- `GET /reviews/summary` returns the observed block and, separately, a synthetic demo block flagged `is_synthetic: true`; the UI must keep the flag visible.
-- What a future collector must capture on day one (author hash, posting time, variant-level subject) is in [`docs/review_collector.md`](docs/review_collector.md) *(Korean)*; the stored columns are [decision 0002](docs/decisions/0002-review_summary에-작성자-해시와-게시시각을-둔다.md) *(Korean)*. Nothing can be back-filled later.
-
-## Data and tools
-
-| Tool | Purpose |
-|---|---|
-| `db/setup_all.py` | Migrations + reference data + PC catalog + review summaries, idempotent |
-| `scripts/generate_and_seed_baby_catalog.py` | Deterministic synthetic baby catalog (188 products, 18 item types) → DB upsert; `--dry-run` validates without a DB |
-| `scripts/generate_baby_manual.py` | Rule-based **partial** product manual from a JSON spec (`data/synthetic_manuals/stroller_example.json`) with fact ledger, citations, hashes and validation — never invents operating or safety instructions. [Details](docs/synthetic_manual_generator.md) *(Korean)* |
-| `scripts/rag_manual.py ingest\|query\|evaluate --provider local-file` | Publish a generated manual to the local-file search provider (`.baby-search-index/`), query it, run the 21-case regression. The API uses the same index when `BABY_SEARCH_PROVIDER=local-file` is set; unset means *unconfigured* |
-| `scripts/build_specs.py` | First-party spec scraper for CPU/GPU/mainboard with source URLs (1 req/s, robots.txt, cache). Most target sites render client-side, so expect a manual to-do list. [Notes](scripts/README.md) *(Korean)* |
-| `scripts/gen_review_summaries.py` | Synthetic review summaries for the demo (`data/review_summaries.json`) — not real reviews |
-| `scripts/import_review_analysis.py` · `evaluate_review_signals.py` | Load a file-based review analysis into `evidence.*`; research-only evaluation that refuses leaky splits |
-| `scripts/check_baby_readiness.py` | Read-only readiness report of a baby DB (JSON, no connection string) |
-
-Data actually tracked in the repo: `data/parts_list.csv` (51 parts), `data/parts_asin_map.csv`, `data/parts_specs*.{csv,json}`, `data/pc_care_guides.json`, `data/review_summaries.json` (synthetic), `data/review_suspect_counts.json`, `data/baby/catalog_demo_v1.json`, two scenarios, one manual input.
-
-## Repository layout
+<details>
+<summary>Repository layout</summary>
 
 ```text
-main.py                       console pipeline entry point (scenario files, mock LLM)
-src/
-  api.py, routers/, schemas.py FastAPI app, 5 routers, API contract; serves frontend/
-  services/                   session · recommendation · list · auth · review · feedback
-  agent/                      Strands agents: conditions_agent.py, result_agent.py
-  engine/                     stages [1]–[6] (+ slot_rules keyword extraction, prompts, lang)
-  pipeline.py                 console orchestration of the stages
-  rag/                        care_guides (in-memory RAG) · provider (external search boundary) ·
-                              ingestion · evidence_search · verification · contracts
-  repo/                       SQL repositories (plan, engine, product, user, review, rag, …)
-  workers/                    review_cleanse_worker + relation_axis (batch); other workers are stubs
-  auth/, db/, config.py       JWT/argon2/origin check · psycopg pool · env config
+main.py                       console pipeline (scenario files, mock LLM)
+src/api.py, routers/          FastAPI app, 5 routers, serves frontend/
+src/services/                 session · recommendation · list · auth · review · feedback
+src/agent/                    Strands agents: conditions_agent.py, result_agent.py
+src/engine/                   stages [1]–[6], slot_rules (keyword path), prompts, lang
+src/rag/                      care_guides (in-memory RAG) · provider (search boundary) · verification
+src/repo/, src/db/, src/auth/ SQL repositories · psycopg pool · JWT/argon2/origin check
+src/workers/                  review_cleanse_worker + relation_axis (batch); other workers are stubs
 config/categories/            computer.yaml · baby.yaml (slots, questions, modes) + baby rules
 frontend/                     10 pages, css/, js/ (api.js · core.js · planner-shell.js · i18n.js · pages/)
 db/                           migrate.py · 15 migrations · seed*.py · setup_all.py · README.md
-scripts/                      catalog/manual generators · RAG CLI · Amazon'23 batch · spec scraper
-data/                         parts list, specs, care guides, scenarios, synthetic inputs
-docs/                         DB spec & diagram, API contract, agent notes, decisions/, meeting-derived reports
-generated/                    example manual, RAG evaluation outputs
+scripts/                      catalog/manual generators · rag_manual.py · Amazon'23 batch · spec scraper
+data/, generated/, docs/      parts list, care guides, scenarios · example outputs · specs, contracts, decisions
 tests/                        pipeline · agents · HTTP flows · services · SQL/migration checks
-Dockerfile, docker-compose.yml
 ```
+</details>
 
-## Tests and what was verified
+## Documents & license
 
-```bash
-MOCK_MODE=1 uv run python -m pytest -q                       # without DATABASE_URL: DB tests skip
-DATABASE_URL=postgresql://…/<disposable> MOCK_MODE=1 uv run python -m pytest -q   # after setup_all + baby seed
-```
-
-Measured on 2026-09-14 for this README:
-
-| Run | Result |
-|---|---|
-| No database | **264 passed, 162 skipped, 1 failed** in <1 s. The failure pins the migration list to an older `develop` commit and flags `0014_candidate_checks.sql` as drift — the test is stale, not the schema |
-| Fresh database (`setup_all.py` + baby seed), mock LLM | **402 passed, 17 failed, 8 skipped** in 8 s. Failures: 6 baby-track HTTP tests written against a pre-merge result shape (`status` per item), 7 auth-hardening acceptance tests not yet satisfied (rate limit on `email-availability`, lock-counter reset, JWT invalidation right after a password change, consent-timestamp erasure on withdrawal), 2 double-confirm/lock-version conflict tests, 1 requirement-shape test, and the stale migration pin above. Skips: pandas not installed (2), tests that demand their own throwaway DB (6) |
-| Console | `computer_pass`, `computer_research` finish; results table + review observation lines |
-| HTTP, PC domain | Session → conditions from free text ("게임용으로 200만원, 조용했으면") → recommend → `done`, 8 items, ₩1,439,000 of ₩2,000,000, confidence 94, checks and review lines present → result chat swaps the CPU → alternatives listed → review summary returns *unavailable* honestly for an unmapped part |
-| HTTP, baby domain | Three need sets (going out, feeding, sleep) each reach `done`; 19–26 candidates listed with their check text; 0 selected (see limits) |
-| RAG | `rag_manual.py ingest/query/evaluate --provider local-file`: 5 chunks, extractive answer with `verification_status: partial`, 21/21 |
-
-Not verified: real-LLM output quality over many sessions, production PostgreSQL load, real product safety, prices or compatibility, and the Docker image on AWS.
-
-## Known gaps and next steps
-
-1. **Baby catalog that can pass its own gates** — reviewed safety rules per category and certification/recall data on the synthetic products, so the allocation step has something to choose from.
-2. **Hosted vector search** behind `src/rag/provider.py` (the boundary and a local-file implementation exist); then wire manual evidence into PC checks too.
-3. Auth hardening the tests already describe: rate limiting, lock-counter semantics, immediate JWT invalidation, full anonymization on withdrawal; email verification and password reset (deferred to 10/26).
-4. Re-verify after a swap; real spec/price feeds and exact compatibility rules; PC hard filters beyond the current approximations.
-5. Reviews: a collector that captures author hash, posting time and variant subject from the first record; a human-labeling protocol (queue origin and random control share fixed **before** the first label); only then a cleaned rating.
-6. Price tracking, notifications and feedback learning — workers exist as stubs; batch learning is on hold.
-
-## License and documents
-
-MIT — see [`LICENSE`](LICENSE).
-
-- [`db/README.md`](db/README.md) — DB setup (canonical), migration list, AWS/RDS compatibility notes *(Korean)*
-- [`docs/db/table_spec.md`](docs/db/table_spec.md) — table specification; [structure diagram](docs/db/database-structure-overview.png) · [SVG](docs/db/database-structure-overview.svg) · [reduction proposal](docs/db/db_schema_reduction_proposal_2026-09-12.md) *(Korean)*
-- [`docs/frontend_외부수정요청.md`](docs/frontend_외부수정요청.md) — frontend ↔ backend API contract *(Korean)*; [`frontend/CLAUDE.md`](frontend/CLAUDE.md) — page map and frontend rules *(Korean)*
-- [`docs/decisions/`](docs/decisions/README.md) — decisions that are hard to reverse, with the alternatives that were tried *(Korean)*
-- [`docs/review_analysis_contract.md`](docs/review_analysis_contract.md) · [`docs/review_collector.md`](docs/review_collector.md) · [`docs/review_module_handoff.md`](docs/review_module_handoff.md) — review analysis file contract, collector requirements, module hand-off *(Korean)*
-- [`docs/agent-tasks/baby/`](docs/agent-tasks/baby/README.md) — baby-domain work packages P0–P9 and their acceptance reports *(Korean)*
-- [`docs/synthetic_manual_generator.md`](docs/synthetic_manual_generator.md) — manual generator input contract; [`docs/rag_implementation.md`](docs/rag_implementation.md) describes the **removed** pgvector design and is kept for history *(Korean)*
+MIT — [`LICENSE`](LICENSE). Team documents are in Korean: [DB setup](db/README.md) · [table spec](docs/db/table_spec.md) · [schema reduction](docs/db/db_schema_reduction_proposal_2026-09-12.md) · [API contract](docs/frontend_외부수정요청.md) · [frontend rules](frontend/CLAUDE.md) · [decisions](docs/decisions/README.md) · [review analysis contract](docs/review_analysis_contract.md) · [baby work packages](docs/agent-tasks/baby/README.md) · [manual generator](docs/synthetic_manual_generator.md). [`docs/rag_implementation.md`](docs/rag_implementation.md) describes the removed pgvector design and is kept for history.
