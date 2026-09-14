@@ -24,14 +24,20 @@ function tfSortResultItems(items,slotOrder){
 let tfOpenReviewItemId=null;
 function tfResultChatTurn(role,html){return '<div class="conversation-turn '+(role==='user'?'user':'')+'"><span class="conversation-label">'+(role==='user'?'나':'TrueFit')+'</span><div class="conversation-bubble">'+html+'</div></div>'}
 function tfResultSummaryHtml(result){
- const items=(result.items||[]).filter(item=>item.selected),totals=result.totals||{};
+ const items=(result.items||[]).filter(item=>item.selected),totals=result.totals||{},isBaby=tfUiCategory(result.category)==='baby';
+ const noun=isBaby?'품목':'부품';
+ const missing=result.missing_requirements||[];
+ if(!items.length){
+  const blocked=missing.map(row=>'<li><strong>'+esc(row.slot_key||'필수 품목')+'</strong> · '+esc(row.message||'담을 수 없어요.')+(row.next_action?' '+esc(row.next_action):'')+'</li>').join('');
+  return '<p>선택 가능한 '+noun+'이 아직 없어요.</p>'+(blocked?'<ul>'+blocked+'</ul>':'')+'<div class="quick-replies"><button class="chip-btn" type="button" data-action="conditions">조건 다시 확인</button></div>';
+ }
  const lines=items.map(item=>'<li>'+esc(item.slot_label)+' · '+esc(item.product?.name)+' · <span class="figure">'+won(Number(item.price||0)*Math.max(1,Number(item.qty)||1))+'</span></li>').join('');
  const total=Number(totals.selected_price||0),budgetMax=result.budget_max;
  const budgetLine=budgetMax?' 예산 '+won(budgetMax)+' 중 '+won(Math.max(0,budgetMax-total))+' 남아요.':'';
  const pricey=[...items].sort((a,b)=>Number(b.price||0)-Number(a.price||0))[0];
  const chips=['<button class="chip-btn" type="button" data-fill="이 구성 총평 알려줘">이 구성 총평은?</button>'];
  if(pricey)chips.unshift('<button class="chip-btn" type="button" data-fill="'+esc(pricey.slot_label)+' 더 저렴한 걸로 바꿔줘">'+esc(pricey.slot_label)+' 더 저렴하게</button>');
- return '조건에 맞춰 '+items.length+'개 부품으로 구성했어요.<ul>'+lines+'</ul>합계 <span class="figure">'+won(total)+'</span>·'+budgetLine+' 마음에 안 드는 부품이 있으면 편하게 말씀해 주세요.<div class="quick-replies">'+chips.join('')+'</div>';
+ return '조건에 맞춰 '+items.length+'개 '+noun+'으로 구성했어요.<ul>'+lines+'</ul>합계 <span class="figure">'+won(total)+'</span>·'+budgetLine+' 마음에 안 드는 '+noun+'이 있으면 편하게 말씀해 주세요.<div class="quick-replies">'+chips.join('')+'</div>';
 }
 function tfShowCartReviewSlide(itemId){
  const item=tfFindItem(itemId);if(!item)return;

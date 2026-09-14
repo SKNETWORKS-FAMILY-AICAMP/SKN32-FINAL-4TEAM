@@ -126,7 +126,17 @@ def persist_candidate_check(conn, run_id: UUID, candidate_id: UUID, check, _cont
     from datetime import datetime, timezone
     repo = EngineRepo(conn)
     for issue in check.issues:
-        repo.add_validation(run_id, rule_key=issue["rule_key"], rule_version=issue.get("rule_version", "v1"),
+        validation_id = repo.add_validation(run_id, rule_key=issue["rule_key"], rule_version=issue.get("rule_version", "v1"),
                             executor_version="baby-v1", status=issue["status"], severity=issue["severity"],
                             measured_values=issue.get("measured") or {}, threshold=issue.get("threshold") or {},
                             message=issue.get("reason") or issue["rule_key"], checked_at=datetime.now(timezone.utc))
+        # A result-level blocker must remain attributable to the candidate and
+        # requirement after the worker transaction has ended.
+        target = issue.get("target") or {}
+        requirement_id = target.get("requirement_id")
+        target_candidate_id = target.get("candidate_id") or candidate_id
+        repo.link_validation_target(
+            validation_id,
+            requirement_id=UUID(str(requirement_id)) if requirement_id else None,
+            candidate_id=UUID(str(target_candidate_id)),
+        )

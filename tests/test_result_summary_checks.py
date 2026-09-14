@@ -96,6 +96,13 @@ def test_rule_path_treats_questions_as_questions():
     assert rs._parse_swap_request("케이스 흰색으로", slots) == (None, None, False)
 
 
+def test_baby_blocker_uses_verification_language_not_budget_language():
+    code, message, action = rs._blocker_detail("no_reviewed_rule_for_category")
+    assert code == "verification_rule_missing"
+    assert "검증 기준" in message and "예산" not in message
+    assert "검토" in action
+
+
 def test_fmt_money_usd_only_and_signed():
     from src.engine.lang import fmt_money
     import src.config as cfg
