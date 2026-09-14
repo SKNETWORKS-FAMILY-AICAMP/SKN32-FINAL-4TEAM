@@ -1,0 +1,11 @@
+{
+  "claim_key": "product_identity",
+  "dataset_version": "baby-demo-v1",
+  "is_synthetic": true,
+  "notice": "가상 데이터. 실제 제품 안전 인증·리콜 정보가 아닙니다 (synthetic_demo 전용).",
+  "product_key": "SYN-BATH-000014",
+  "value": {
+    "manufacturer": "가상브랜드_새봄",
+    "model": "SYN-BATH-000014"
+  }
+}

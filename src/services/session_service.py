@@ -217,7 +217,10 @@ def _display(
     values: dict | None = None,
 ) -> str | None:
     values = values or {}
-    if value in (None, [], ""):
+    # Baby's explicit “none” answers are intentionally stored as [] so that the
+    # value keeps its list contract.  An empty list is therefore answered data,
+    # while None means the field was cleared or has never been answered.
+    if value in (None, ""):
         return None
     if meta.get("computed"):
         return value["label"]
@@ -225,6 +228,14 @@ def _display(
     if disp_map:
         return disp_map.get(value, disp_map.get(str(value), str(value)))
     if isinstance(value, list):
+        if not value:
+            empty_labels = {
+                "health_skin": ("특이사항 없음", "No health or skin concerns"),
+                "owned_items": ("없음", "None owned"),
+            }
+            label = empty_labels.get(meta.get("key"))
+            if label:
+                return label[1] if locale == "en-US" else label[0]
         labels = option_labels or {}
         none_label = "None" if locale == "en-US" else "없음"
         return " · ".join(none_label if v == "none" else str(labels.get(v, v)) for v in value)

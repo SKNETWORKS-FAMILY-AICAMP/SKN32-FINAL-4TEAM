@@ -92,6 +92,30 @@ class ProductRepo(Repo):
         )
         return variant_id
 
+    def resolve_ids(self, product_key: str, variant_key: str, *, corpus: str) -> tuple[UUID, UUID] | None:
+        """(product_id, variant_id) if both rows actually exist, else None.
+
+        synthetic corpus ids are the deterministic stable_id derivation (must
+        already have been seeded by seed_baby_catalog.py — this never creates a
+        row); real corpus looks the pair up by brand/model + variant_key.
+        Shared by the P3 evidence importer and verify_baby_candidate so both
+        resolve identity the same way.
+        """
+        if corpus == "synthetic":
+            product_id, variant_id = stable_id(product_key), stable_id(variant_key)
+            if self._one("SELECT 1 FROM catalog.product WHERE id=%s", (product_id,)) is None:
+                return None
+            if self._one("SELECT 1 FROM catalog.product_variant WHERE id=%s", (variant_id,)) is None:
+                return None
+            return product_id, variant_id
+        row = self._one(
+            """SELECT p.id AS product_id, v.id AS variant_id FROM catalog.product_variant v
+            JOIN catalog.product p ON p.id = v.product_id
+            WHERE p.model = %s AND v.variant_key = %s""",
+            (product_key, variant_key),
+        )
+        return (row["product_id"], row["variant_id"]) if row else None
+
     def variant_id_by_keys(self, product_key: str, variant_key: str, *,
                            corpus: str = "synthetic") -> UUID | None:
         if corpus == "synthetic":
@@ -173,13 +197,57 @@ class ProductRepo(Repo):
 
     def add_fact(self, product_id: UUID, attribute_key: str, value: dict, *,
                  evidence_id: UUID, variant_id: UUID | None = None,
-                 unit_code: str | None = None, observed_at) -> UUID:
-        """근거 있는 규격 속성. verified + active evidence 만 검증 실행기에 투입(§20)."""
-        raise NotImplementedError
+                 unit_code: str | None = None, observed_at, status: str = "verified") -> UUID:
+        """근거 있는 규격 속성. verified + active evidence 만 검증 실행기에 투입(§20).
 
-    def verified_facts(self, product_id: UUID, variant_id: UUID | None) -> list[dict]:
-        """옵션 한정 fact 우선, 모델 공통 fact 다음. 충돌 시 unknown(§20)."""
-        raise NotImplementedError
+        같은 (product_id, variant_id, attribute_key)의 기존 행이 있으면 superseded로
+        내리고 새 행을 만든다 — 과거 값을 덮어쓰지 않고 이력을 남긴다
+        (P3 import_baby_evidence.py의 재적재 경로).
+        """
+        with self.conn.transaction():
+            self._exec(
+                """UPDATE catalog.product_fact SET status='superseded', updated_at=now()
+                WHERE product_id=%s AND variant_id IS NOT DISTINCT FROM %s
+                  AND attribute_key=%s AND status IN ('proposed','verified')""",
+                (product_id, variant_id, attribute_key),
+            )
+            row = self._one(
+                """INSERT INTO catalog.product_fact
+                  (product_id, variant_id, attribute_key, value, unit_code, evidence_id, observed_at, status)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id""",
+                (product_id, variant_id, attribute_key, Jsonb(value), unit_code,
+                 evidence_id, observed_at, status),
+            )
+        return row["id"]
+
+    def verified_facts(self, product_id: UUID, variant_id: UUID | None, *, scope: str) -> dict[str, dict]:
+        """attribute_key -> latest verified fact, scoped to `scope` (synthetic_demo|
+        production, matched against the linked evidence.evidence.facts->>'scope').
+
+        옵션 한정 fact가 모델 공통 fact보다 우선(§20). evidence.evidence.status가
+        'active'가 아니면(철회) 이미 verified여도 반환하지 않는다 — 철회된 근거로
+        자동 선택을 허용하지 않는다(P3 doc 3단계 재확인).
+        """
+        rows = self._all(
+            """
+            SELECT pf.attribute_key, pf.value, pf.status AS fact_status, pf.evidence_id,
+                   pf.variant_id, pf.observed_at, ev.status AS evidence_status,
+                   ev.facts AS evidence_facts, ev.citation_snapshot
+            FROM catalog.product_fact pf
+            JOIN evidence.evidence ev ON ev.id = pf.evidence_id
+            WHERE pf.product_id = %s
+              AND (pf.variant_id IS NULL OR pf.variant_id = %s)
+              AND pf.status = 'verified'
+              AND ev.status = 'active'
+              AND ev.facts ->> 'scope' = %s
+            ORDER BY pf.attribute_key, (pf.variant_id IS NOT NULL) DESC, pf.observed_at DESC
+            """,
+            (product_id, variant_id, scope),
+        )
+        out: dict[str, dict] = {}
+        for row in rows:
+            out.setdefault(row["attribute_key"], row)
+        return out
 
     def upsert_merchant(self, platform: str, external_seller_id: str, name: str) -> UUID:
         row = self._one(

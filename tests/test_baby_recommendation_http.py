@@ -152,7 +152,7 @@ def _seed_editable_to_purchase_item(raw_conn, revision_id: str, run_id: str) -> 
                                        "target": {"candidate_id": str(candidate_id),
                                                  "requirement_id": requirement_id, "item_id": None},
                                        "status": "pass", "severity": "info", "measured": {}, "threshold": {},
-                                       "reason": "test_fixture_approved", "penalty": None, "evidence_ids": []}])
+                                       "reason": "test_fixture_approved", "penalty": None, "evidence_refs": []}])
         persist_candidate_check(conn, UUID(run_id), candidate_id, check, None)
         erepo.set_candidate_result(candidate_id, result="selected", score=1.0)
 
@@ -458,18 +458,38 @@ def test_rh06_result_message_documented_rule_and_clarification(client: TestClien
 # ── P7 review R1 ─────────────────────────────────────────────────────────────
 def test_p7_confirm_rejects_when_mandatory_requirement_is_uncovered(raw_conn):
     """P7 review R1: confirm() must recheck full requirement coverage (all active
-    requirements, not just whatever candidates happen to be selected). This
-    catalog's car_seat is always selection_allowed=False (module docstring), so a
-    '외출'+'수유' recommendation always has an uncovered mandatory requirement —
+    requirements, not just whatever candidates happen to be selected). Since P3's
+    full-catalog verification work (2026-09-14) gave every slot including car_seat
+    a real evidence-backed pass candidate, '외출'+'수유' with a normal budget is no
+    longer structurally infeasible — so this forces infeasibility a different way
+    (a budget far below the cheapest mandatory stroller+car_seat+bottle combination)
+    instead of relying on a since-fixed "car_seat always blocks" catalog gap.
     confirm must refuse it even with a real, validly-selected bottle candidate
     present (seeded the same way RH05 does), since a per-selected-candidate-only
-    check would happily confirm on that one item and never notice car_seat."""
+    check would happily confirm on that one item and never notice the uncovered
+    mandatory requirements."""
     signed_up = _signed_up_client()
     list_id = _create(signed_up)
     _choose_baby(signed_up, list_id)
     _fill_complete_conditions(signed_up, list_id, needs=["외출", "수유"], owned=["없음"], budget=2_000_000)
     data = _recommend_and_wait(signed_up, list_id)
-    assert data["feasible"] is False, "documented catalog property: car_seat always blocks 외출"
+    # car_seat now has a real evidence-backed pass candidate (P3, 2026-09-14) so a
+    # normal budget is no longer structurally infeasible on its own — remove every
+    # candidate this run actually collected for the car_seat requirement so that
+    # requirement is deterministically uncovered, the same "mandatory requirement
+    # with zero usable candidates" shape the original catalog gap used to produce,
+    # without depending on that gap (or on an over_budget code path instead).
+    car_seat_req = raw_conn.execute(
+        """SELECT r.id FROM planning.requirement r JOIN planning.plan_node n ON n.id=r.node_id
+           WHERE r.revision_id=%s AND n.template_key='car_seat' AND r.status='active'""",
+        (data["revision_id"],),
+    ).fetchone()
+    assert car_seat_req is not None, "car_seat requirement must exist for needs=['외출','수유']"
+    raw_conn.execute(
+        "DELETE FROM engine.recommendation_candidate WHERE run_id=%s AND requirement_id=%s",
+        (data["run_id"], car_seat_req[0]),
+    )
+    raw_conn.commit()
     _seed_editable_to_purchase_item(raw_conn, data["revision_id"], data["run_id"])
 
     state = signed_up.get(f"/session/{list_id}/result").json()
@@ -480,3 +500,23 @@ def test_p7_confirm_rejects_when_mandatory_requirement_is_uncovered(raw_conn):
     assert raw_conn.execute(
         "SELECT count(*) FROM planning.purchase_line WHERE revision_id=%s", (data["revision_id"],)
     ).fetchone()[0] == 0, "a rejected confirm must not leave any purchase_line rows"
+
+
+def test_p7_confirm_succeeds_on_an_unchanged_feasible_recommendation():
+    """Regression: list_service.confirm()'s stale_recommendation check compared
+    run.input_snapshot["values"] against a freshly-recomputed current_values dict.
+    start_recommendation keeps age_months as its raw {"value":months,"exact":bool}
+    row (recommendation_service.py/session_service.py both special-case this), but
+    confirm() unwrapped it to a bare int for every key uniformly — so the two sides
+    could never be equal and confirm() rejected every baby list with 409
+    stale_recommendation even when nothing had changed since /recommend."""
+    signed_up = _signed_up_client()
+    list_id = _create(signed_up)
+    _choose_baby(signed_up, list_id)
+    _fill_complete_conditions(signed_up, list_id, needs=["목욕·위생"], owned=["없음"], budget=300_000)
+    data = _recommend_and_wait(signed_up, list_id)
+    assert data["feasible"] is True
+
+    r = signed_up.post(f"/lists/{list_id}/confirm", json={"name": "확정 테스트"})
+    assert r.status_code == 200, r.text
+    assert r.json()["total"] > 0

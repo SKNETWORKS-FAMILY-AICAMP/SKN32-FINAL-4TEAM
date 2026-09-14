@@ -1,0 +1,1020 @@
+schema_version: 1
+scope: synthetic_demo
+dataset_version: baby-demo-v1
+records:
+- product_key: SYN-BABY-FOOD-000009
+  variant_key: SYN-BABY-FOOD-000009-V1
+  slot_key: baby_food
+  claims:
+  - claim_key: product_identity
+    value:
+      manufacturer: 가상브랜드_모아
+      model: SYN-BABY-FOOD-000009
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-BABY-FOOD-000009
+      version: baby-demo-v1
+    file: files/SYN-BABY-FOOD-000009-product_identity.json
+    sha256: 7511fdfde439b7e0f96a355d3522157d0121266e90110564a6e057277b887a34
+    retrieved_on: '2026-09-14'
+    verified: true
+  - claim_key: safety_route
+    value:
+      route: synthetic_demo_only
+      classification: baby_food_synthetic_demo
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-BABY-FOOD-000009
+      version: baby-demo-v1
+    file: files/SYN-BABY-FOOD-000009-safety_route.json
+    sha256: b532379b7ea095068fef322a09d6f84cf53d493f76d220341be7129aae3b030a
+    retrieved_on: '2026-09-14'
+    verified: true
+  - claim_key: manufacturer_document
+    value:
+      has_manual: true
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-BABY-FOOD-000009
+      version: baby-demo-v1
+    file: ../../../generated/synthetic_manuals/catalog_demo_v1_r1/SYN-BABY-FOOD-000009/manual.md
+    sha256: 6b67dc760796b8060f01f2593e1c2d5604eb2c91848d1bd811f31223a7182c19
+    retrieved_on: '2026-09-14'
+    verified: true
+    manual_bundle: ../../../generated/synthetic_manuals/catalog_demo_v1_r1/SYN-BABY-FOOD-000009
+  - claim_key: recall_status
+    value:
+      status: no_active_recall
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-BABY-FOOD-000009
+      version: baby-demo-v1
+    file: files/SYN-BABY-FOOD-000009-recall_status.json
+    sha256: 96c2ef3910abc581a5d91a9edb468090354210e609af561465ee9018afc6b013
+    retrieved_on: '2026-09-14'
+    verified: true
+- product_key: SYN-BABY-FOOD-000027
+  variant_key: SYN-BABY-FOOD-000027-V1
+  slot_key: baby_food
+  claims:
+  - claim_key: product_identity
+    value:
+      manufacturer: 가상브랜드_모아
+      model: SYN-BABY-FOOD-000027
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-BABY-FOOD-000027
+      version: baby-demo-v1
+    file: files/SYN-BABY-FOOD-000027-product_identity.json
+    sha256: 6bf6f7001b27a1cc57b81196ddb9c41b8c779a0e41996de412dc5d574ca3cbea
+    retrieved_on: '2026-09-14'
+    verified: true
+- product_key: SYN-BATH-000014
+  variant_key: SYN-BATH-000014-V1
+  slot_key: bath
+  claims:
+  - claim_key: product_identity
+    value:
+      manufacturer: 가상브랜드_새봄
+      model: SYN-BATH-000014
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-BATH-000014
+      version: baby-demo-v1
+    file: files/SYN-BATH-000014-product_identity.json
+    sha256: de0eb96b4f8e02441fe49a66f0856e16ea479eff2e6885c583c48dd3920b3fb8
+    retrieved_on: '2026-09-14'
+    verified: true
+  - claim_key: safety_route
+    value:
+      route: synthetic_demo_only
+      classification: bath_synthetic_demo
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-BATH-000014
+      version: baby-demo-v1
+    file: files/SYN-BATH-000014-safety_route.json
+    sha256: 6f906a17c1beec86658b7b5affd99e08c3517707be0ea7f2d06760f6274f64ca
+    retrieved_on: '2026-09-14'
+    verified: true
+  - claim_key: manufacturer_document
+    value:
+      has_manual: true
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-BATH-000014
+      version: baby-demo-v1
+    file: ../../../generated/synthetic_manuals/catalog_demo_v1_r1/SYN-BATH-000014/manual.md
+    sha256: a9d62104fc574f3bca68cb23c9e6aaa83d73b33f0c83078a0129ab305c0f8efc
+    retrieved_on: '2026-09-14'
+    verified: true
+    manual_bundle: ../../../generated/synthetic_manuals/catalog_demo_v1_r1/SYN-BATH-000014
+  - claim_key: recall_status
+    value:
+      status: no_active_recall
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-BATH-000014
+      version: baby-demo-v1
+    file: files/SYN-BATH-000014-recall_status.json
+    sha256: 9e98862821f510242010ec6722dd511fc852784bdec7872ae26f3955607ff8c6
+    retrieved_on: '2026-09-14'
+    verified: true
+- product_key: SYN-BATH-000032
+  variant_key: SYN-BATH-000032-V1
+  slot_key: bath
+  claims:
+  - claim_key: product_identity
+    value:
+      manufacturer: 가상브랜드_새봄
+      model: SYN-BATH-000032
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-BATH-000032
+      version: baby-demo-v1
+    file: files/SYN-BATH-000032-product_identity.json
+    sha256: 4cebd84ae59d3e886dddb66b425991f603ddf0e6890dc6e76d6be7b2ac6bde5b
+    retrieved_on: '2026-09-14'
+    verified: true
+- product_key: SYN-BOTTLE-000006
+  variant_key: SYN-BOTTLE-000006-V1
+  slot_key: bottle
+  claims:
+  - claim_key: product_identity
+    value:
+      manufacturer: 가상브랜드_도담
+      model: SYN-BOTTLE-000006
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-BOTTLE-000006
+      version: baby-demo-v1
+    file: files/SYN-BOTTLE-000006-product_identity.json
+    sha256: e80c597c502eba2b9e55e959cbe329da880a8819dd383deaf0d5eb2c10314476
+    retrieved_on: '2026-09-14'
+    verified: true
+  - claim_key: safety_route
+    value:
+      route: synthetic_demo_only
+      classification: bottle_synthetic_demo
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-BOTTLE-000006
+      version: baby-demo-v1
+    file: files/SYN-BOTTLE-000006-safety_route.json
+    sha256: bb720ea0806f1ba6298731bff7ab133daa534781cbacee020f94593341a0bf94
+    retrieved_on: '2026-09-14'
+    verified: true
+  - claim_key: manufacturer_document
+    value:
+      has_manual: true
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-BOTTLE-000006
+      version: baby-demo-v1
+    file: ../../../generated/synthetic_manuals/catalog_demo_v1_r1/SYN-BOTTLE-000006/manual.md
+    sha256: 9ff6861193b29ba7a479ad46a535f827654251c6e97f7d324e4ebd49450de159
+    retrieved_on: '2026-09-14'
+    verified: true
+    manual_bundle: ../../../generated/synthetic_manuals/catalog_demo_v1_r1/SYN-BOTTLE-000006
+  - claim_key: recall_status
+    value:
+      status: no_active_recall
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-BOTTLE-000006
+      version: baby-demo-v1
+    file: files/SYN-BOTTLE-000006-recall_status.json
+    sha256: 4aaa200a65a315d187b312ffc49e21327bcd4b8afa01e309bd56ae34fbd17ed8
+    retrieved_on: '2026-09-14'
+    verified: true
+- product_key: SYN-BOTTLE-RECALL-001
+  variant_key: SYN-BOTTLE-RECALL-001-240ML
+  slot_key: bottle
+  claims:
+  - claim_key: product_identity
+    value:
+      manufacturer: 가상브랜드_도담
+      model: SYN-BOTTLE-RECALL-001
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-BOTTLE-RECALL-001
+      version: baby-demo-v1
+    file: files/SYN-BOTTLE-RECALL-001-product_identity.json
+    sha256: 4c3fb43d7521794257e45a8f258f7ef4ac73b5dbfd29d7c6b110bc47f52a904b
+    retrieved_on: '2026-09-14'
+    verified: true
+  - claim_key: recall_status
+    value:
+      status: active_synthetic_recall
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-BOTTLE-RECALL-001
+      version: baby-demo-v1
+    file: files/SYN-BOTTLE-RECALL-001-recall_status.json
+    sha256: 92f732c2d4ff021af201d873c799bba7c1faec9d635e822320e4adf3ac7a14f8
+    retrieved_on: '2026-09-14'
+    verified: true
+- product_key: SYN-CAR-SEAT-000002
+  variant_key: SYN-CAR-SEAT-000002-V1
+  slot_key: car_seat
+  claims:
+  - claim_key: product_identity
+    value:
+      manufacturer: 가상브랜드_새봄
+      model: SYN-CAR-SEAT-000002
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-CAR-SEAT-000002
+      version: baby-demo-v1
+    file: files/SYN-CAR-SEAT-000002-product_identity.json
+    sha256: c387332e0203be34b31ae09cf2ce8d93404c9709c35e1ec136485afc9e4fc66d
+    retrieved_on: '2026-09-14'
+    verified: true
+  - claim_key: safety_route
+    value:
+      route: synthetic_demo_only
+      classification: car_seat_synthetic_demo
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-CAR-SEAT-000002
+      version: baby-demo-v1
+    file: files/SYN-CAR-SEAT-000002-safety_route.json
+    sha256: e1b1f9112c136380ce2e79b700c15c7e07ea6917a3dc6577edaf6192fb914887
+    retrieved_on: '2026-09-14'
+    verified: true
+  - claim_key: manufacturer_document
+    value:
+      has_manual: true
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-CAR-SEAT-000002
+      version: baby-demo-v1
+    file: ../../../generated/synthetic_manuals/catalog_demo_v1_r1/SYN-CAR-SEAT-000002/manual.md
+    sha256: 341416197e4a28a9128b73aa432bb9ad3ebdc92e2f7bd6dc1ed96e7131296fe7
+    retrieved_on: '2026-09-14'
+    verified: true
+    manual_bundle: ../../../generated/synthetic_manuals/catalog_demo_v1_r1/SYN-CAR-SEAT-000002
+  - claim_key: recall_status
+    value:
+      status: no_active_recall
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-CAR-SEAT-000002
+      version: baby-demo-v1
+    file: files/SYN-CAR-SEAT-000002-recall_status.json
+    sha256: fd7dc709e1e7dabc9943325a409d330b401facf818e29f2e4620ce92cb89d952
+    retrieved_on: '2026-09-14'
+    verified: true
+- product_key: SYN-CARSEAT-CERT-001
+  variant_key: SYN-CARSEAT-CERT-001-DEFAULT
+  slot_key: car_seat
+  claims:
+  - claim_key: product_identity
+    value:
+      manufacturer: 가상브랜드_모아
+      model: SYN-CARSEAT-CERT-001
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-CARSEAT-CERT-001
+      version: baby-demo-v1
+    file: files/SYN-CARSEAT-CERT-001-product_identity.json
+    sha256: 47c4872c4af10d263c5fd12dde1fad8bbc824b7e44e2538614bb76526104508c
+    retrieved_on: '2026-09-14'
+    verified: true
+- product_key: SYN-CRIB-000004
+  variant_key: SYN-CRIB-000004-V1
+  slot_key: crib
+  claims:
+  - claim_key: product_identity
+    value:
+      manufacturer: 가상브랜드_모아
+      model: SYN-CRIB-000004
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-CRIB-000004
+      version: baby-demo-v1
+    file: files/SYN-CRIB-000004-product_identity.json
+    sha256: 23639e1d2aee54e112afdde609a52f843a6d1ee73f684d3c99e1c1a6a57a3f3c
+    retrieved_on: '2026-09-14'
+    verified: true
+  - claim_key: safety_route
+    value:
+      route: synthetic_demo_only
+      classification: crib_synthetic_demo
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-CRIB-000004
+      version: baby-demo-v1
+    file: files/SYN-CRIB-000004-safety_route.json
+    sha256: 6188c3656ec62085b7dcbd903f4ddc47de5b563083ba3375a4e21a1de13f0eba
+    retrieved_on: '2026-09-14'
+    verified: true
+  - claim_key: manufacturer_document
+    value:
+      has_manual: true
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-CRIB-000004
+      version: baby-demo-v1
+    file: ../../../generated/synthetic_manuals/catalog_demo_v1_r1/SYN-CRIB-000004/manual.md
+    sha256: ce62aade3cc01ce1cc224f917f9aa7c1d77e80d787b86174812750c2cf7f6be6
+    retrieved_on: '2026-09-14'
+    verified: true
+    manual_bundle: ../../../generated/synthetic_manuals/catalog_demo_v1_r1/SYN-CRIB-000004
+  - claim_key: recall_status
+    value:
+      status: no_active_recall
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-CRIB-000004
+      version: baby-demo-v1
+    file: files/SYN-CRIB-000004-recall_status.json
+    sha256: 0ce8e7b85b8af41f9ffca2a9338dd690e9a3a20b71f0982f341161af37da4af6
+    retrieved_on: '2026-09-14'
+    verified: true
+- product_key: SYN-CRIB-000022
+  variant_key: SYN-CRIB-000022-V1
+  slot_key: crib
+  claims:
+  - claim_key: product_identity
+    value:
+      manufacturer: 가상브랜드_새봄
+      model: SYN-CRIB-000022
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-CRIB-000022
+      version: baby-demo-v1
+    file: files/SYN-CRIB-000022-product_identity.json
+    sha256: d85992e89048bee329595716ad3d817926a37e514eed90e97e90131db44a3d14
+    retrieved_on: '2026-09-14'
+    verified: true
+- product_key: SYN-DIAPER-000012
+  variant_key: SYN-DIAPER-000012-V1
+  slot_key: diaper
+  claims:
+  - claim_key: product_identity
+    value:
+      manufacturer: 가상브랜드_모아
+      model: SYN-DIAPER-000012
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-DIAPER-000012
+      version: baby-demo-v1
+    file: files/SYN-DIAPER-000012-product_identity.json
+    sha256: 73a3b7b00c2cc9698e3be314db7f4de1e85a6dc84e2855376760ee969983ed59
+    retrieved_on: '2026-09-14'
+    verified: true
+  - claim_key: safety_route
+    value:
+      route: synthetic_demo_only
+      classification: diaper_synthetic_demo
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-DIAPER-000012
+      version: baby-demo-v1
+    file: files/SYN-DIAPER-000012-safety_route.json
+    sha256: 222f110ce2662ec727fc113b57634e061d0dac9f5201f12160deb1cab522c943
+    retrieved_on: '2026-09-14'
+    verified: true
+  - claim_key: manufacturer_document
+    value:
+      has_manual: true
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-DIAPER-000012
+      version: baby-demo-v1
+    file: ../../../generated/synthetic_manuals/catalog_demo_v1_r1/SYN-DIAPER-000012/manual.md
+    sha256: 25163fcfea25d45d287111984587627a82f27d0ba295d884ec83154098936572
+    retrieved_on: '2026-09-14'
+    verified: true
+    manual_bundle: ../../../generated/synthetic_manuals/catalog_demo_v1_r1/SYN-DIAPER-000012
+  - claim_key: recall_status
+    value:
+      status: no_active_recall
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-DIAPER-000012
+      version: baby-demo-v1
+    file: files/SYN-DIAPER-000012-recall_status.json
+    sha256: fa482318415b7af53c76286d2b85a2a5b14a4783749df60f2ec40fe47640e9bf
+    retrieved_on: '2026-09-14'
+    verified: true
+- product_key: SYN-DIAPER-000030
+  variant_key: SYN-DIAPER-000030-V1
+  slot_key: diaper
+  claims:
+  - claim_key: product_identity
+    value:
+      manufacturer: 가상브랜드_도담
+      model: SYN-DIAPER-000030
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-DIAPER-000030
+      version: baby-demo-v1
+    file: files/SYN-DIAPER-000030-product_identity.json
+    sha256: a809504aed5396681e7b8ad3a557758ea795c40f896240cf88ad162ce6c3df7c
+    retrieved_on: '2026-09-14'
+    verified: true
+- product_key: SYN-FORMULA-000007
+  variant_key: SYN-FORMULA-000007-V1
+  slot_key: formula
+  claims:
+  - claim_key: product_identity
+    value:
+      manufacturer: 가상브랜드_도담
+      model: SYN-FORMULA-000007
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-FORMULA-000007
+      version: baby-demo-v1
+    file: files/SYN-FORMULA-000007-product_identity.json
+    sha256: 60d35279b80e2300a4d009a9823b96890eba1d19bb02df0cddd935883220f3de
+    retrieved_on: '2026-09-14'
+    verified: true
+  - claim_key: safety_route
+    value:
+      route: synthetic_demo_only
+      classification: formula_synthetic_demo
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-FORMULA-000007
+      version: baby-demo-v1
+    file: files/SYN-FORMULA-000007-safety_route.json
+    sha256: c96f905b926b0688cffb6fb0f08db6a2aff4186865b78e61b40c6f396e637a75
+    retrieved_on: '2026-09-14'
+    verified: true
+  - claim_key: manufacturer_document
+    value:
+      has_manual: true
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-FORMULA-000007
+      version: baby-demo-v1
+    file: ../../../generated/synthetic_manuals/catalog_demo_v1_r1/SYN-FORMULA-000007/manual.md
+    sha256: acb5c54708767b5ee5eabdd1a53eacbab5a654ee6fdd7d9bba9d1d325a9eb853
+    retrieved_on: '2026-09-14'
+    verified: true
+    manual_bundle: ../../../generated/synthetic_manuals/catalog_demo_v1_r1/SYN-FORMULA-000007
+  - claim_key: recall_status
+    value:
+      status: no_active_recall
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-FORMULA-000007
+      version: baby-demo-v1
+    file: files/SYN-FORMULA-000007-recall_status.json
+    sha256: e6ed5b16c37e0a5c0d691855ef2bf88e85e18ef3ccf6d2394f6a7754adf22cdc
+    retrieved_on: '2026-09-14'
+    verified: true
+- product_key: SYN-FORMULA-000025
+  variant_key: SYN-FORMULA-000025-V1
+  slot_key: formula
+  claims:
+  - claim_key: product_identity
+    value:
+      manufacturer: 가상브랜드_모아
+      model: SYN-FORMULA-000025
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-FORMULA-000025
+      version: baby-demo-v1
+    file: files/SYN-FORMULA-000025-product_identity.json
+    sha256: e9c467ace28c1d8980798f4fb4864e9e00ba3033d17c8563088412713e5b463b
+    retrieved_on: '2026-09-14'
+    verified: true
+- product_key: SYN-GATE-000017
+  variant_key: SYN-GATE-000017-V1
+  slot_key: gate
+  claims:
+  - claim_key: product_identity
+    value:
+      manufacturer: 가상브랜드_도담
+      model: SYN-GATE-000017
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-GATE-000017
+      version: baby-demo-v1
+    file: files/SYN-GATE-000017-product_identity.json
+    sha256: bb855a9824a941bbeadb17ce7fee0c09e0ab085718834ff9ec920c9a8605dfb0
+    retrieved_on: '2026-09-14'
+    verified: true
+  - claim_key: safety_route
+    value:
+      route: synthetic_demo_only
+      classification: gate_synthetic_demo
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-GATE-000017
+      version: baby-demo-v1
+    file: files/SYN-GATE-000017-safety_route.json
+    sha256: afa61eab14863ff5f3425a6f0606b16df0128e4d0a555864864d6862b44caaa9
+    retrieved_on: '2026-09-14'
+    verified: true
+  - claim_key: manufacturer_document
+    value:
+      has_manual: true
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-GATE-000017
+      version: baby-demo-v1
+    file: ../../../generated/synthetic_manuals/catalog_demo_v1_r1/SYN-GATE-000017/manual.md
+    sha256: 99f30db7a571ccf6a86935d9acc67dd58924e748791798e61fc5c3b7d90e2289
+    retrieved_on: '2026-09-14'
+    verified: true
+    manual_bundle: ../../../generated/synthetic_manuals/catalog_demo_v1_r1/SYN-GATE-000017
+  - claim_key: recall_status
+    value:
+      status: no_active_recall
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-GATE-000017
+      version: baby-demo-v1
+    file: files/SYN-GATE-000017-recall_status.json
+    sha256: fb99d2071ba0c6aa860d5199e4230dd248de44ee0866ec303219ab7783a4358e
+    retrieved_on: '2026-09-14'
+    verified: true
+- product_key: SYN-GATE-000035
+  variant_key: SYN-GATE-000035-V1
+  slot_key: gate
+  claims:
+  - claim_key: product_identity
+    value:
+      manufacturer: 가상브랜드_새봄
+      model: SYN-GATE-000035
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-GATE-000035
+      version: baby-demo-v1
+    file: files/SYN-GATE-000035-product_identity.json
+    sha256: c5c27a121a3a7882340dfd388c1a8bb6251e5bae324551684122c2f36d829a0f
+    retrieved_on: '2026-09-14'
+    verified: true
+- product_key: SYN-HIGH-CHAIR-000008
+  variant_key: SYN-HIGH-CHAIR-000008-V1
+  slot_key: high_chair
+  claims:
+  - claim_key: product_identity
+    value:
+      manufacturer: 가상브랜드_새봄
+      model: SYN-HIGH-CHAIR-000008
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-HIGH-CHAIR-000008
+      version: baby-demo-v1
+    file: files/SYN-HIGH-CHAIR-000008-product_identity.json
+    sha256: 743d872a5cec210bacc3545d2d3f7ef2a359ced974857ddbdde78689467d2171
+    retrieved_on: '2026-09-14'
+    verified: true
+  - claim_key: safety_route
+    value:
+      route: synthetic_demo_only
+      classification: high_chair_synthetic_demo
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-HIGH-CHAIR-000008
+      version: baby-demo-v1
+    file: files/SYN-HIGH-CHAIR-000008-safety_route.json
+    sha256: 27f8e0c8616cd49c9275ca4545a7209cc2a590eaf5e024e227b72307fcfc2201
+    retrieved_on: '2026-09-14'
+    verified: true
+  - claim_key: manufacturer_document
+    value:
+      has_manual: true
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-HIGH-CHAIR-000008
+      version: baby-demo-v1
+    file: ../../../generated/synthetic_manuals/catalog_demo_v1_r1/SYN-HIGH-CHAIR-000008/manual.md
+    sha256: 2f9c89754f04cc4d2b424c4db464c00209078acd44af841b3c35f5f3acc92051
+    retrieved_on: '2026-09-14'
+    verified: true
+    manual_bundle: ../../../generated/synthetic_manuals/catalog_demo_v1_r1/SYN-HIGH-CHAIR-000008
+  - claim_key: recall_status
+    value:
+      status: no_active_recall
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-HIGH-CHAIR-000008
+      version: baby-demo-v1
+    file: files/SYN-HIGH-CHAIR-000008-recall_status.json
+    sha256: d8231ffe310600c0f7b861887802e45c949e5b3b1d5f28c3df6c8189189f87be
+    retrieved_on: '2026-09-14'
+    verified: true
+- product_key: SYN-HIGH-CHAIR-000026
+  variant_key: SYN-HIGH-CHAIR-000026-V1
+  slot_key: high_chair
+  claims:
+  - claim_key: product_identity
+    value:
+      manufacturer: 가상브랜드_모아
+      model: SYN-HIGH-CHAIR-000026
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-HIGH-CHAIR-000026
+      version: baby-demo-v1
+    file: files/SYN-HIGH-CHAIR-000026-product_identity.json
+    sha256: 90f47ef5a5668f42e784f26c3bf9220db387590e846ee3066f766fb1ac84a109
+    retrieved_on: '2026-09-14'
+    verified: true
+- product_key: SYN-MAT-000016
+  variant_key: SYN-MAT-000016-V1
+  slot_key: mat
+  claims:
+  - claim_key: product_identity
+    value:
+      manufacturer: 가상브랜드_모아
+      model: SYN-MAT-000016
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-MAT-000016
+      version: baby-demo-v1
+    file: files/SYN-MAT-000016-product_identity.json
+    sha256: dee52cc94cee302cc4b9958680daa53b06cfc02af01c1e4f64717a3e8b4c1c54
+    retrieved_on: '2026-09-14'
+    verified: true
+  - claim_key: safety_route
+    value:
+      route: synthetic_demo_only
+      classification: mat_synthetic_demo
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-MAT-000016
+      version: baby-demo-v1
+    file: files/SYN-MAT-000016-safety_route.json
+    sha256: 0585b804d4681511764c992bd00ac6d4f0e32ce568ad8149d72bcbb3da861d41
+    retrieved_on: '2026-09-14'
+    verified: true
+  - claim_key: manufacturer_document
+    value:
+      has_manual: true
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-MAT-000016
+      version: baby-demo-v1
+    file: ../../../generated/synthetic_manuals/catalog_demo_v1_r1/SYN-MAT-000016/manual.md
+    sha256: 7393ed1d06d3e565dc5fa0cee38f84c0e544441a30588861f90d1c276fbb7cb0
+    retrieved_on: '2026-09-14'
+    verified: true
+    manual_bundle: ../../../generated/synthetic_manuals/catalog_demo_v1_r1/SYN-MAT-000016
+  - claim_key: recall_status
+    value:
+      status: no_active_recall
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-MAT-000016
+      version: baby-demo-v1
+    file: files/SYN-MAT-000016-recall_status.json
+    sha256: 4569a435098344893468e9b1868645c5a81b2b76806963036680194c21ebd069
+    retrieved_on: '2026-09-14'
+    verified: true
+- product_key: SYN-MAT-000034
+  variant_key: SYN-MAT-000034-V1
+  slot_key: mat
+  claims:
+  - claim_key: product_identity
+    value:
+      manufacturer: 가상브랜드_도담
+      model: SYN-MAT-000034
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-MAT-000034
+      version: baby-demo-v1
+    file: files/SYN-MAT-000034-product_identity.json
+    sha256: e343714397f42571d34fecf492c8d411f251f3a1fa91f1ceac3538242450704d
+    retrieved_on: '2026-09-14'
+    verified: true
+- product_key: SYN-SKINCARE-000015
+  variant_key: SYN-SKINCARE-000015-V1
+  slot_key: skincare
+  claims:
+  - claim_key: product_identity
+    value:
+      manufacturer: 가상브랜드_도담
+      model: SYN-SKINCARE-000015
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-SKINCARE-000015
+      version: baby-demo-v1
+    file: files/SYN-SKINCARE-000015-product_identity.json
+    sha256: c85e5abc8bc617d292ed7354c71714b7c4d79ac65bccd5a8181102262df5b9cf
+    retrieved_on: '2026-09-14'
+    verified: true
+  - claim_key: safety_route
+    value:
+      route: synthetic_demo_only
+      classification: skincare_synthetic_demo
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-SKINCARE-000015
+      version: baby-demo-v1
+    file: files/SYN-SKINCARE-000015-safety_route.json
+    sha256: 27bfd802c208cf69e9cc4470e8e470a39053c2cc2f2fcff5b6290025e86b2ea8
+    retrieved_on: '2026-09-14'
+    verified: true
+  - claim_key: manufacturer_document
+    value:
+      has_manual: true
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-SKINCARE-000015
+      version: baby-demo-v1
+    file: ../../../generated/synthetic_manuals/catalog_demo_v1_r1/SYN-SKINCARE-000015/manual.md
+    sha256: 4babfa5cbf5e73a88c438368102c6a3d2e6362af936b0fa351deb3ad86a0d51e
+    retrieved_on: '2026-09-14'
+    verified: true
+    manual_bundle: ../../../generated/synthetic_manuals/catalog_demo_v1_r1/SYN-SKINCARE-000015
+  - claim_key: recall_status
+    value:
+      status: no_active_recall
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-SKINCARE-000015
+      version: baby-demo-v1
+    file: files/SYN-SKINCARE-000015-recall_status.json
+    sha256: 9939064f86aafe9cc725f438b2f9680df39bfa0d646651e2823b63d169e8dbfd
+    retrieved_on: '2026-09-14'
+    verified: true
+- product_key: SYN-SKINCARE-000033
+  variant_key: SYN-SKINCARE-000033-V1
+  slot_key: skincare
+  claims:
+  - claim_key: product_identity
+    value:
+      manufacturer: 가상브랜드_새봄
+      model: SYN-SKINCARE-000033
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-SKINCARE-000033
+      version: baby-demo-v1
+    file: files/SYN-SKINCARE-000033-product_identity.json
+    sha256: 842c1e375b694a9d879a353a701d53cfc5f101aea94a26df2eb805f05e99e054
+    retrieved_on: '2026-09-14'
+    verified: true
+- product_key: SYN-SLEEPWEAR-000005
+  variant_key: SYN-SLEEPWEAR-000005-V1
+  slot_key: sleepwear
+  claims:
+  - claim_key: product_identity
+    value:
+      manufacturer: 가상브랜드_새봄
+      model: SYN-SLEEPWEAR-000005
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-SLEEPWEAR-000005
+      version: baby-demo-v1
+    file: files/SYN-SLEEPWEAR-000005-product_identity.json
+    sha256: acdbfb31770f74b1fd6435a6e2748fa595d182e4a5d9065c71f14411b7f2e423
+    retrieved_on: '2026-09-14'
+    verified: true
+  - claim_key: safety_route
+    value:
+      route: synthetic_demo_only
+      classification: sleepwear_synthetic_demo
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-SLEEPWEAR-000005
+      version: baby-demo-v1
+    file: files/SYN-SLEEPWEAR-000005-safety_route.json
+    sha256: 0660ea9a83e6469eaad6e49c64000b5af7e0cf98c1c81c4fbfe4f3e10dd4485c
+    retrieved_on: '2026-09-14'
+    verified: true
+  - claim_key: manufacturer_document
+    value:
+      has_manual: true
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-SLEEPWEAR-000005
+      version: baby-demo-v1
+    file: ../../../generated/synthetic_manuals/catalog_demo_v1_r1/SYN-SLEEPWEAR-000005/manual.md
+    sha256: 7cccd7bc821f5db7336c82fa81191ec2abfd2af2042449218cec3a7625b80351
+    retrieved_on: '2026-09-14'
+    verified: true
+    manual_bundle: ../../../generated/synthetic_manuals/catalog_demo_v1_r1/SYN-SLEEPWEAR-000005
+  - claim_key: recall_status
+    value:
+      status: no_active_recall
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-SLEEPWEAR-000005
+      version: baby-demo-v1
+    file: files/SYN-SLEEPWEAR-000005-recall_status.json
+    sha256: 9208056e2e4d3b1915ed9b1efd6c6c748b8401e042f61c081b43e8ca5ef27024
+    retrieved_on: '2026-09-14'
+    verified: true
+- product_key: SYN-SLEEPWEAR-000023
+  variant_key: SYN-SLEEPWEAR-000023-V1
+  slot_key: sleepwear
+  claims:
+  - claim_key: product_identity
+    value:
+      manufacturer: 가상브랜드_도담
+      model: SYN-SLEEPWEAR-000023
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-SLEEPWEAR-000023
+      version: baby-demo-v1
+    file: files/SYN-SLEEPWEAR-000023-product_identity.json
+    sha256: 17c81e4e02444155c7de486ff08dc8010947172d3714de39b6a9484d1fd38d48
+    retrieved_on: '2026-09-14'
+    verified: true
+- product_key: SYN-STROLLER-000001
+  variant_key: SYN-STROLLER-000001-V1
+  slot_key: stroller
+  claims:
+  - claim_key: product_identity
+    value:
+      manufacturer: 가상브랜드_새봄
+      model: SYN-STROLLER-000001
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-STROLLER-000001
+      version: baby-demo-v1
+    file: files/SYN-STROLLER-000001-product_identity.json
+    sha256: 3c61c40e62dd93ca51df94d03c3e3335153dd90560a7c308111c1311041df715
+    retrieved_on: '2026-09-14'
+    verified: true
+  - claim_key: safety_route
+    value:
+      route: synthetic_demo_only
+      classification: stroller_synthetic_demo
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-STROLLER-000001
+      version: baby-demo-v1
+    file: files/SYN-STROLLER-000001-safety_route.json
+    sha256: 9f35566605dcf7d4c3616a9064f9ee202f8803f863ae206702b1a3912bfb038b
+    retrieved_on: '2026-09-14'
+    verified: true
+  - claim_key: manufacturer_document
+    value:
+      has_manual: true
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-STROLLER-000001
+      version: baby-demo-v1
+    file: ../../../generated/synthetic_manuals/catalog_demo_v1_r1/SYN-STROLLER-000001/manual.md
+    sha256: 934bc8b7277d092a37b474e36bc0e4d31c7b2716de662634c83f5c858262f73d
+    retrieved_on: '2026-09-14'
+    verified: true
+    manual_bundle: ../../../generated/synthetic_manuals/catalog_demo_v1_r1/SYN-STROLLER-000001
+  - claim_key: recall_status
+    value:
+      status: no_active_recall
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-STROLLER-000001
+      version: baby-demo-v1
+    file: files/SYN-STROLLER-000001-recall_status.json
+    sha256: 0ba33fb807814fc57a19ae8e15c8042c70828bbca23106033546e1d3bc2bc697
+    retrieved_on: '2026-09-14'
+    verified: true
+- product_key: SYN-STROLLER-000019
+  variant_key: SYN-STROLLER-000019-V1
+  slot_key: stroller
+  claims:
+  - claim_key: product_identity
+    value:
+      manufacturer: 가상브랜드_새봄
+      model: SYN-STROLLER-000019
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-STROLLER-000019
+      version: baby-demo-v1
+    file: files/SYN-STROLLER-000019-product_identity.json
+    sha256: 35e4258cc9ef55426681be5d16877dae40e47df6c9f3f08be52e240f1850a601
+    retrieved_on: '2026-09-14'
+    verified: true
+- product_key: SYN-THERMOMETER-000018
+  variant_key: SYN-THERMOMETER-000018-V1
+  slot_key: thermometer
+  claims:
+  - claim_key: product_identity
+    value:
+      manufacturer: 가상브랜드_새봄
+      model: SYN-THERMOMETER-000018
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-THERMOMETER-000018
+      version: baby-demo-v1
+    file: files/SYN-THERMOMETER-000018-product_identity.json
+    sha256: 689eddb4ba8552d8268d2ffd18027b19bc95403b0e2b814002eee9009a0c4e15
+    retrieved_on: '2026-09-14'
+    verified: true
+  - claim_key: safety_route
+    value:
+      route: synthetic_demo_only
+      classification: thermometer_synthetic_demo
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-THERMOMETER-000018
+      version: baby-demo-v1
+    file: files/SYN-THERMOMETER-000018-safety_route.json
+    sha256: f56f4c426fd82f96a226c40efdfd252a3125fa34377b28e7261a4d7298d8f899
+    retrieved_on: '2026-09-14'
+    verified: true
+  - claim_key: manufacturer_document
+    value:
+      has_manual: true
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-THERMOMETER-000018
+      version: baby-demo-v1
+    file: ../../../generated/synthetic_manuals/catalog_demo_v1_r1/SYN-THERMOMETER-000018/manual.md
+    sha256: ce47389b0223d10b948e27a77b0351fa24cfc30150b05a8d91ea71c54aaf3a02
+    retrieved_on: '2026-09-14'
+    verified: true
+    manual_bundle: ../../../generated/synthetic_manuals/catalog_demo_v1_r1/SYN-THERMOMETER-000018
+  - claim_key: recall_status
+    value:
+      status: no_active_recall
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-THERMOMETER-000018
+      version: baby-demo-v1
+    file: files/SYN-THERMOMETER-000018-recall_status.json
+    sha256: e4c6ebb3ebe41c450adc0dc2408b61c000f8ee13c289cd5bbd751db6f945503a
+    retrieved_on: '2026-09-14'
+    verified: true
+- product_key: SYN-THERMOMETER-000036
+  variant_key: SYN-THERMOMETER-000036-V1
+  slot_key: thermometer
+  claims:
+  - claim_key: product_identity
+    value:
+      manufacturer: 가상브랜드_새봄
+      model: SYN-THERMOMETER-000036
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-THERMOMETER-000036
+      version: baby-demo-v1
+    file: files/SYN-THERMOMETER-000036-product_identity.json
+    sha256: 5e2791c6a942e8cfed6e92d5333dffac4bcfc3698ba1c617e2f925f9345e7477
+    retrieved_on: '2026-09-14'
+    verified: true
+- product_key: SYN-WIPES-000013
+  variant_key: SYN-WIPES-000013-V1
+  slot_key: wipes
+  claims:
+  - claim_key: product_identity
+    value:
+      manufacturer: 가상브랜드_도담
+      model: SYN-WIPES-000013
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-WIPES-000013
+      version: baby-demo-v1
+    file: files/SYN-WIPES-000013-product_identity.json
+    sha256: c040f1b5fd37dd02ca607877bd4a05373f3c9e0a10e32c52dddd573f7cca471f
+    retrieved_on: '2026-09-14'
+    verified: true
+  - claim_key: safety_route
+    value:
+      route: synthetic_demo_only
+      classification: wipes_synthetic_demo
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-WIPES-000013
+      version: baby-demo-v1
+    file: files/SYN-WIPES-000013-safety_route.json
+    sha256: 7266b531a37dda43373be9e421b35708f082a095be5f5da52c1d0c9e4359c206
+    retrieved_on: '2026-09-14'
+    verified: true
+  - claim_key: manufacturer_document
+    value:
+      has_manual: true
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-WIPES-000013
+      version: baby-demo-v1
+    file: ../../../generated/synthetic_manuals/catalog_demo_v1_r1/SYN-WIPES-000013/manual.md
+    sha256: 74477c204a94fc8df6e03db9e94dbdde1bae755f09599cddc73f3cc4b5594828
+    retrieved_on: '2026-09-14'
+    verified: true
+    manual_bundle: ../../../generated/synthetic_manuals/catalog_demo_v1_r1/SYN-WIPES-000013
+  - claim_key: recall_status
+    value:
+      status: no_active_recall
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-WIPES-000013
+      version: baby-demo-v1
+    file: files/SYN-WIPES-000013-recall_status.json
+    sha256: e53ecf409e142f343dffcdc3798f40af955f3f10e2fa7fabf7ee51168bd696d5
+    retrieved_on: '2026-09-14'
+    verified: true
+- product_key: SYN-WIPES-000031
+  variant_key: SYN-WIPES-000031-V1
+  slot_key: wipes
+  claims:
+  - claim_key: product_identity
+    value:
+      manufacturer: 가상브랜드_새봄
+      model: SYN-WIPES-000031
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/SYN-WIPES-000031
+      version: baby-demo-v1
+    file: files/SYN-WIPES-000031-product_identity.json
+    sha256: f0220138474daba3c8a5d57ec24f1784cf7dceadb752a6f35c57463d47a732d0
+    retrieved_on: '2026-09-14'
+    verified: true

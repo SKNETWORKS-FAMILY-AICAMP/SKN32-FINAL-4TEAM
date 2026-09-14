@@ -34,16 +34,25 @@ function tfSortResultItems(items,slotOrder){
 let tfOpenReviewItemId=null;
 function tfResultChatTurn(role,html){return '<div class="conversation-turn '+(role==='user'?'user':'')+'"><span class="conversation-label">'+(role==='user'?(tfIsEnglish()?'You':'나'):'TrueFit')+'</span><div class="conversation-bubble">'+html+'</div></div>'}
 function tfResultSummaryHtml(result){
- const items=(result.items||[]).filter(item=>item.selected),totals=result.totals||{};
+ const items=(result.items||[]).filter(item=>item.selected),totals=result.totals||{},isBaby=tfUiCategory(result.category)==='baby';
+ const english=window.TF_LOCALE?.isEnglish?.();
+ const nounKo=isBaby?'품목':'부품',nounEn=isBaby?'item':'part';
+ const missing=result.missing_requirements||[];
+ if(!items.length){
+  const blocked=missing.map(row=>'<li><strong>'+esc(row.slot_key||(english?'Required item':'필수 품목'))+'</strong> · '+esc(row.message||(english?'Cannot be added.':'담을 수 없어요.'))+(row.next_action?' '+esc(row.next_action):'')+'</li>').join('');
+  return english
+   ? '<p>No selectable '+nounEn+'s yet.</p>'+(blocked?'<ul>'+blocked+'</ul>':'')+'<div class="quick-replies"><button class="chip-btn" type="button" data-action="conditions">Review conditions again</button></div>'
+   : '<p>선택 가능한 '+nounKo+'이 아직 없어요.</p>'+(blocked?'<ul>'+blocked+'</ul>':'')+'<div class="quick-replies"><button class="chip-btn" type="button" data-action="conditions">조건 다시 확인</button></div>';
+ }
  const lines=items.map(item=>'<li>'+esc(tfSlotLabel(item.slot_label))+' · '+esc(item.product?.name)+' · <span class="figure">'+won(Number(item.price||0)*Math.max(1,Number(item.qty)||1))+'</span></li>').join('');
  const total=Number(totals.selected_price||0),budgetMax=result.budget_max;
  const pricey=[...items].sort((a,b)=>Number(b.price||0)-Number(a.price||0))[0];
- const english=window.TF_LOCALE?.isEnglish?.(),summaryPrompt=english?'Give me an overall assessment of this build':'이 구성 총평 알려줘';
+ const summaryPrompt=english?'Give me an overall assessment of this build':'이 구성 총평 알려줘';
  const chips=['<button class="chip-btn" type="button" data-fill="'+esc(summaryPrompt)+'">'+(english?'How does this build look overall?':'이 구성 총평은?')+'</button>'];
  if(pricey){const slotLabel=tfSlotLabel(pricey.slot_label),cheaperPrompt=english?'Make '+slotLabel+' cheaper':pricey.slot_label+' 더 저렴한 걸로 바꿔줘';chips.unshift('<button class="chip-btn" type="button" data-fill="'+esc(cheaperPrompt)+'">'+esc(slotLabel)+(english?' cheaper':' 더 저렴하게')+'</button>')}
- if(english){const budgetLine=budgetMax?' Of the '+won(budgetMax)+' budget, '+won(Math.max(0,budgetMax-total))+' remains.':'';return 'Built a '+items.length+'-part configuration to match your conditions.<ul>'+lines+'</ul>Total <span class="figure">'+won(total)+'</span>.'+budgetLine+' Tell me if you would like to replace any part.<div class="quick-replies">'+chips.join('')+'</div>'}
+ if(english){const budgetLine=budgetMax?' Of the '+won(budgetMax)+' budget, '+won(Math.max(0,budgetMax-total))+' remains.':'';return 'Built a '+items.length+'-'+nounEn+' configuration to match your conditions.<ul>'+lines+'</ul>Total <span class="figure">'+won(total)+'</span>.'+budgetLine+' Tell me if you would like to replace any '+nounEn+'.<div class="quick-replies">'+chips.join('')+'</div>'}
  const budgetLine=budgetMax?' 예산 '+won(budgetMax)+' 중 '+won(Math.max(0,budgetMax-total))+' 남아요.':'';
- return '조건에 맞춰 '+items.length+'개 부품으로 구성했어요.<ul>'+lines+'</ul>합계 <span class="figure">'+won(total)+'</span>·'+budgetLine+' 마음에 안 드는 부품이 있으면 편하게 말씀해 주세요.<div class="quick-replies">'+chips.join('')+'</div>';
+ return '조건에 맞춰 '+items.length+'개 '+nounKo+'으로 구성했어요.<ul>'+lines+'</ul>합계 <span class="figure">'+won(total)+'</span>·'+budgetLine+' 마음에 안 드는 '+nounKo+'이 있으면 편하게 말씀해 주세요.<div class="quick-replies">'+chips.join('')+'</div>';
 }
 // TF-DEV: 리뷰 한눈에 보기 — 서버 review.signals(docs/개발요청_리뷰클렌징_요약_구조화.md 요청 A)를 막대로 그린다.
 // 원칙: 없는 정보는 보여주지 않는다. signals가 null이면 섹션 전체를, 개별 신호가 null이면 그 줄만 숨긴다.

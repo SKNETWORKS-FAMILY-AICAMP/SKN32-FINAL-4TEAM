@@ -429,9 +429,10 @@ def review_demotion_step(demoted_by_slot: dict[str, list[dict]] | None,
                                for k, v, m in d["over"])
         parts.append(f"{_slot_label(slot, locale)} {d.get('name', '?')} — {facts}")
     if english:
+        noun = "candidate" if len(rows) == 1 else "candidates"
         return {
             "step": "Review observations · Ranking adjustment",
-            "title": f"{len(rows)} candidates ranked lower due to observations (not excluded)",
+            "title": f"{len(rows)} {noun} ranked lower due to observations (not excluded)",
             "detail": " · ".join(parts) + " — These candidates remain available; only their ranking changed",
         }
     return {

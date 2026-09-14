@@ -46,16 +46,30 @@ class EngineRepo(Repo):
     def fail_candidate_checks(self, candidate_id: UUID) -> None:
         """가이드 검색/임베딩 실패 — checks는 NULL로 남기고 상태만 failed로."""
         self._exec("UPDATE engine.recommendation_candidate SET checks_status='failed' WHERE id=%s",(candidate_id,))
-    def add_validation(self, run_id: UUID, *, rule_key: str, rule_version: str, executor_version: str, status: str, severity: str, measured_values: dict, threshold: dict, message: str, checked_at) -> UUID:
-        row=self._one("""INSERT INTO engine.validation_result (run_id,rule_key,rule_version,executor_version,status,severity,measured_values,threshold,message,checked_at)
-        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id""",(run_id,rule_key,rule_version,executor_version,status,severity,Jsonb(measured_values),Jsonb(threshold),message,checked_at)); return row["id"]
+    def add_validation(self, run_id: UUID, *, rule_key: str, rule_version: str, executor_version: str, status: str, severity: str, measured_values: dict, threshold: dict, message: str, checked_at, issues: list | None = None) -> UUID:
+        row=self._one("""INSERT INTO engine.validation_result (run_id,rule_key,rule_version,executor_version,status,severity,measured_values,threshold,message,checked_at,issues)
+        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id""",(run_id,rule_key,rule_version,executor_version,status,severity,Jsonb(measured_values),Jsonb(threshold),message,checked_at,Jsonb(issues or []))); return row["id"]
     def set_candidate_result(self, candidate_id: UUID, *, result: str, score=None) -> None:
         if result not in {"pending", "passed", "rejected", "selected"}:
             raise ValueError("invalid_candidate_result")
         self._exec("UPDATE engine.recommendation_candidate SET result=%s, score=%s, score_method_version=%s WHERE id=%s",
                    (result, score, "baby-v1" if score is not None else None, candidate_id))
     def link_validation_target(self, validation_result_id: UUID, *, requirement_id: UUID | None = None, purchase_line_id: UUID | None = None, candidate_id: UUID | None = None) -> UUID:
-        row=self._one("INSERT INTO engine.validation_target (validation_result_id,requirement_id,purchase_line_id,candidate_id) VALUES (%s,%s,%s,%s) RETURNING id",(validation_result_id,requirement_id,purchase_line_id,candidate_id)); return row["id"]
+        """Append target identity to the v3 JSON payload.
+
+        ``engine.validation_target`` was deliberately removed by migration 0012;
+        retaining this adapter prevents dormant callers from reviving that table.
+        """
+        target = {k: str(v) for k, v in {
+            "requirement_id": requirement_id,
+            "purchase_line_id": purchase_line_id,
+            "candidate_id": candidate_id,
+        }.items() if v is not None}
+        self._exec(
+            "UPDATE engine.validation_result SET issues = issues || %s WHERE id=%s",
+            (Jsonb([{"target": target}]), validation_result_id),
+        )
+        return validation_result_id
     def link_validation_evidence(self, validation_result_id: UUID, evidence_id: UUID) -> None:
         self._exec("INSERT INTO engine.validation_evidence (validation_result_id,evidence_id) VALUES (%s,%s) ON CONFLICT DO NOTHING",(validation_result_id,evidence_id))
     def set_explanation(self, run_id: UUID, *, headline: str, text: str, reasoning_log: list) -> None:
@@ -129,4 +143,7 @@ def persist_candidate_check(conn, run_id: UUID, candidate_id: UUID, check, _cont
         repo.add_validation(run_id, rule_key=issue["rule_key"], rule_version=issue.get("rule_version", "v1"),
                             executor_version="baby-v1", status=issue["status"], severity=issue["severity"],
                             measured_values=issue.get("measured") or {}, threshold=issue.get("threshold") or {},
-                            message=issue.get("reason") or issue["rule_key"], checked_at=datetime.now(timezone.utc))
+                            message=issue.get("reason") or issue["rule_key"], checked_at=datetime.now(timezone.utc),
+                            # schema-reduction v3 intentionally dropped validation_target.
+                            # The issue payload is the durable candidate/requirement link.
+                            issues=[issue])

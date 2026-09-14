@@ -64,6 +64,31 @@ def _ranked(rank: RankResult, slot: str) -> list[Candidate]:
     return [Candidate.model_validate(c) for c in rank.slots.get(slot, {}).get("ranked", [])]
 
 
+def _compat_filter(pool: list[Candidate], key: str, wanted: str) -> list[Candidate]:
+    """호환 속성(key)이 wanted와 같은 후보만 남긴다. 속성이 없는 후보는 "정보 없음"이라
+    통과시킨다(호환 안 됨으로 단정하지 않는다) — override 표가 일부 부품만 채워져 있어서다.
+    남는 게 없으면 필터를 걸지 않은 원래 풀로 되돌린다(빈 슬롯보다는 낫다)."""
+    kept = [c for c in pool if c.specs.get(key) in (None, wanted)]
+    return kept or pool
+
+
+def _mainboard_compat_filter(pools: dict[str, list[Candidate]]) -> None:
+    """메인보드를 호환 기준점으로 삼아 CPU(소켓)·RAM(메모리 타입)·케이스(폼팩터) 풀을
+    좁힌다(요청 R1). 완전탐색·전력/물리 가지치기는 아직 없다 — 이 세 축만 고정."""
+    mb_pool = pools.get("메인보드") or []
+    if not mb_pool:
+        return
+    mb = mb_pool[0]
+    socket, mem_type, form = mb.specs.get("socket"), mb.specs.get("mem_type"), mb.specs.get("form_factor")
+    if socket and "CPU" in pools:
+        pools["CPU"] = _compat_filter(pools["CPU"], "socket", socket)
+    if mem_type and "RAM" in pools:
+        pools["RAM"] = _compat_filter(pools["RAM"], "mem_type", mem_type)
+    if form and "케이스" in pools:
+        pools["케이스"] = [c for c in pools["케이스"]
+                          if form in (c.specs.get("supports_form_factors") or [form])] or pools["케이스"]
+
+
 def build_computer(
     rank: RankResult,
     spec: RequirementSpec,
@@ -77,14 +102,16 @@ def build_computer(
     slots = list(spec.targets.keys())
     pools = {s: [c for c in _ranked(rank, s) if (s, c.product_key) not in exclude] for s in slots}
     pools = {s: (cs or _ranked(rank, s)) for s, cs in pools.items()}  # 비면 원복
+    _mainboard_compat_filter(pools)
 
     budget = spec.budget.get("total", 0)
     combos = 1
     for cs in pools.values():
         combos *= max(1, len(cs))
 
-    # TODO: 실제 완전탐색 + link_rules(소켓·전력·물리) 가지치기 + 목적함수
-    #       지금은 각 슬롯 1위(예산 초과 시 다음 순위)로 근사.
+    # TODO: 전력(PSU 용량)·GPU 길이·쿨러 높이 가지치기와 완전탐색 목적함수는 아직 없다.
+    #       소켓·메모리 타입·폼팩터는 위 _mainboard_compat_filter가 먼저 풀을 좁혀 둔다(R1).
+    #       지금은 그 좁혀진 풀에서 각 슬롯 1위(예산 초과 시 다음 순위)로 근사.
     picked: list[BuildItem] = []
     running = 0
     for s in slots:
@@ -109,6 +136,14 @@ def build_computer(
     log(f"      총액 {total:,}원 / 예산 {used_pct}% / GPU tier {gpu_t} · CPU tier {cpu_t}")
 
     valid = max(1, combos // 8)
+    cpu_item = next((i for i in picked if i.slot == "CPU"), None)
+    mb_item = next((i for i in picked if i.slot == "메인보드"), None)
+    cpu_socket = next((c.specs.get("socket") for c in pools.get("CPU", []) if cpu_item and c.product_key == cpu_item.product_key), None)
+    mb_socket = next((c.specs.get("socket") for c in pools.get("메인보드", []) if mb_item and c.product_key == mb_item.product_key), None)
+    if cpu_socket and mb_socket:
+        socket_status = "ok" if cpu_socket == mb_socket else "fail"
+    else:
+        socket_status = "ok (근사)"  # 호환 데이터가 없는 부품 — 아직 확인 안 됨, 위반 확정 아님
     return BuildResult(
         list_id=spec.list_id,
         items=picked,
@@ -116,7 +151,7 @@ def build_computer(
             sum(i.score for i in picked) / max(1, len(picked)), 3)},
         budget={"max": budget, "used": total, "used_pct": used_pct,
                 "slack": (budget - total) if budget else 0},
-        link_check={"socket": "ok", "power": "ok (근사)", "gpu_len": "ok",
+        link_check={"socket": socket_status, "power": "ok (근사)", "gpu_len": "ok",
                     "cooler_height": "ok", "bios": "ok"},
         balance={"gpu_tier": gpu_t, "cpu_tier": cpu_t,
                  "verdict": "균형" if abs(gpu_t - cpu_t) <= 3 else "불균형"},
