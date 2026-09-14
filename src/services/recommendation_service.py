@@ -701,11 +701,15 @@ def _care_guide_en(text: str | None) -> str | None:
     return None
 
 
-def _item_checks(item: dict, validations: list[dict], confidence: int | None, lang: str = "ko",
+def _item_checks(item: dict, validations: list[dict], lang: str = "ko",
                  guide: dict | None = None) -> dict:
     """"구매 전 확인" — 사용 가이드(RAG, develop 이 저장한 것)를 앞에 두고, 코드가 아는 사실을 잇는다:
-    이 슬롯에 걸린 세트 검증 쟁점, 리뷰 관측(상품 단위), 교체 여부. 전에는 `pending` 하드코딩이었다."""
-    from src.services import review_service
+    이 슬롯에 걸린 세트 검증 쟁점, 교체 여부. 전에는 `pending` 하드코딩이었다.
+
+    리뷰 관측·세트 신뢰도 문장은 여기서 뺐다(docs/개발요청_리뷰클렌징_요약_구조화.md 요청 B) —
+    03 리뷰 패널이 ReviewBriefOut.signals(구조화 필드, review_service._review_signals)로 따로
+    받는다. 신뢰도 표시 자체도 verify_build()가 아직 규칙 스캐폴드(RAG 미연결)라 노출하지 않는다.
+    """
     slot = item["slot"]
     parts: list[str] = []
     if guide and guide.get("status") == "ready" and guide.get("text"):
@@ -717,17 +721,7 @@ def _item_checks(item: dict, validations: list[dict], confidence: int | None, la
     if hit:
         parts += [f"[{v['rule_key']}] {v['message']}" for v in hit]
     else:
-        parts.append(L(lang, "이 부품에 걸린 세트 검증 쟁점 없음", "No set-verification issue on this part")
-                     + (L(lang, f" (세트 신뢰도 {confidence}점)", f" (set confidence {confidence})") if confidence is not None else ""))
-    try:
-        summary = review_service.get_summary(item["product"]["product_key"], lang)
-        obs = [x["text"] for x in summary.summaries]
-        parts.append((L(lang, "리뷰 관측: ", "Review observations (product-level): ") + " / ".join(obs)
-                      + L(lang, " — 상품 단위 신호이며 개별 리뷰의 진위가 아닙니다", " — a product-level signal, not the authenticity of any single review"))
-                     if obs else L(lang, "리뷰 관측 없음 — 리뷰 수 문턱 미만이거나 데이터 기간 밖",
-                                   "No review observation — below the review-count threshold or outside the data period"))
-    except NotFound:
-        parts.append(L(lang, "리뷰 관측 없음", "No review observation"))
+        parts.append(L(lang, "이 부품에 걸린 세트 검증 쟁점 없음", "No set-verification issue on this part"))
     reason_text = (item.get("reason") or {}).get("text") or ""
     if reason_text.startswith(_SWAP_REASON_PREFIX) or reason_text.startswith(_SWAP_REASON_PREFIX_EN):
         parts.append(L(lang, "교체한 부품 — 호환·검증은 재실행되지 않았습니다 (재계산은 '다른 구성 보기')",
@@ -876,7 +870,7 @@ def get_stored_result(conn, revision_id: UUID) -> dict | None:
     penalty = sum((v["measured_values"] or {}).get("penalty", 0) for v in validations)
     confidence = max(0, 100 - penalty)
     for item in items:
-        item["checks"] = _item_checks(item, validations, confidence, lang_of(values), guide=item.get("checks"))
+        item["checks"] = _item_checks(item, validations, lang_of(values), guide=item.get("checks"))
     result["verification"] = {
         "status": "ready", "confidence": confidence,
         "issues": [

@@ -30,25 +30,20 @@ def _item(slot, name="X", reason_text=None):
 
 
 def test_item_checks_maps_axes_to_slots_and_flags_swaps(monkeypatch):
-    from src.errors import NotFound
     monkeypatch.setattr(rs, "_AXIS_SLOTS", {"power": ("파워", "GPU")})
-    def fake_summary(key, lang="ko"):
-        raise NotFound("없음")
-    monkeypatch.setattr("src.services.review_service.get_summary", fake_summary)
     validations = [{"rule_key": "power", "message": "상시부하 420W 관측"}]
-    gpu = rs._item_checks(_item("GPU"), validations, 94)
-    ram = rs._item_checks(_item("RAM"), validations, 94)
-    swapped = rs._item_checks(_item("GPU", reason_text=rs._SWAP_REASON_PREFIX + " — …"), validations, 94)
+    gpu = rs._item_checks(_item("GPU"), validations)
+    ram = rs._item_checks(_item("RAM"), validations)
+    swapped = rs._item_checks(_item("GPU", reason_text=rs._SWAP_REASON_PREFIX + " — …"), validations)
     assert gpu["status"] == "ready" and "[power] 상시부하 420W 관측" in gpu["text"]
-    assert "쟁점 없음 (세트 신뢰도 94점)" in ram["text"]
-    assert "리뷰 관측 없음" in gpu["text"]
+    assert "쟁점 없음" in ram["text"]
+    # 리뷰 관측·세트 신뢰도 문장은 여기서 뺐다(요청 B) — 03 리뷰 패널이 ReviewBriefOut.signals로 따로 받는다.
+    assert "신뢰도" not in ram["text"] and "리뷰" not in gpu["text"]
     assert "교체한 부품 — 호환·검증은 재실행되지 않았습니다" in swapped["text"] and "교체한 부품" not in gpu["text"]
 
 
-def test_item_checks_unknown_axis_applies_to_all_slots(monkeypatch):
-    from src.errors import NotFound
-    monkeypatch.setattr("src.services.review_service.get_summary", lambda key, lang="ko": (_ for _ in ()).throw(NotFound("x")))
-    out = rs._item_checks(_item("케이스"), [{"rule_key": "예산", "message": "110% 초과"}], 80)
+def test_item_checks_unknown_axis_applies_to_all_slots():
+    out = rs._item_checks(_item("케이스"), [{"rule_key": "예산", "message": "110% 초과"}])
     assert "[예산] 110% 초과" in out["text"]
 
 
