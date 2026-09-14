@@ -45,19 +45,70 @@ function tfResultSummaryHtml(result){
  const budgetLine=budgetMax?' 예산 '+won(budgetMax)+' 중 '+won(Math.max(0,budgetMax-total))+' 남아요.':'';
  return '조건에 맞춰 '+items.length+'개 부품으로 구성했어요.<ul>'+lines+'</ul>합계 <span class="figure">'+won(total)+'</span>·'+budgetLine+' 마음에 안 드는 부품이 있으면 편하게 말씀해 주세요.<div class="quick-replies">'+chips.join('')+'</div>';
 }
+// TF-DEV: 리뷰 한눈에 보기 — 서버 review.signals(docs/개발요청_리뷰클렌징_요약_구조화.md 요청 A)를 막대로 그린다.
+// 원칙: 없는 정보는 보여주지 않는다. signals가 null이면 섹션 전체를, 개별 신호가 null이면 그 줄만 숨긴다.
+// signals가 null인 상품은 리뷰 산출물에 없는 상품이라 total_count가 서버의 표시용 수(7~13)일 수 있어 리뷰 수도 숨긴다.
+// 스타일: css/planner.css의 .review-signal*. 막대 너비만 값에 따라 인라인으로 준다.
+function tfReviewBar(ratio) {
+ const percent = Math.min(100, Math.max(0, Number(ratio) * 100));
+ // 0보다 크면 아주 작은 비율(예: 2.8%)도 눈에 보이게 최소 3px
+ const minWidth = percent > 0 ? ';min-width:3px' : '';
+ return '<div class="review-signal-bar"><span style="width:' + percent.toFixed(1) + '%' + minWidth + '"></span></div>';
+}
+function tfReviewSignalRow(label, valueText, ratio, caption) {
+ return '<div class="review-signal">'
+  + '<div class="review-signal-head"><span>' + esc(label) + '</span><strong>' + esc(valueText) + '</strong></div>'
+  + (ratio === null ? '' : tfReviewBar(ratio))
+  + (caption ? '<div class="review-signal-caption">' + esc(caption) + '</div>' : '')
+  + '</div>';
+}
+function tfReviewSignalsHtml(review, english) {
+ const signals = review?.signals;
+ if (!signals) return '';
+ const locale = english ? 'en-US' : 'ko-KR';
+ const total = Number(review.total_count) || 0;
+ const pct = (ratio, digits) => (Number(ratio) * 100).toFixed(digits) + '%';
+ const rows = [];
+ if (signals.rating5_share) {
+  rows.push(tfReviewSignalRow(english ? '5-star reviews' : '별점 5점 리뷰', pct(signals.rating5_share.ratio, 0), signals.rating5_share.ratio, ''));
+ }
+ if (signals.burst7) {
+  const b = signals.burst7;
+  const caption = (english ? pct(b.ratio, 1) + ' of all reviews' : '전체 리뷰 중 ' + pct(b.ratio, 1))
+   + (b.launch_week ? (english ? ' · posted in the launch week' : ' · 출시 첫 주에 올라온 리뷰예요') : '');
+  rows.push(tfReviewSignalRow(english ? 'Reviews posted within one week' : '일주일 안에 몰려서 올라온 리뷰', b.count.toLocaleString(locale) + (english ? '' : '개'), b.ratio, caption));
+ }
+ if (signals.suspect_2plus) {
+  const s = signals.suspect_2plus;
+  rows.push(tfReviewSignalRow(english ? 'Reviews with 2+ suspicion signals' : '의심 신호가 2개 이상 겹친 리뷰', s.count.toLocaleString(locale) + (english ? '' : '개'), s.ratio, english ? pct(s.ratio, 1) + ' of reviews' : '리뷰 중 ' + pct(s.ratio, 1)));
+ }
+ if (signals.shared_reviewers) {
+  const r = signals.shared_reviewers;
+  rows.push(tfReviewSignalRow(
+   english ? 'Reviewers who also reviewed other products' : '다른 상품에도 리뷰를 쓴 사람',
+   r.count.toLocaleString(locale) + (english ? '' : '명'),
+   null,
+   english ? r.linked_products.toLocaleString(locale) + ' products reviewed together' : '함께 리뷰한 상품 ' + r.linked_products.toLocaleString(locale) + '개'
+  ));
+ }
+ if (!rows.length) return '';
+ const countText = total > 0 ? (english ? ' · ' + total.toLocaleString(locale) + ' reviews' : ' · 전체 리뷰 ' + total.toLocaleString(locale) + '개') : '';
+ return '<div class="evidence review-signals"><h4>' + (english ? 'Reviews at a glance' : '리뷰 한눈에 보기')
+  + '<span class="review-signals-count">' + esc(countText) + '</span></h4>' + rows.join('') + '</div>';
+}
+// TF-DEV: 리뷰 클렌징 담당의 해석 안내문(요청 C). 서버가 ready로 문구를 줄 때만 보인다 — 임시 문구를 만들지 않는다.
+function tfCleansingSummaryHtml(review, english) {
+ const summary = review?.cleansing_summary;
+ if (!review?.signals || summary?.status !== 'ready' || !summary.text) return '';
+ return '<div class="evidence review-signals"><h4>Review Cleansing Summary</h4><div class="evidence-card">' + esc(summary.text) + '</div></div>';
+}
 function tfShowCartReviewSlide(itemId){
  const item=tfFindItem(itemId);if(!item)return;
  tfOpenReviewItemId=itemId;
  const slide=flow.querySelector('#tfCartReviewSlide'),scrim=flow.querySelector('[data-review-scrim]');if(!slide)return;
  const english=tfIsEnglish(),review=item.review;
  // TF-DEV: 실사용 평점·조작 의심 제외는 서버가 항상 null(결정 0001)이라 0%·"—"로만 보였다 → 없는 정보는 표시하지 않는다.
- // 리뷰 수는 실제 값이 있을 때만 보인다. 리뷰 신호 막대·Review Cleansing Summary는 서버 필드 합의 후 추가
- // (docs/개발요청_리뷰클렌징_요약_구조화.md).
- const reviewCount = Number(review?.total_count) || 0;
- const scoreHtml = reviewCount > 0
-  ? '<div class="score-row"><div class="score-tile"><div class="num">' + reviewCount.toLocaleString(english ? 'en-US' : 'ko-KR') + '</div>'
-   + '<div class="lbl">' + (english ? 'All reviews' : '전체 리뷰') + '</div></div></div>'
-  : '';
+ const scoreHtml = tfReviewSignalsHtml(review, english) + tfCleansingSummaryHtml(review, english);
  const reasonText=tfLlmText(item.reason,english?'Generating the recommendation reason…':'추천 이유를 정리하는 중이에요…',english?'Could not generate the recommendation reason.':'추천 이유를 만들지 못했어요.');
  // TF-DEV: "구매 시점"은 유아용품처럼 월령에 맞춰 나중에 사도 되는 품목에만 의미가 있다.
  // 컴퓨터(PC)는 항상 바로 구매하는 조합이라 이 선택지가 불필요해 카테고리로 숨긴다.

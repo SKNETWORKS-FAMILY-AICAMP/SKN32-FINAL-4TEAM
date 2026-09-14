@@ -33,10 +33,11 @@ function tfIsEnglish(){return Boolean(window.TF_LOCALE?.isEnglish?.())}
 function tfSlotLabel(label){return tfIsEnglish()?(TF_SLOT_LABEL_EN[label]||label):label}
 function partThumbnail(label,imageUrl){const english=tfIsEnglish(),display=tfSlotLabel(label);return imageUrl?'<span class="part-thumb" role="img" aria-label="'+esc(display)+(english?' product image':' 제품 이미지')+'"><img src="'+esc(imageUrl)+'" alt="" style="width:100%;height:100%;object-fit:contain"></span>':'<span class="part-thumb" role="img" aria-label="'+esc(display)+(english?' product image area':' 제품 이미지 영역')+'"><span class="part-thumb-art" aria-hidden="true"></span><small>'+esc(display)+(english?' image':' 이미지')+'</small></span>'}
 function tfLlmText(field,pending,failed){if(!field)return '';const english=tfIsEnglish();pending=pending||(english?'Generating text…':'문장을 만드는 중이에요…');failed=failed||(english?'Could not generate text.':'문장을 만들지 못했어요.');if(field.status==='ready')return field.text||field.headline||'';return field.status==='failed'?failed:pending}
-// TF-DEV: 조작 의심 제외·실사용 평점은 서버가 항상 null(결정 0001) → 0%·"—"로 보이던 것을 뺐다. 리뷰 수만 실제 값이 있을 때 보인다.
+// TF-DEV: 조작 의심 제외·실사용 평점은 서버가 항상 null(결정 0001) → 0%·"—"로 보이던 것을 뺐다.
+// 리뷰 수는 signals가 있을 때만 보인다 — signals가 없는 상품의 total_count는 서버 표시용 수(7~13)일 수 있다.
 function tfReviewMetric(review) {
  const english = tfIsEnglish();
- const count = Number(review?.total_count) || 0;
+ const count = review?.signals ? Number(review.total_count) || 0 : 0;
  if (count <= 0) return '<span>' + (english ? 'No review data' : '리뷰 정보 없음') + '</span>';
  const countText = count.toLocaleString(english ? 'en-US' : 'ko-KR');
  return english

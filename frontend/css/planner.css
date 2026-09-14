@@ -229,10 +229,15 @@ body:has(.flow:not([hidden]))>header{display:none}
 .review-slide-back{flex:none;border:1px solid var(--tf-border);background:var(--tf-soft);border-radius:var(--tf-button-radius-standard);width:32px;height:32px;font-size:15px;color:var(--tf-text)}
 .review-slide-head h3{font-size:16px;margin-top:3px}
 .review-slide-body{flex:1;overflow-y:auto;padding:16px 20px 20px}
-.review-slide-body .score-row{display:flex;gap:8px;margin-bottom:16px}
-.review-slide-body .score-tile{flex:1;border:1px solid var(--tf-border);border-radius:var(--tf-button-radius-standard);background:var(--tf-soft);padding:10px;text-align:center}
-.review-slide-body .score-tile .num{font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:700}
-.review-slide-body .score-tile .lbl{font-size:10.5px;color:var(--tf-muted);margin-top:2px}
+/* 리뷰 한눈에 보기 — 전체 리뷰 대비 비율 막대 (review.signals) */
+.review-signals{margin-bottom:16px}
+.review-signals h4 .review-signals-count{font-weight:400}
+.review-signal{padding:10px 0;border-top:1px solid var(--tf-border)}
+.review-signal-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:13.5px}
+.review-signal-head strong{font-family:'IBM Plex Mono',monospace;font-size:15px}
+.review-signal-bar{height:8px;border-radius:4px;background:var(--tf-soft);overflow:hidden;margin:6px 0 4px}
+.review-signal-bar span{display:block;height:100%;border-radius:4px;background:var(--tf-primary)}
+.review-signal-caption{font-size:12px;color:var(--tf-muted)}
 .review-slide-body .evidence h4{font-size:12.5px;color:var(--tf-muted);margin:16px 0 7px;font-weight:600}
 .review-slide-body .evidence-card{border:1px solid var(--tf-border);border-radius:var(--tf-button-radius-standard);background:var(--tf-soft-sage);padding:11px 12px;font-size:13px;line-height:1.6;margin-bottom:10px}
 .review-timing{margin:16px 0}
