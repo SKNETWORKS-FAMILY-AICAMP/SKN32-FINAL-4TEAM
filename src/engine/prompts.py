@@ -19,10 +19,12 @@ _LANGUAGE_RULES = {
 }
 
 _AMOUNT_RULES = {
-    "ko-KR": "금액은 원 단위 정수로 유지하고 천 단위 구분 쉼표를 넣습니다(예: 849,000원).",
+    # 통화는 입력이 정한다 — 달러로 말한 사용자의 입력은 $ 로 오고, 원화로 바꾸라고 하면 모델이 "$918" 을
+    # "₩918,000" 으로 만들어 냈다(2026-09-15 실측, 영어·달러 세션 초안 4/4). 환산 금지만 말한다.
+    "ko-KR": "금액은 입력에 적힌 통화·표기 그대로 옮깁니다 — 환산하지 않고 천 단위 구분 쉼표를 유지합니다(예: 849,000원 · $612).",
     "en-US": (
-        "Keep amounts in KRW without currency conversion and use the won symbol "
-        "with thousands separators (for example, ₩849,000)."
+        "Copy every amount exactly as written in the input, including its currency symbol and thousands "
+        "separators (for example, ₩849,000 or $612); never convert between currencies."
     ),
 }
 
@@ -77,7 +79,7 @@ OUTPUT_LOCALE=en-US
 
 Rules:
 1. Use only supplied values. Do not invent, round, or convert numbers or add unsupported claims.
-2. Keep amounts in KRW, using the won symbol and thousands separators (for example, ₩849,000).
+2. Copy every amount exactly as written in the input, including its currency symbol and thousands separators (for example, ₩849,000 or $612); never convert between currencies.
 3. Each item's slot value must exactly match the slot value supplied in the input. Do not create slots or products.
 4. Write a complete one- or two-sentence headline that includes the exact budget usage. Do not mention any verification score or confidence — none is supplied.
 5. Write one distinct sentence per item explaining its selection using its supplied name, price, ranking, or top contributing axes.

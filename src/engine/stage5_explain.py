@@ -286,6 +286,12 @@ def _llm_draft(build: BuildResult, verification: VerificationResult,
         except Exception as exc:
             log(f"      [5] 문장 생성 실패 ({type(exc).__name__}) → 규칙 템플릿")
             return None
+        # 영어 출력에서 모델이 slot 에 표시 라벨("Motherboard")을 쓰는 일이 잦다 — 입력이 둘 다 주므로 당연하다.
+        # 라벨이 want 의 슬롯으로 한 번에 되돌아가면 받아 준다(2026-09-15 실측: 기각 사유 1위).
+        back = {v.casefold(): k for k, v in _EN_LABELS.items() if k in want}
+        for i in draft.items:
+            if i.slot not in want and i.slot.casefold() in back:
+                i.slot = back[i.slot.casefold()]
         if {i.slot for i in draft.items} != want:
             continue
         generated_text = "\n".join([draft.headline, draft.summary, *(item.reason for item in draft.items), *draft.caveats])
