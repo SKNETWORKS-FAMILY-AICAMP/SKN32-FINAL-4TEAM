@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from collections import deque
 from dataclasses import dataclass, field
 from uuid import UUID
@@ -324,6 +325,41 @@ def _history_messages(run_id: str) -> list[dict]:
     return msgs
 
 
+# ── 수치 가드 ──────────────────────────────────────────────────────────────
+_NUM_RE = re.compile(r"\d[\d,]*(?:\.\d+)?")
+
+
+def _numbers(text: str) -> set[str]:
+    """문장 속 숫자를 정규화해 모은다: 쉼표 제거, 소수점·퍼센트는 숫자 부분만 ("1,457,000"→"1457000", "18%"→"18")."""
+    return {m.group(0).replace(",", "").rstrip(".") for m in _NUM_RE.finditer(text or "")}
+
+
+# 평가어 — "뛰어난 1순위 선택" 처럼 부품 우열을 말하면 규칙 4 위반. [5] 의 금지어 중 평가 표현만.
+_EVALUATIVE = ("강력", "뛰어나", "최고", "압도적", "완벽", "훌륭", "우수", "극대화")
+
+
+def _reply_within(reply: str, allowed_sources: list[str]) -> tuple[bool, set[str]]:
+    """답변의 숫자가 전부 입력(프롬프트·도구 결과·사용자 메시지)에 있던 숫자인지. (통과 여부, 밖의 숫자들)"""
+    allowed: set[str] = set()
+    for src in allowed_sources:
+        allowed |= _numbers(src)
+    outside = _numbers(reply) - allowed
+    return (not outside), outside
+
+
+def _guarded_reply(session: ResultSession, prefetched: str) -> str:
+    """LLM 문장을 버릴 때 내는 코드 문장 — 사실만."""
+    t = session.result.get("totals") or {}
+    if session.changed:
+        done = [x.split(" → ", 1)[1].split(" · ")[0] for x in session.trace if not x.startswith("prefetch:") and "오류" not in x]
+        return ("적용된 변경: " + " / ".join(done) + f" · 총액 {_won(t.get('selected_price'))} · 예산 잔여 {_won(t.get('budget_remaining'))}"
+                + (" · ⚠ 예산 초과" if t.get("over_budget") else ""))
+    if prefetched:
+        return prefetched.replace("\n", " ")
+    return (f"구성표 기준으로만 답할 수 있어요 — 총액 {_won(t.get('selected_price'))}, 예산 잔여 {_won(t.get('budget_remaining'))}. "
+            "바꾸고 싶은 부품과 방향(더 저렴한/더 좋은), 또는 궁금한 부품을 말씀해 주세요.")
+
+
 # ── 실행 ───────────────────────────────────────────────────────────────────
 @dataclass
 class TurnResult:
@@ -342,9 +378,10 @@ def run_turn(conn, revision_id: UUID, result: dict, text: str) -> TurnResult:
     hist_rows = [{"role": "user", "content": u} for u, _ in _HISTORY.get(run_id, ())]
     session = ResultSession(conn=conn, revision_id=revision_id, result=result)
     prefetched = _prefetch_explanations(session, text)
+    prompt = system_prompt(result, text, hist_rows, prefetched)
     agent = Agent(
         model=_model(),
-        system_prompt=system_prompt(result, text, hist_rows, prefetched),
+        system_prompt=prompt,
         tools=make_tools(session),
         messages=_history_messages(run_id),
         tool_executor=SequentialToolExecutor(),   # 도구들이 요청 스레드의 DB 연결 하나를 같이 쓴다
@@ -357,7 +394,14 @@ def run_turn(conn, revision_id: UUID, result: dict, text: str) -> TurnResult:
             raise                      # 아무것도 안 바꿨으면 호출자가 규칙 경로로
         # 도구가 이미 구성표를 바꿨다 — 규칙 경로가 또 바꾸면 안 되니 바뀐 것만 알린다
         log.exception("result agent failed after tool writes; reporting trace")
-        reply = "요청을 처리하다 답변 생성에 실패했어요. 적용된 변경: " + " / ".join(session.trace)
+        reply = "요청을 처리하다 답변 생성에 실패했어요. " + _guarded_reply(session, prefetched)
+    else:
+        # 수치 가드 — 답변의 숫자는 전부 입력에 있던 것이어야 한다. 아니면 LLM 문장을 버리고 코드 문장으로.
+        ok, outside = _reply_within(reply, [prompt, text, *session.trace])
+        bad_words = [w for w in _EVALUATIVE if w in reply]
+        if not ok or bad_words:
+            log.warning("result agent reply rejected (numbers %s, words %s) — replaced: %r", sorted(outside), bad_words, reply[:120])
+            reply = _guarded_reply(session, prefetched)
     _HISTORY.setdefault(run_id, deque(maxlen=_HISTORY_TURNS)).append((text, reply))
     if session.changed:
         session.refresh()

@@ -84,3 +84,13 @@ def test_memo_suggestion_over_budget_and_empty():
     result = {"conditions_summary": "", "budget_max": 100, "items": [], "totals": {"selected_price": 0, "budget_remaining": -50, "over_budget": True},
               "explanation": {}, "verification": {}}
     assert rs.memo_suggestion(result, {}) == "[조건] 예산 100원"
+
+
+def test_rule_path_treats_questions_as_questions():
+    slots = {"GPU", "RAM", "CPU"}
+    assert rs._parse_swap_request("이 그래픽카드 성능 괜찮아?", slots) == ("GPU", "pricier", True)   # 실측 오탐 1
+    assert rs._parse_swap_request("램은 가성비 쪽이 나아?", slots) == ("RAM", "cheaper", True)     # 실측 오탐 2
+    assert rs._parse_swap_request("GPU 더 좋은 걸로", slots) == ("GPU", "pricier", False)
+    assert rs._parse_swap_request("그래픽카드 더 저렴한 걸로 바꿔줘", slots) == ("GPU", "cheaper", False)
+    assert rs._parse_swap_request("저렴하고 좋은 GPU로", slots) == ("GPU", None, True)           # 양방향 → 되묻기
+    assert rs._parse_swap_request("케이스 흰색으로", slots) == (None, None, False)

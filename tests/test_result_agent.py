@@ -87,3 +87,30 @@ def test_unavailable_under_mock_mode(monkeypatch):
     monkeypatch.setattr(ra, "MOCK_MODE", True)
     monkeypatch.setattr(ra, "RESULT_AGENT", True)
     assert ra.available() is False
+
+
+# ── 수치 가드 ──────────────────────────────────────────────────────────────
+def test_numbers_normalise_commas_percent_and_product_names():
+    assert ra._numbers("총액 1,457,000원 · 예산 비중 18% · RTX 5090 · DDR4-3600 · 1TB · 신뢰도 94점") == {
+        "1457000", "18", "5090", "4", "3600", "1", "94"}
+
+
+def test_reply_within_accepts_input_numbers_and_rejects_invented():
+    prompt = "- GPU: RX 7600 · 525,000원 × 1\n예산 상한: 1,500,000원 · 총액: 1,457,000원 · 잔여: 43,000원"
+    ok, out = ra._reply_within("총액은 1457000원이고 예산이 43,000원 남았습니다.", [prompt])
+    assert ok and not out
+    ok, out = ra._reply_within("이 GPU는 약 620,000원 정도의 성능입니다.", [prompt])
+    assert not ok and out == {"620000"}
+    ok, _ = ra._reply_within("교체했습니다 (+84,000원).", [prompt, "swap → … (+84,000원)"])   # 도구 결과의 숫자도 허용
+    assert ok
+
+
+def test_guarded_reply_prefers_changes_then_prefetched_then_template():
+    s = _session()
+    s.changed = True
+    s.trace = ["prefetch:explain('CPU') → …", "set_qty('저장장치', '2') → 저장장치: selected=True qty=2 timing=now · 총액 780,000원 · 예산 잔여 720,000원"]
+    out = ra._guarded_reply(s, "")
+    assert out.startswith("적용된 변경: 저장장치: selected=True qty=2 timing=now") and "총액 780,000원" in out
+    s2 = _session()
+    assert ra._guarded_reply(s2, "CPU X 255,000원\n저장된 추천 이유: …") == "CPU X 255,000원 저장된 추천 이유: …"
+    assert ra._guarded_reply(_session(), "").startswith("구성표 기준으로만 답할 수 있어요")

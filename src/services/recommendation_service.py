@@ -752,6 +752,21 @@ def _match_slot(text: str, known_slots: set[str]) -> str | None:
     return next((slot for slot in known_slots if slot.lower() in lowered), None)
 
 
+# 질문 표지 — 방향어("성능"·"가성비")가 들어 있어도 묻는 말이면 교체하지 않는다.
+# "이 그래픽카드 성능 괜찮아?" 가 RTX 5070 Ti 로 교체되던 오탐(2026-09-14 실측).
+_QUESTION_MARKERS = ("?", "？", "괜찮", "나아", "어때", "맞아", "일까", "인가", "할까", "좋을까", "뭐", "어떤", "무엇")
+
+
+def _parse_swap_request(text: str, known_slots: set[str]) -> tuple[str | None, str | None, bool]:
+    """규칙 경로의 해석 — (슬롯, 방향 'cheaper'|'pricier'|None, 질문인가). 순수 함수라 테스트 가능."""
+    slot = _match_slot(text, known_slots)
+    cheaper = any(w in text for w in _CHEAPER_WORDS)
+    pricier = any(w in text for w in _PRICIER_WORDS)
+    direction = "cheaper" if cheaper and not pricier else "pricier" if pricier and not cheaper else None
+    is_question = any(m in text for m in _QUESTION_MARKERS) or (cheaper and pricier)
+    return slot, direction, is_question
+
+
 def handle_result_message(conn, revision_id: UUID, text: str) -> dict:
     """결과 화면 채팅. 에이전트(RESULT_AGENT=1)가 있으면 도구 호출로 후보 조회·교체·담기/빼기·근거 설명을
     처리하고, 없거나 실패하면 아래 규칙 경로 — "그래픽카드를 더 저렴한 걸로" 같은 요청만 해석하고
@@ -772,16 +787,18 @@ def handle_result_message(conn, revision_id: UUID, text: str) -> dict:
     erepo, run = _require_done_run(conn, revision_id)
     rows = erepo.get_candidates(run["id"])
     known_slots = {r["slot"] for r in rows}
-    slot = _match_slot(text, known_slots)
+    slot, direction, is_question = _parse_swap_request(text, known_slots)
     if slot is None:
         return {"reply": "무엇을 바꿀지 이해하지 못했어요. 부품 이름(예: 그래픽카드)과 원하시는 "
                           "방향(더 저렴한/더 좋은)을 함께 말씀해 주세요.",
                 "result": get_stored_result(conn, revision_id)}
-    cheaper = any(w in text for w in _CHEAPER_WORDS)
-    pricier = any(w in text for w in _PRICIER_WORDS)
-    if not cheaper and not pricier:
-        return {"reply": f"{slot}를 어떻게 바꿔드릴까요? '더 저렴한 걸로' 또는 '더 좋은 걸로'처럼 말씀해 주세요.",
+    if direction is None or is_question:
+        # 묻는 말(또는 방향이 애매한 말)은 실행하지 않고 되묻는다 — "바꿔드릴까요?" 는 사용자가 확정해야 룰 동작이 된다
+        hint = ({"cheaper": "더 저렴한", "pricier": "더 좋은"}.get(direction) or "더 저렴한/더 좋은")
+        return {"reply": f"{slot}를 {hint} 후보로 바꿔드릴까요? 바꾸려면 '{slot} {hint} 걸로'라고 말씀해 주세요. "
+                          "지금은 아무것도 바꾸지 않았어요.",
                 "result": get_stored_result(conn, revision_id)}
+    cheaper = direction == "cheaper"
 
     current = next(r for r in rows if r["slot"] == slot)
     current_price = int(current["price"]) if current["price"] is not None else 0
