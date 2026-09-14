@@ -179,32 +179,54 @@ class ProductOut(BaseModel):
 
 class ReviewSignalRatioOut(BaseModel):
     ratio: float
+    median: float | None = None          # 대조군(비슷한 부품) 중앙값 — 막대그래프 기준선용
 
 
 class ReviewSignalBurst7Out(BaseModel):
     count: int
     ratio: float
     launch_week: bool
+    median: float | None = None
 
 
 class ReviewSignalCountRatioOut(BaseModel):
     count: int
     ratio: float
+    baseline: float | None = None        # 데모 상품 전체의 2개+ 비율 — 이 지표는 중앙값이 아니라 기준선과 비교한다
 
 
 class ReviewSignalSharedReviewersOut(BaseModel):
     count: int
     linked_products: int
+    median_count: int | None = None
+    median_linked_products: int | None = None
 
 
 class ReviewSignalsOut(BaseModel):
     """관계·행동 축 관측값을 문장이 아니라 숫자로 — 프론트가 막대그래프를 그리는 데 쓴다
-    (docs/개발요청_리뷰클렌징_요약_구조화.md 요청 A). 개별 신호를 못 채우면 그 키만 None."""
+    (docs/개발요청_리뷰클렌징_요약_구조화.md 요청 A). 개별 신호를 못 채우면 그 키만 None.
+    median·baseline 은 "비슷한 부품은 보통 얼마인가" — 값만 있으면 유저가 크고 작음을 판단할 수 없다."""
 
     rating5_share: ReviewSignalRatioOut | None = None
     burst7: ReviewSignalBurst7Out | None = None
     suspect_2plus: ReviewSignalCountRatioOut | None = None
     shared_reviewers: ReviewSignalSharedReviewersOut | None = None
+
+
+class ReviewPlainOut(BaseModel):
+    """관측을 유저가 읽을 문장으로 (docs/리뷰관측_문장_초안.md). 숫자는 signals 와 같은 산출물, 말은 템플릿.
+
+    3층: headline(한 줄) → points(사기 전에 살펴볼 점 — 중앙값을 넘어 뽑힌 것만) → details(나머지 지표) +
+    sources(산출물 원문 — GET /reviews/summary 의 summaries 와 같은 문장, 검토자용) + verify_url.
+    reason 이 있으면 관측이 없는 경우 — headline 이 그 사유 한 줄이고 points·details·sources 는 비어 있다.
+    """
+
+    headline: str
+    points: list[str] = []
+    details: list[str] = []
+    sources: list[str] = []
+    verify_url: str | None = None
+    reason: str | None = None            # below_threshold | out_of_period | no_match | unmapped | unavailable
 
 
 class ReviewBriefOut(BaseModel):
@@ -214,6 +236,7 @@ class ReviewBriefOut(BaseModel):
     rating_refined: float | None = None
     signals: ReviewSignalsOut | None = None
     cleansing_summary: TextStatusOut | None = None
+    plain: ReviewPlainOut | None = None
 
 
 class ItemOut(BaseModel):
