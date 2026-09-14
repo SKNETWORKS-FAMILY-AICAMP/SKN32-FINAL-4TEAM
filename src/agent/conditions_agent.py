@@ -308,7 +308,8 @@ def system_prompt(draft: ConditionDraft, user_text: str = "", history: list[dict
         "",
         "규칙:",
         "1. 사용자가 말하지 않은 값을 추측해서 넣지 않습니다. 애매하면 되묻습니다. 도구가 '오류:' 를 돌려주면 값을 고쳐 다시 부릅니다.",
-        "2. 필드에 맞는 값(예: 게임 제목 → games, 해상도 → resolution)은 add_extra_condition 이 아니라 그 필드에 넣습니다.",
+        "2. 필드에 맞는 값(예: 게임 제목 → games, 해상도 → resolution)은 add_extra_condition 이 아니라 그 필드에 넣습니다. "
+        "'게임용'·'게임 위주'·'작업용'·'사무용' 처럼 용도가 드러나면 games 와 별개로 purpose 도 반드시 설정합니다.",
         "3. 답변은 2문장 이내. 반영한 내용을 짧게 확인합니다. " + ask,
         "4. 필수 항목이 모두 채워졌으면 '이 조건으로 추천을 받아볼 수 있다'고 안내하고 추가 조건이 있으면 말해 달라고 합니다.",
         "5. 값을 바꿀 때는 clear_condition 없이 set_condition 에 새 값만 넣습니다. clear 는 '취소'·'빼 주세요' 에만 씁니다.",

@@ -263,7 +263,8 @@ def _build_table(result: dict) -> str:
     return "\n".join(rows) or "(부품 없음)"
 
 
-_WHY = ("왜", "이유", "근거", "괜찮", "믿을", "어때", "리뷰", "why", "reason", "review", "good", "ok?")
+_WHY = ("왜", "이유", "근거", "괜찮", "믿을", "어때", "리뷰", "총평", "요약", "설명",
+        "why", "reason", "review", "good", "ok?", "summary", "overall", "explain")
 
 
 def _prefetch_explanations(session: ResultSession, text: str) -> str:

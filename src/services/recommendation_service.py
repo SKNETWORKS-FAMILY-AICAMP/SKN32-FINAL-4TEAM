@@ -158,7 +158,7 @@ def execute_recommendation(revision_id: UUID, run_id: UUID) -> None:
             erepo = EngineRepo(conn)
             # rank 를 넘겨야 [3-B] 가 후보에 남긴 리뷰 관측 플래그를 [5] 가 읽는다.
             # 빼면 모든 슬롯이 "관측 없음" 이 되고, 감점만 남고 근거가 사라진다 (기본값이 None 이라 조용히).
-            explanation = stage5_explain.run(build, verification, noop, rank=rank)
+            explanation = stage5_explain.run(build, verification, noop, rank=rank, conditions=values)
 
             for it in explanation.items:
                 candidate_id = candidate_id_by_slot.get(it.slot)
@@ -192,10 +192,11 @@ def execute_recommendation(revision_id: UUID, run_id: UUID) -> None:
             if demotion is not None:
                 trace.insert(-1, demotion)
 
+            # 03 "추천 요약" 본문 = summary + 확인이 필요한 것. 슬롯별 reason 은 각 부품의 "추천 이유" 에
+            # 따로 나가므로 여기 나열하지 않는다 (전에는 reason 8줄을 이어붙여 요약이 아니었다).
             erepo.set_explanation(
                 run_id, headline=explanation.headline,
-                text=review_service.explanation_text_with_caveats(
-                    [it.reason for it in explanation.items], explanation.caveats),
+                text=explanation_text(explanation.summary, explanation.caveats),
                 reasoning_log=trace,
             )
     except Exception:  # noqa: BLE001 — [5] 실패는 문장만 failed, 부품표는 이미 done인 채로 둔다
@@ -242,6 +243,46 @@ def _conditions_summary(cat_def: dict, values: dict) -> str:
     fields = session_service._build_fields(cat_def, values)
     parts = [f["display"] for f in fields if f["status"] == "confirmed" and f["display"]]
     return " · ".join(parts)
+
+
+def explanation_text(summary: str, caveats: list[str]) -> str:
+    """explanation.text — 요약 문단 + "확인이 필요한 것". 화면은 한 상자에 그대로 보여준다."""
+    if not caveats:
+        return summary
+    return summary + "\n\n확인이 필요한 것: " + " · ".join(caveats)
+
+
+# 세트 검증 축([3-C] link_check 키 + 예산)이 어느 슬롯에 걸리는지. 검증은 세트 단위라 슬롯 정보가 없어서
+# 화면의 "구매 전 확인"에 나눠 실을 때만 이 표를 쓴다 — 없는 축은 전 슬롯 공통으로 본다.
+_AXIS_SLOTS: dict[str, tuple[str, ...]] = {
+    "socket": ("CPU", "메인보드"), "bios": ("CPU", "메인보드"),
+    "power": ("파워", "GPU", "CPU"), "gpu_len": ("GPU", "케이스"), "cooler_height": ("쿨러", "케이스"),
+}
+_SWAP_REASON_PREFIX = "사용자 요청으로 교체한 부품입니다"
+
+
+def _item_checks(item: dict, validations: list[dict], confidence: int | None) -> dict:
+    """"구매 전 확인" — 코드가 아는 사실만: 이 슬롯에 걸린 세트 검증 쟁점, 리뷰 관측(상품 단위), 교체 여부.
+    LLM 없음. 전에는 `pending` 하드코딩이라 화면이 영원히 "정리하는 중…"이었다."""
+    from src.services import review_service
+    slot = item["slot"]
+    parts: list[str] = []
+    hit = [v for v in validations
+           if slot in _AXIS_SLOTS.get(v["rule_key"], ()) or v["rule_key"] not in _AXIS_SLOTS]
+    if hit:
+        parts += [f"[{v['rule_key']}] {v['message']}" for v in hit]
+    else:
+        parts.append("이 부품에 걸린 세트 검증 쟁점 없음" + (f" (세트 신뢰도 {confidence}점)" if confidence is not None else ""))
+    try:
+        summary = review_service.get_summary(item["product"]["product_key"])
+        obs = [x["text"] for x in summary.summaries]
+        parts.append(("리뷰 관측: " + " / ".join(obs) + " — 상품 단위 신호이며 개별 리뷰의 진위가 아닙니다")
+                     if obs else "리뷰 관측 없음 — 리뷰 수 문턱 미만이거나 데이터 기간 밖")
+    except NotFound:
+        parts.append("리뷰 관측 없음")
+    if ((item.get("reason") or {}).get("text") or "").startswith(_SWAP_REASON_PREFIX):
+        parts.append("교체한 부품 — 호환·검증은 재실행되지 않았습니다 (재계산은 '다른 구성 보기')")
+    return {"status": "ready", "text": " · ".join(parts)}
 
 
 def get_stored_result(conn, revision_id: UUID) -> dict | None:
@@ -326,6 +367,8 @@ def get_stored_result(conn, revision_id: UUID) -> dict | None:
     validations = erepo.get_validations(run["id"])
     penalty = sum((v["measured_values"] or {}).get("penalty", 0) for v in validations)
     confidence = max(0, 100 - penalty)
+    for item in items:
+        item["checks"] = _item_checks(item, validations, confidence)
     result["verification"] = {
         "status": "ready", "confidence": confidence,
         "issues": [
@@ -418,6 +461,12 @@ def swap_item(conn, revision_id: UUID, item_id: UUID, candidate_id: UUID) -> dic
     erepo.update_candidate_reason(item_id, (
         f"사용자 요청으로 교체한 부품입니다 — 자동 추천은 '{current['product_name']}'({old_price:,}원)였고 "
         f"이 후보는 {new_price - old_price:+,}원입니다. 순위·검증 점수는 교체 전 구성 기준입니다."))
+    # 요약(explanation)도 교체 전 구성 기준이다. [5] 를 다시 돌릴 수 없으니 그 사실을 본문 끝에 적는다.
+    if run.get("explanation_status") == "ready" and run.get("explanation_text"):
+        note = f"※ 이후 {current['slot']}를 '{target['name']}'(으)로 교체했습니다({new_price - old_price:+,}원). 이 요약은 교체 전 구성 기준입니다."
+        erepo.set_explanation(run["id"], headline=run.get("explanation_headline") or "",
+                              text=run["explanation_text"].rstrip() + "\n\n" + note,
+                              reasoning_log=run.get("reasoning_log") or [])
     return get_stored_result(conn, revision_id)
 
 

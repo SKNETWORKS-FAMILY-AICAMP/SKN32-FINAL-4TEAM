@@ -122,7 +122,9 @@ def verify_build(build: BuildResult, category: str, log: LogFn = lambda _m: None
                             tool_result=f"{used_pct}%", judge="초과", penalty=15))
         penalty += 15
 
-    gray = ["리뷰 진위 (담당 팀원)", "RAG 근거 (담당 팀원)"]
+    # 회색축 = 이 경로에서 실제로 검사하지 못한 것. 화면 caveats 에 "<축> 근거는 확인되지 않았습니다" 로 나간다.
+    # (전에는 "리뷰 진위 (담당 팀원)" 같은 내부 자리표시가 그대로 사용자에게 나갔다)
+    gray = ["설명서·규격(RAG 미연결)", "호환성 정밀 검사(소켓·전력·크기는 근사값)"]
     confidence = max(0, 100 - penalty)
     passed = confidence >= CONFIDENCE_THRESHOLD
     log(f"      신뢰도 {confidence} · 회색축 {gray} · {'통과' if passed else '기준 미달'}")

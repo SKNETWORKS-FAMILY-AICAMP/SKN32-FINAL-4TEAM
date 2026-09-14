@@ -169,7 +169,9 @@ DB 스키마(`db/migrations/0008_frontend_contract.sql`)는 처음부터 세 상
 `src/agent/result_agent.py` + `recommendation_service.handle_result_message` 분기 + `tests/test_result_agent.py`(6건).
 `RESULT_AGENT=1`. 도구 6개가 `list_alternatives`·`swap_item`·`patch_item`·`review_service.get_summary` 를 감싼다.
 같이 고친 것: 교체 뒤 reason 이 pending 으로 남던 것(`swap_item` 이 교체 기록 문장을 적음).
-03 결과 화면 남은 일: (A) 요약을 나열식에서 구조화로 + 교체 뒤 요약 재생성, (C) `checks` pending 하드코딩 채우기 —
-`docs/결과화면_에이전트_strands.md` 한계 절.
+같은 날 (A) 추천 요약을 summary 문단으로(`ExplanationDraft.summary`, [5] 입력에 사용자 조건, extra 안내는 코드가),
+(C-1) `checks` 를 코드로 조립(검증 쟁점·리뷰 관측·교체 표시) — 전엔 pending 하드코딩이라 프론트가 무한 폴링했다.
+`EXPLAIN_SYSTEM` 규칙 8 추가·금지어 3개 추가는 03 담당(사용자) 판단으로 — sllm 담당자에게 알릴 것.
+남은 것: 교체 뒤 요약 재생성(지금은 ※ 주석), 리뷰 관측 문장 길이(프론트) — `docs/결과화면_에이전트_strands.md`.
 
 들어가기 전 참고: `tests/test_list_service.py` 3건은 **`origin/develop` 원본에서도 같은 줄에서 실패한다**(임시 워크트리로 대조 확인함). 우리 변경 탓이 아니고 develop 담당자 몫이다.
