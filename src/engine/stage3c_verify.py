@@ -38,6 +38,9 @@ def _issue_sentence(axis: str, tool_result: str, evidence: list[dict], lang: str
     판정어가 섞이면 1회 재생성하고, 그래도 섞이거나 호출이 실패하면 규칙 템플릿으로
     내려간다. 문장화 실패는 신뢰도 점수에 영향을 주지 않는다 (기획서 §10-11 E4).
     """
+    if lang == "en":
+        # stage4 의 link_check 값("ok (근사)")은 엔진 상수다 — 영어 문장에 한국어 토막이 섞이지 않게 입력에서만 바꾼다
+        tool_result = (tool_result or "").replace("근사", "approximate")
     snippets = "\n".join(f"- {e.get('text', '')}" for e in evidence) or "- (없음)"
     prompt = f"축: {axis}\n관측값: {tool_result or '(기록 없음)'}\n근거:\n{snippets}"
     for _attempt in range(2):

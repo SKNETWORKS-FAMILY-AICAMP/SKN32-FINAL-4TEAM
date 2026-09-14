@@ -274,7 +274,7 @@ REVIEW_TRACE_STEP = "리뷰 관측"
 
 
 def review_trace_steps(review_line_by_slot: dict[str, str],
-                       evidence_by_slot: dict[str, list[dict]] | None = None) -> list[dict]:
+                       evidence_by_slot: dict[str, list[dict]] | None = None, lang: str = "ko") -> list[dict]:
     """[5] 의 리뷰 관측을 reasoning_log 단계들로. 관측이 없으면 빈 목록.
 
     첫 단계는 요약(N/M 슬롯), 이어서 **관측 문장이 있는 슬롯마다 한 단계**다.
@@ -289,13 +289,18 @@ def review_trace_steps(review_line_by_slot: dict[str, str],
     "볼 리뷰가 없었다" 는 다른 말이고, 뒤쪽을 앞쪽으로 보이게 하면 안 된다.
     """
     observed = {slot: line for slot, line in (review_line_by_slot or {}).items()
-                if line and not line.startswith("리뷰 관측 없음")}
+                if line and not line.startswith(("리뷰 관측 없음", "No review observation"))}
     if not observed:
         return []
+    en = lang == "en"
+    from src.services.recommendation_service import slot_label   # 슬롯 표시명 (엔진 키는 그대로)
+    sl = (lambda x: slot_label(x, "en")) if en else (lambda x: x)
+    step_name = "Review observations" if en else REVIEW_TRACE_STEP
     steps = [{
-        "step": REVIEW_TRACE_STEP,
-        "title": f"{REVIEW_TRACE_STEP} {len(observed)}/{len(review_line_by_slot)} 슬롯",
-        "detail": " · ".join(f"{slot} {line}" for slot, line in observed.items()),
+        "step": step_name,
+        "title": (f"{step_name} {len(observed)}/{len(review_line_by_slot)} slots" if en
+                  else f"{REVIEW_TRACE_STEP} {len(observed)}/{len(review_line_by_slot)} 슬롯"),
+        "detail": " · ".join(f"{sl(slot)} {line}" for slot, line in observed.items()),   # 관측 문장은 데이터(한국어)
     }]
     for slot in observed:
         facts = [e for e in (evidence_by_slot or {}).get(slot, []) if e.get("text")]
@@ -304,16 +309,17 @@ def review_trace_steps(review_line_by_slot: dict[str, str],
         detail = " · ".join(e["text"] for e in facts)
         verify = next((e.get("verify_url") for e in facts if e.get("verify_url")), None)
         if verify:
-            detail += f" — 확인: {verify}"
+            detail += (f" — verify: {verify}" if en else f" — 확인: {verify}")
         steps.append({
-            "step": f"{REVIEW_TRACE_STEP} · {slot}",
-            "title": f"{slot} 관측 사실 {len(facts)}건 (점수 아님)",
+            "step": f"{step_name} · {sl(slot)}",
+            "title": (f"{sl(slot)}: {len(facts)} observed facts (not a score)" if en
+                      else f"{slot} 관측 사실 {len(facts)}건 (점수 아님)"),
             "detail": detail,
         })
     return steps
 
 
-def review_demotion_step(demoted_by_slot: dict[str, list[dict]] | None) -> dict | None:
+def review_demotion_step(demoted_by_slot: dict[str, list[dict]] | None, lang: str = "ko") -> dict | None:
     """리뷰축이 **순위를 낮춘 후보**를 reasoning_log 한 단계로. 없으면 None.
 
     추천된 8개는 대개 "특이 없음" 이다 — 걸린 후보가 감점을 받아 밀려나기 때문이다. 그래서
@@ -333,6 +339,12 @@ def review_demotion_step(demoted_by_slot: dict[str, list[dict]] | None) -> dict 
         facts = " · ".join(f"{OBS_LABEL.get(k, k)} {100 * v:.1f}% (부류 중앙값 {100 * m:.1f}%)"
                            for k, v, m in d["over"])
         parts.append(f"{slot} {d.get('name', '?')} — {facts}")
+    if lang == "en":
+        return {
+            "step": "Review observations · ranking",
+            "title": f"{len(rows)} candidates ranked lower because of observations (not excluded)",
+            "detail": " · ".join(parts) + " — still in the candidate list, only ranked lower",
+        }
     return {
         "step": f"{REVIEW_TRACE_STEP} · 순위 조정",
         "title": f"관측 때문에 순위를 낮춘 후보 {len(rows)}개 (제외 아님)",

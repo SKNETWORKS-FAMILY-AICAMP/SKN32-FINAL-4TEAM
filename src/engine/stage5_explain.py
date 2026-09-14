@@ -30,6 +30,9 @@ _BANNED_IN_DRAFT = ("score", "점수", "1~2문장", "문장 한두 개", "슬롯
                     "excellent", "powerful", "outstanding", "perfect", "superb", "the best", "maximiz")
 
 
+_OBS_LABEL_EN = {"burst7": "7-day burst", "one_off_rate": "one-review accounts", "prolific_rate": "prolific accounts"}
+
+
 def _ranked_flags(rank: RankResult | None, slot: str, product_key: str) -> list[str]:
     if rank is None:
         return []
@@ -39,12 +42,13 @@ def _ranked_flags(rank: RankResult | None, slot: str, product_key: str) -> list[
     return []
 
 
-def _review_line(product_key: str, flags: list[str]) -> tuple[str, list[dict], str | None]:
-    """(슬롯 한 줄, 근거 목록, 주의 문장 또는 None). flags 가 없으면 관측 없음."""
+def _review_line(product_key: str, flags: list[str], lang: str = "ko") -> tuple[str, list[dict], str | None]:
+    """(슬롯 한 줄, 근거 목록, 주의 문장 또는 None). flags 가 없으면 관측 없음.
+    관측 문장(evidence)은 데이터라 한국어 그대로고, 한 줄 요약·주의 문장만 언어를 따른다."""
     if not flags:
         # 왜 없는지를 원인별로 말한다 — 산출물 미탑재를 "문턱 미만" 으로 보이게 하면
         # 파일을 안 받은 사람이 그 사실을 모른다
-        return f"리뷰 관측 없음 ({risk_store_note()})", [], None
+        return L(lang, f"리뷰 관측 없음 ({risk_store_note()})", f"No review observation ({risk_store_note()})"), [], None
     store = default_risk_store()
     facts = store.get(product_key) if store else None
     n = int(facts["n"]) if facts else 0
@@ -60,11 +64,15 @@ def _review_line(product_key: str, flags: list[str]) -> tuple[str, list[dict], s
         if line:
             evidence.append({"kind": "review_suspect_rule", "text": line, "verify_url": None})
     if not over:
-        return f"리뷰 {n}건 관측 — 대조군 중앙값 대비 특이 없음", evidence, None
-    parts = [f"{OBS_LABEL.get(k, k)} {100 * v:.1f}% (부류 중앙값 {100 * m:.1f}%)" for k, v, m in over]
-    line = f"리뷰 {n}건 관측 — " + " · ".join(parts) + " — 검토 권장"
-    caveat = (f"리뷰 관측({', '.join(OBS_LABEL.get(k, k) for k, _, _ in over)})은 "
-              f"상품 단위 신호이며 개별 리뷰의 진위가 아닙니다")
+        return L(lang, f"리뷰 {n}건 관측 — 대조군 중앙값 대비 특이 없음",
+                 f"{n} reviews observed — nothing unusual against the control median"), evidence, None
+    obs_label = (lambda k: _OBS_LABEL_EN.get(k, OBS_LABEL.get(k, k))) if lang == "en" else (lambda k: OBS_LABEL.get(k, k))
+    parts = [L(lang, f"{obs_label(k)} {100 * v:.1f}% (부류 중앙값 {100 * m:.1f}%)",
+               f"{obs_label(k)} {100 * v:.1f}% (category median {100 * m:.1f}%)") for k, v, m in over]
+    line = L(lang, f"리뷰 {n}건 관측 — ", f"{n} reviews observed — ") + " · ".join(parts) + L(lang, " — 검토 권장", " — worth a closer look")
+    names = ", ".join(obs_label(k) for k, _, _ in over)
+    caveat = L(lang, f"리뷰 관측({names})은 상품 단위 신호이며 개별 리뷰의 진위가 아닙니다",
+               f"Review observation ({names}) is a product-level signal, not the authenticity of any single review")
     return line, evidence, caveat
 
 
@@ -229,7 +237,7 @@ def run(build: BuildResult, verification: VerificationResult, log: LogFn,
     m = lambda n: fmt_money(n, cur)  # noqa: E731
     items, review_lines, review_caveats = [], {}, []
     for it in build.items:
-        line, evidence, caveat = _review_line(it.product_key, _ranked_flags(rank, it.slot, it.product_key))
+        line, evidence, caveat = _review_line(it.product_key, _ranked_flags(rank, it.slot, it.product_key), lang)
         review_lines[it.slot] = line
         if caveat:
             review_caveats.append(f"{it.slot} {caveat}")

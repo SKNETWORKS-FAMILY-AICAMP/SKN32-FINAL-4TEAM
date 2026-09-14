@@ -50,28 +50,42 @@ question_sets:
   - { id: q_purpose, select: single, maps_to: purpose,
       label: "주로 어떤 용도로 쓰실 건가요?",
       options: ["게임", "창작·작업", "사무", "학습", "기타"],
-      values: [game, creation, office, study, other] }
+      values: [game, creation, office, study, other],
+      label_en: "What will you mainly use it for?",
+      options_en: ["Gaming", "Creative work", "Office", "Study", "Other"] }
   - { id: q_budget_max, select: free, maps_to: budget_max,
-      label: "예산은 얼마까지 생각하시나요?" }
+      label: "예산은 얼마까지 생각하시나요?",
+      label_en: "What is your budget?" }
   - { id: q_priority, select: single, maps_to: priority,
       label: "가장 중요하게 생각하시는 건 뭔가요?",
       options: ["성능 우선", "가성비", "조용한 게 좋아요"],
-      values: [performance, value, quiet] }
+      values: [performance, value, quiet],
+      label_en: "What matters most to you?",
+      options_en: ["Performance first", "Value for money", "Quiet"] }
   - { id: q_upgrade_parts, select: multi, maps_to: upgrade_parts,
       label: "어떤 부품을 업그레이드하고 싶으신가요?",
       options: ["CPU", "GPU", "RAM", "메인보드", "저장장치", "파워", "케이스", "쿨러"],
-      mode_only: upgrade }
+      mode_only: upgrade,
+      label_en: "Which parts do you want to upgrade?",
+      options_en: ["CPU", "GPU", "RAM", "Motherboard", "Storage", "PSU", "Case", "Cooler"] }
   - { id: q_resolution, select: single, maps_to: resolution,
       label: "목표 해상도·주사율은?",
       options: ["FHD 144Hz", "QHD 165Hz", "4K", "잘 모르겠어요"],
-      values: [FHD_144, QHD_165, "4K", null] }
+      values: [FHD_144, QHD_165, "4K", null],
+      label_en: "Target resolution and refresh rate?",
+      options_en: ["FHD 144Hz", "QHD 165Hz", "4K", "Not sure"] }
   - { id: q_games, select: multi, maps_to: games,
-      label: "어떤 게임을 하시나요?" }
+      label: "어떤 게임을 하시나요?",
+      label_en: "Which games do you play?" }
   - { id: q_assembly, select: single, maps_to: assembly,
       label: "조립은 어떻게 하시겠어요?",
       options: ["직접 조립", "조립 대행"],
-      values: [self, service] }
+      values: [self, service],
+      label_en: "How will it be assembled?",
+      options_en: ["I will build it", "Assembly service"] }
   - { id: q_noise, select: single, maps_to: noise_sensitive,
       label: "소음에 민감하신 편인가요?",
       options: ["조용한 게 좋아요", "상관없어요"],
-      values: [true, false] }
+      values: [true, false],
+      label_en: "Are you sensitive to noise?",
+      options_en: ["I prefer quiet", "Doesn't matter"] }

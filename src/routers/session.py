@@ -1,7 +1,7 @@
 """/session HTTP handlers."""
 from __future__ import annotations
 from uuid import UUID
-from fastapi import APIRouter, BackgroundTasks, Depends, Response, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Request, Response, status
 from src import schemas
 from src.auth.deps import Principal, optional_principal
 from src.db import get_conn
@@ -27,9 +27,11 @@ def get_session(list_id: UUID, principal: Principal = Depends(optional_principal
         return schemas.ConditionState(**session_service.get_session_state(conn, list_id, principal))
 
 @router.post("/{list_id}/category", response_model=schemas.ConditionState)
-def choose_category(list_id: UUID, body: schemas.CategoryIn, principal: Principal = Depends(optional_principal)) -> schemas.ConditionState:
+def choose_category(list_id: UUID, body: schemas.CategoryIn, request: Request, principal: Principal = Depends(optional_principal)) -> schemas.ConditionState:
+    # 프론트 언어 토글(localStorage) → X-TrueFit-Lang 헤더. 없으면 한국어(전과 동일).
+    language = (request.headers.get("x-truefit-lang") or "").lower() or None
     with get_conn() as conn:
-        return schemas.ConditionState(**session_service.choose_category(conn, list_id, body.category, body.mode, principal))
+        return schemas.ConditionState(**session_service.choose_category(conn, list_id, body.category, body.mode, principal, language=language))
 
 @router.patch("/{list_id}/slot", response_model=schemas.ConditionState)
 def patch_slot(list_id: UUID, body: schemas.SlotPatchIn, principal: Principal = Depends(optional_principal)) -> schemas.ConditionState:
