@@ -10,6 +10,7 @@
 | `src/engine/prompts.py` | 시스템 프롬프트 문안 |
 | `src/engine/stage3c_verify.py` | [3-C] 검증 쟁점 문장 |
 | `src/engine/stage5_explain.py` | [5] 추천 설명 문장 |
+| `src/agent/conditions_agent.py` | 조건 대화 에이전트 (Strands Agents SDK) — 2026-09-14 스파이크, [[docs/조건대화_에이전트_strands.md]] |
 | `src/config.py`, `.env.example`, `requirements.txt`, `pyproject.toml` | 설정·의존성 (공용 파일) |
 
 **`src/`의 나머지는 다른 팀원 소유다.** 2026-09-13 브랜치 비교 기준:
@@ -28,6 +29,13 @@
 | [5] 추천 설명 문장 | **사용** | |
 
 **[1]에 LLM 슬롯필링을 추가하지 않는다.** 프론트가 이 전제로 구현돼 있고(`frontend/CLAUDE.md`: "채팅 조건 추출에 LLM을 쓰지 않는다"), 프론트와 합의된 결정이다 (계약 문서 §D-3). 그 문서(`docs/frontend_외부수정요청.md`)는 2026-09-13에 로컬에서 삭제됐으므로 내용을 봐야 하면 `origin/develop` 또는 `origin/front`에서 꺼낸다. `stage1_intent.py`의 `NotImplementedError`는 미완성이 아니라 의도된 상태다.
+
+**단, 2026-09-14 예외 — 조건 대화 에이전트 스파이크.** 해커톤이 Strands Agents SDK 사용을 제출 정의로
+두고 있고 9/13 회의가 "에이전트 부재"·"추가 조건 미반영"을 지적해서, `src/agent/conditions_agent.py`가
+`/session/{id}/message`의 자유 텍스트를 Strands 도구 호출로 조건에 반영한다. **기본은 꺼짐
+(`CONDITIONS_AGENT=0`)** — §D-3 합의가 바뀌기 전까지 opt-in이고, API 계약(`ConditionState`·질문 칩)은
+안 바뀐다. 켜는 결정은 프론트 담당자 합의 뒤에. 이 스파이크는 `src/services/session_service.py`
+(`develop` 소유)의 `handle_message`에 12줄을 **추가**했다 — develop 담당자에게 알려야 한다.
 
 ## [3-C] 검사AI·변호인AI 디베이트는 쓰지 않는다
 
@@ -148,5 +156,12 @@ DB 스키마(`db/migrations/0008_frontend_contract.sql`)는 처음부터 세 상
 동작 중인 `.env`도 이미 이렇게 비어 있었다. Bedrock→OpenAI 결정 날짜를 주석으로 명시.
 `EMBEDDING_MODEL`은 RAG 소유 변수라 값 자체는 안 건드리고 비활성화만 했다 —
 `docs/팀공지_LLM연동_참고사항.md`에 rag 담당자 확인 필요 사항으로 같이 적었다.
+
+**6. Strands 조건 대화 에이전트 — 스파이크 완료, 기본 꺼짐 (2026-09-14).**
+`src/agent/conditions_agent.py` + `session_service.handle_message` 분기 + `tests/test_conditions_agent.py`(19건).
+실측·경계·한계·같이 발견한 develop 버그(`db/seed.py`의 `shared.unit`)는 `docs/조건대화_에이전트_strands.md`.
+켜려면 `.env`에 `CONDITIONS_AGENT=1`. 남은 결정 둘: (a) §D-3 갱신·기본값 켜기 — 프론트 담당자 합의
+(b) `extra`(자유 조건)를 엔진이 읽게 할지 — 엔진 담당. 켜지 않으면 해커톤 제출물에 Strands가 코드로만
+존재하고 데모에는 안 나온다.
 
 들어가기 전 참고: `tests/test_list_service.py` 3건은 **`origin/develop` 원본에서도 같은 줄에서 실패한다**(임시 워크트리로 대조 확인함). 우리 변경 탓이 아니고 develop 담당자 몫이다.

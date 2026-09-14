@@ -17,6 +17,7 @@ pytest>=8.0.0
 
 # === LLM ===
 openai>=1.40.0          # LLM_PROVIDER=openai
+strands-agents[openai]>=1.0   # 조건 대화 에이전트 (src/agent/, AWS Strands Agents SDK)
 
 # === 나중에 (실제 구현 시) ===
 # httpx                   : 제휴 커머스 API 호출
