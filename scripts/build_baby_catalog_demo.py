@@ -45,7 +45,10 @@ CATEGORIES_FOR_DEMO = [
     "high_chair", "baby_food", "cup", "bib", "diaper", "wipes", "bath", "skincare",
     "mat", "gate", "thermometer",
 ]
-PER_CATEGORY = 2
+# A demo needs genuine alternatives for ranking, replacement, and budget allocation.
+# Ten generated options per supported category provide that without turning the
+# committed synthetic fixture into an impractically large catalog.
+PER_CATEGORY = 10
 
 CATEGORY_NAME_KO = {
     "stroller": "유모차", "car_seat": "카시트", "carrier": "아기띠", "crib": "아기침대",

@@ -10,9 +10,64 @@ import re
 
 _WON = re.compile(r"(\d+(?:[.,]\d+)?)\s*억|(\d+(?:[.,]\d+)?)\s*(?:천만|천\s*만)|(\d+(?:[.,]\d+)?)\s*만|(\d{2,})\s*원?")
 
+_KOREAN_DIGITS = {"영": 0, "공": 0, "일": 1, "이": 2, "삼": 3, "사": 4, "오": 5,
+                   "육": 6, "륙": 6, "칠": 7, "팔": 8, "구": 9}
+_KOREAN_SMALL_UNITS = {"십": 10, "백": 100, "천": 1000}
+_KOREAN_BIG_UNITS = [("조", 1_000_000_000_000), ("억", 100_000_000), ("만", 10_000)]
+_KOREAN_NUMERAL_RE = re.compile(r"[영공일이삼사오육륙칠팔구십백천만억조]+")
+
+
+def _parse_korean_small(chunk: str) -> int | None:
+    """'삼백' → 300 · '십오' → 15."""
+    total = 0
+    current = 0
+    for ch in chunk:
+        if ch in _KOREAN_DIGITS:
+            current = _KOREAN_DIGITS[ch]
+        elif ch in _KOREAN_SMALL_UNITS:
+            total += (current or 1) * _KOREAN_SMALL_UNITS[ch]
+            current = 0
+        else:
+            return None
+    return total + current
+
+
+def _parse_korean_run(run: str) -> int | None:
+    """'삼백만' → 3000000 · '이천오백' → 2500 (억/만/조 단위가 있는 경우만 — 그 외엔
+    "이고"의 '이'처럼 조사·어미가 숫자 글자와 겹쳐 금액으로 오인할 수 있다)."""
+    if not any(ch in run for ch, _ in _KOREAN_BIG_UNITS):
+        return None
+    total = 0
+    remaining = run
+    for unit_char, unit_val in _KOREAN_BIG_UNITS:
+        idx = remaining.find(unit_char)
+        if idx == -1:
+            continue
+        chunk = remaining[:idx]
+        value = _parse_korean_small(chunk) if chunk else 1
+        if value is None:
+            return None
+        total += value * unit_val
+        remaining = remaining[idx + 1:]
+    if remaining:
+        value = _parse_korean_small(remaining)
+        if value is None:
+            return None
+        total += value
+    return total or None
+
+
+def _parse_korean_number(text: str) -> int | None:
+    """'삼백만원' → 3000000 (숫자 없이 한글 단어만). 만/억/조 단위가 없는 조각(문장 속 조사 등)은 건너뛴다."""
+    for m in _KOREAN_NUMERAL_RE.finditer(text):
+        value = _parse_korean_run(m.group(0))
+        if value:
+            return value
+    return None
+
 
 def _parse_won(text: str) -> int | None:
-    """'150만원' '1500000원' '1.5억' 같은 표현 → 정수 원."""
+    """'150만원' '1500000원' '1.5억' '삼백만원' 같은 표현 → 정수 원."""
     text = text.replace(",", "")
     m = re.search(r"(\d+(?:\.\d+)?)\s*억", text)
     if m:
@@ -26,7 +81,7 @@ def _parse_won(text: str) -> int | None:
     m = re.search(r"(\d{4,})\s*원", text)
     if m:
         return int(m.group(1))
-    return None
+    return _parse_korean_number(text)          # 숫자 없이 한글 단어로만 말한 금액 (예: 삼백만원)
 
 
 def _parse_months(text: str) -> int | None:

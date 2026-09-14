@@ -88,8 +88,8 @@ class ConditionDraft:
         budget_currency: str | None = None
         if key == "budget_max" and isinstance(raw, str) and raw.strip().lower() not in ("", "null", "none"):
             value, budget_currency = _parse_budget(raw, self.lang, self.current("currency"))
-            if value is None:
-                return self._record(call, f"오류: {key} — 원 단위 정수로 (예: 1500000 · 150만원 · $1,500)")
+            if value is None or value <= 0:
+                return self._record(call, f"오류: {key} — 0보다 큰 금액으로 (예: 1500000 · 150만원 · $1,500)")
             bare = raw.replace(",", "").strip()
             self._bare_budget = float(bare) if re.fullmatch(r"\d+(?:\.\d+)?", bare) else None
         elif key == "currency" and self._bare_budget is not None and str(raw).strip().upper() in ("KRW", "USD"):
@@ -182,11 +182,11 @@ def usd(krw: int | None) -> str:
 
 
 def _parse_amount(text: str) -> int | None:
-    """'1500000' · '1,500,000 won' · '150만원' · '1.5억' · '2.5 million' → 원 단위 정수."""
+    """'1500000' · '1,500,000 won' · '150만원' · '1.5억' · '2.5 million' · '삼백만원' → 원 단위 정수."""
     plain = text.replace(",", "").strip()
     if re.fullmatch(r"-?\d+", plain):
         return int(plain)
-    won = _parse_won(text)                     # 만·억·원
+    won = _parse_won(text)                      # 만·억·원 (숫자 또는 한글 숫자 단어, 예: 삼백만원)
     if won:
         return won
     low = plain.lower()
@@ -219,7 +219,7 @@ def _coerce(meta: dict, raw):
         if isinstance(s, (int, float)):
             return int(s)
         amount, _ = _parse_money(str(s))
-        if amount is not None:
+        if amount is not None and (t != "money" or amount > 0):   # money(develop 의 baby 표기)는 0 이하 거부
             return amount
         raise ValueError("원 단위 정수로 (예: 1500000 · 150만원 · $1,500)")
     if t == "bool":

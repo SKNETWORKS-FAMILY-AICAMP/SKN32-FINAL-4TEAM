@@ -606,7 +606,8 @@ def get_stored_result(conn, revision_id: UUID) -> dict | None:
     lang = lang_of(values)
 
     result: dict = {
-        "list_id": str(revision["plan_id"]), "run_id": str(run["id"]), "status": status,
+        "list_id": str(revision["plan_id"]), "revision_id": str(revision_id),
+        "lock_version": revision["lock_version"], "run_id": str(run["id"]), "status": status,
         "progress": [
             {"step": "conditions", "label": L(lang, "조건 정리", "Conditions"), "status": "done"},
             {"step": "candidates", "label": L(lang, "후보 수집", "Candidates"), "status": "done" if status != "running" else "running"},
