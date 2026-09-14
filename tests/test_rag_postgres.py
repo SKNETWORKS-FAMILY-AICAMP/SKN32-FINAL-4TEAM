@@ -24,10 +24,11 @@ from src.rag.provider import ProviderError, get_search_provider
 from src.rag.service import RagService
 from src.rag.verification import verify_seat
 from src.repo.material_repo import MaterialRepo
+from src.config import DATABASE_URL
 
 ROOT = Path(__file__).resolve().parents[1]
 BUNDLE = ROOT / "generated/synthetic_manuals/stroller_example"
-DSN = os.getenv("RAG_TEST_DATABASE_URL")
+DSN = os.getenv("RAG_TEST_DATABASE_URL") or DATABASE_URL
 pytestmark = pytest.mark.skipif(
     not DSN, reason="set RAG_TEST_DATABASE_URL to a disposable migrated database"
 )

@@ -17,11 +17,12 @@ from src.engine.stage2_requirement import (
     load_baby_rules_snapshot, load_persisted_baby_requirements, persist_baby_requirements,
 )
 from src.engine.stage3_0_candidates import get_baby_candidates
+from src.config import DATABASE_URL
 
 ROOT = Path(__file__).resolve().parents[1]
 RULES_PATH = ROOT / "config" / "baby_requirement_rules.yaml"
 CATEGORY_YAML = ROOT / "config" / "categories" / "baby.yaml"
-DSN = os.getenv("RAG_TEST_DATABASE_URL")
+DSN = os.getenv("RAG_TEST_DATABASE_URL") or DATABASE_URL
 needs_db = pytest.mark.skipif(
     not DSN, reason="set RAG_TEST_DATABASE_URL to a disposable migrated pgvector database"
 )

@@ -22,8 +22,9 @@ from seed_baby_catalog import (  # noqa: E402
 )
 from src.repo.product_repo import ProductRepo  # noqa: E402
 from src.repo.rag_repo import stable_id  # noqa: E402
+from src.config import DATABASE_URL  # noqa: E402
 
-DSN = os.getenv("RAG_TEST_DATABASE_URL")
+DSN = os.getenv("RAG_TEST_DATABASE_URL") or DATABASE_URL
 needs_db = pytest.mark.skipif(
     not DSN, reason="set RAG_TEST_DATABASE_URL to a disposable migrated pgvector database"
 )

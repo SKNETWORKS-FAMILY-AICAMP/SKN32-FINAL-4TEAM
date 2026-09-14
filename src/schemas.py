@@ -126,6 +126,9 @@ class NextQuestionOut(BaseModel):
 class ConditionState(BaseModel):
     list_id: str
     category: str | None = None
+    mode: str | None = None
+    revision_id: str | None = None
+    lock_version: int | None = None
     messages: list[MessageOut] = Field(default_factory=list)
     fields: list[FieldOut] = Field(default_factory=list)
     next_question: NextQuestionOut | None = None
