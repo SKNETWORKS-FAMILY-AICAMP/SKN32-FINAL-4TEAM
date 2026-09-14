@@ -136,6 +136,11 @@ def signup(conn, *, email: str, password: str, display_name: str, terms_agreed: 
 def login(conn, *, email: str, password: str, remember: bool, guest_token: str | None) -> dict:
     normalized_email = normalize_email(email)
     repo = UserRepo(conn)
+    # Deliberately UNLOCKED here: on a wrong password below, bookkeeping writes to
+    # this same row from a SEPARATE connection (see comment there) while this
+    # transaction is still open — locking this row here would deadlock that write
+    # against itself. The race this leaves open (reading a since-changed password)
+    # is closed below, after a real-looking match, by re-verifying under a lock.
     row = repo.get_by_email(normalized_email)
 
     if row is None:
@@ -160,11 +165,21 @@ def login(conn, *, email: str, password: str, remember: bool, guest_token: str |
             dummy_verify(password)
         raise Unauthorized("이메일 또는 비밀번호가 올바르지 않습니다.", code="invalid_credentials")
 
-    rehashed = hash_password(password) if needs_rehash(row["password_hash"]) else None
-    repo.record_login_success(row["id"], rehashed_password=rehashed)
-    _merge_guest(conn, row["id"], guest_token)
+    # P6 review R1: the read above is unlocked and may already be stale by now —
+    # lock the row and re-verify under the lock (serializing against a concurrent
+    # change_password/withdraw) before this login is allowed to actually succeed and
+    # issue a token. A password change that commits between the read above and this
+    # lock (or that is already holding it) is now guaranteed to be reflected here.
+    locked = repo.get_by_id_locked(row["id"])
+    if (locked is None or locked["status"] != "active" or locked["password_hash"] is None
+            or not verify_password(locked["password_hash"], password)):
+        raise Unauthorized("이메일 또는 비밀번호가 올바르지 않습니다.", code="invalid_credentials")
 
-    fresh = repo.get_by_id(row["id"])
+    rehashed = hash_password(password) if needs_rehash(locked["password_hash"]) else None
+    repo.record_login_success(locked["id"], rehashed_password=rehashed)
+    _merge_guest(conn, locked["id"], guest_token)
+
+    fresh = repo.get_by_id(locked["id"])
     token, max_age = _issue_cookie_token(fresh["id"], fresh["email_normalized"], remember=remember)
     return {"user": serialize_user(fresh), "token": token, "max_age": max_age}
 
@@ -205,7 +220,8 @@ def update_profile(conn, user_id: UUID, *, display_name: str | None, email: str 
 
 def change_password(conn, user_id: UUID, *, current_password: str, new_password: str) -> dict:
     repo = UserRepo(conn)
-    row = repo.get_by_id(user_id)
+    # P6 review R1: lock — see login()'s comment.
+    row = repo.get_by_id_locked(user_id)
     if row is None or row["status"] != "active":
         raise Unauthorized("로그인이 필요합니다.")
     if row["password_hash"] is None or not verify_password(row["password_hash"], current_password):
@@ -219,7 +235,8 @@ def change_password(conn, user_id: UUID, *, current_password: str, new_password:
 
 def withdraw(conn, user_id: UUID, *, password: str) -> None:
     repo = UserRepo(conn)
-    row = repo.get_by_id(user_id)
+    # P6 review R1: lock — see login()'s comment (withdraw also changes password_hash).
+    row = repo.get_by_id_locked(user_id)
     if row is None or row["status"] != "active":
         raise Unauthorized("로그인이 필요합니다.")
     if row["password_hash"] is None or not verify_password(row["password_hash"], password):

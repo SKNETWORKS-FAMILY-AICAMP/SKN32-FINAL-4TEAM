@@ -459,6 +459,90 @@ def test_d2_rejects_owned_entry_from_a_different_revision(conn):
         persist_baby_requirements(conn, revision_b["id"], [forged])
 
 
+@needs_db
+def test_r1_owned_qty_capped_at_actual_condition_value_not_caller_claim(conn):
+    """P2 review R1: source_condition_id matching alone must not be enough — the
+    caller-claimed qty is rejected once it exceeds what the revision's real
+    owned_items condition value actually reports for that label."""
+    from src.services.session_service import create_session, choose_category, handle_answer
+    from src.auth.deps import Principal
+    from src.repo.plan_repo import PlanRepo
+
+    session = create_session(conn, Principal(user_id=None, browser_token=None))
+    principal = Principal(user_id=None, browser_token=session["browser_token"])
+    choose_category(conn, session["list_id"], "baby", "born", principal)
+    handle_answer(conn, session["list_id"], "q_owned", ["젖병"], principal)  # reports exactly 1
+    revision = PlanRepo(conn).get_current_revision(session["list_id"])
+    owned_condition_id = PlanRepo(conn).active_condition_id(revision["id"], "owned_items")
+
+    inflated = BabyRequirement(
+        id="x", revision_id=str(revision["id"]), slot_key="bottle", unit_code="each",
+        required_qty=2.0, owned=[{"label": "젖병", "qty": 2.0, "unit_code": "each",
+                                  "source_condition_id": str(owned_condition_id)}],
+    )
+    with pytest.raises(ValueError, match="owned_qty_exceeds_reported"):
+        persist_baby_requirements(conn, revision["id"], [inflated])
+
+
+@needs_db
+def test_r1_owned_qty_not_double_allocated_across_two_requirements(conn):
+    """The same single reported item cannot fulfil two different requirement slots
+    at once (P2 review R1) — even though each individual entry's qty is <= 1."""
+    from src.services.session_service import create_session, choose_category, handle_answer
+    from src.auth.deps import Principal
+    from src.repo.plan_repo import PlanRepo
+
+    session = create_session(conn, Principal(user_id=None, browser_token=None))
+    principal = Principal(user_id=None, browser_token=session["browser_token"])
+    choose_category(conn, session["list_id"], "baby", "born", principal)
+    handle_answer(conn, session["list_id"], "q_owned", ["젖병"], principal)  # reports exactly 1
+    revision = PlanRepo(conn).get_current_revision(session["list_id"])
+    owned_condition_id = PlanRepo(conn).active_condition_id(revision["id"], "owned_items")
+
+    entry = {"label": "젖병", "qty": 1.0, "unit_code": "each",
+             "source_condition_id": str(owned_condition_id)}
+    slot_a = BabyRequirement(id="a", revision_id=str(revision["id"]), slot_key="bottle",
+                             unit_code="each", required_qty=2.0, owned=[entry])
+    slot_b = BabyRequirement(id="b", revision_id=str(revision["id"]), slot_key="sterilizer",
+                             unit_code="each", required_qty=1.0, owned=[entry])
+    with pytest.raises(ValueError, match="owned_qty_exceeds_reported"):
+        persist_baby_requirements(conn, revision["id"], [slot_a, slot_b])
+
+
+@needs_db
+def test_r3_stale_slot_excluded_then_revived_with_same_uuid(conn):
+    """P2 review R3: a slot that disappears from a later calculation (needs changed)
+    must not keep showing up in load_persisted_baby_requirements, and reappearing
+    later must reuse the SAME requirement UUID rather than minting a new one."""
+    from src.services.session_service import create_session, choose_category
+    from src.repo.plan_repo import PlanRepo
+    from src.auth.deps import Principal
+
+    session = create_session(conn, Principal(user_id=None, browser_token=None))
+    principal = Principal(user_id=None, browser_token=session["browser_token"])
+    choose_category(conn, session["list_id"], "baby", "born", principal)
+    revision = PlanRepo(conn).get_current_revision(session["list_id"])
+
+    both = {
+        "revision_id": str(revision["id"]), "mode": "born",
+        "age_stage": {"months": 8, "exact": True}, "needs": ["수유", "외출"], "owned_items": [],
+    }
+    persisted_both = persist_baby_requirements(
+        conn, revision["id"], build_baby_requirements(both, _domain_snapshot()))
+    stroller_id = next(r.id for r in persisted_both if r.slot_key == "stroller")
+
+    feeding_only = {**both, "needs": ["수유"]}
+    persist_baby_requirements(conn, revision["id"], build_baby_requirements(feeding_only, _domain_snapshot()))
+    reloaded = load_persisted_baby_requirements(conn, revision["id"])
+    assert not any(r.slot_key == "stroller" for r in reloaded), "사라진 슬롯은 재조회에 남으면 안 된다"
+    assert PlanRepo(conn)._one(
+        "SELECT status FROM planning.requirement WHERE id=%s", (stroller_id,))["status"] == "excluded"
+
+    persist_baby_requirements(conn, revision["id"], build_baby_requirements(both, _domain_snapshot()))
+    revived = next(r for r in load_persisted_baby_requirements(conn, revision["id"]) if r.slot_key == "stroller")
+    assert revived.id == stroller_id, "재요청 시 같은 UUID로 되살아나야 한다"
+
+
 def test_r6_pinned_rule_snapshot_is_immune_to_a_later_live_file_change(monkeypatch):
     """A revision computed against a pinned rules snapshot must keep giving the
     SAME result even if config/baby_requirement_rules.yaml changes afterwards —

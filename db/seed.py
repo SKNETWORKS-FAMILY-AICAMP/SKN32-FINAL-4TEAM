@@ -2,7 +2,9 @@
 """최소 기준 데이터 seed — config.domain / config.domain_version.
 
 config/categories/*.yaml 을 그대로 domain_version.definition 에 적재한다. 멱등
-(코드 존재하면 건너뜀). computer 는 status='active'(게시), baby 는 'draft'(스텁).
+(코드 존재하면 건너뜀). computer/baby 모두 status='active'(게시) — baby는 더 이상
+스텁이 아니라 P1~P9로 구현된 실제 카테고리이므로, `PlanRepo.published_domain_version`의
+활성 버전 선택(P1 review R1)이 실제로 이 카테고리를 고를 수 있어야 한다.
 
 P0 develop 정렬 v3: shared.unit 은 0012_schema_reduction_safe_subset.sql 이 이미
 제거했다(단위 코드값은 catalog/planning 각 unit_code 컬럼에 문자열로만 남는다) —
@@ -27,7 +29,7 @@ from src.db import get_conn  # noqa: E402
 
 _DOMAINS = [
     ("computer", "컴퓨터 (PC 본체 조립)", "active"),
-    ("baby", "유아용품", "draft"),
+    ("baby", "유아용품", "active"),
 ]
 
 

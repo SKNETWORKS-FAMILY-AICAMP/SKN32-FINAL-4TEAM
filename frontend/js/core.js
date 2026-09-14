@@ -40,7 +40,7 @@ const TF_PLAN={
  lists(){return TF_API.get('/lists')},
  renameList(id,name){return TF_API.patch('/lists/'+tfSeg(id),{name})},
  deleteList(id){return TF_API.del('/lists/'+tfSeg(id))},
- confirm(id,body){return TF_API.post('/lists/'+tfSeg(id)+'/confirm',body)},
+ confirm(id,body){return TF_API.post('/lists/'+tfSeg(id)+'/confirm',body,{'If-Match':String(tfPlan.result?.lock_version??'')})},
  report(id){return TF_API.get('/lists/'+tfSeg(id)+'/report')},
 };
 function tfUiCategory(category){return category==='computer'?'pc':category||''}

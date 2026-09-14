@@ -2,6 +2,8 @@
 from __future__ import annotations
 import uuid
 from uuid import UUID
+from psycopg.types.json import Jsonb
+
 from src.db.base import Repo
 
 class ConversationRepo(Repo):
@@ -53,7 +55,7 @@ class ConversationRepo(Repo):
         if rows:
             self._exec(
                 "UPDATE planning.plan SET owner_user_id=%s, updated_at=now() "
-                "WHERE owner_user_id IS NULL AND conversation_id = ANY(%s)",
+                "WHERE status='active' AND owner_user_id IS NULL AND conversation_id = ANY(%s)",
                 (user_id, [r["id"] for r in rows]),
             )
         return len(rows)
@@ -63,7 +65,7 @@ _USER_COLUMNS = (
     "id, email_normalized, auth_subject, display_name, status, created_at, updated_at, "
     "password_hash, password_updated_at, failed_login_count, locked_until, last_login_at, "
     "terms_version, terms_agreed_at, privacy_agreed_at, marketing_agreed_at, deleted_at, "
-    "email_verified_at"
+    "email_verified_at, ui_settings, notification_settings"
 )
 
 
@@ -77,6 +79,24 @@ class UserRepo(Repo):
     def get_by_id(self, user_id: UUID) -> dict | None:
         return self._one(
             f"SELECT {_USER_COLUMNS} FROM identity.app_user WHERE id=%s",
+            (user_id,),
+        )
+
+    def get_by_email_locked(self, email_normalized: str) -> dict | None:
+        """P6 review R1: FOR UPDATE — login must serialize against a concurrent
+        change_password/withdraw on the same row, so a login that reads the OLD
+        password hash can never issue a token after a password change has already
+        committed (it either finishes first, or blocks until the change commits and
+        then re-reads the NEW hash and fails verification)."""
+        return self._one(
+            f"SELECT {_USER_COLUMNS} FROM identity.app_user WHERE email_normalized=%s FOR UPDATE",
+            (email_normalized,),
+        )
+
+    def get_by_id_locked(self, user_id: UUID) -> dict | None:
+        """P6 review R1: FOR UPDATE — see get_by_email_locked."""
+        return self._one(
+            f"SELECT {_USER_COLUMNS} FROM identity.app_user WHERE id=%s FOR UPDATE",
             (user_id,),
         )
 
@@ -100,10 +120,11 @@ class UserRepo(Repo):
             f"""INSERT INTO identity.app_user
                 (id, email_normalized, auth_subject, display_name, status,
                  password_hash, password_updated_at, terms_version, terms_agreed_at,
-                 privacy_agreed_at, marketing_agreed_at)
-                VALUES (%s, %s, %s, %s, 'active', %s, now(), %s, now(), now(), {"now()" if marketing_agreed else "NULL"})
+                 privacy_agreed_at, marketing_agreed_at, ui_settings, notification_settings)
+                VALUES (%s, %s, %s, %s, 'active', %s, now(), %s, now(), now(), {"now()" if marketing_agreed else "NULL"}, %s, %s)
                 RETURNING {_USER_COLUMNS}""",
-            (user_id, email_normalized, auth_subject, display_name, password_hash, terms_version),
+            (user_id, email_normalized, auth_subject, display_name, password_hash, terms_version,
+             Jsonb({}), Jsonb({})),
         )
 
     def increment_failed_login(self, user_id: UUID) -> int:
@@ -125,9 +146,12 @@ class UserRepo(Repo):
 
     def record_login_success(self, user_id: UUID, *, rehashed_password: str | None) -> None:
         if rehashed_password is not None:
+            # P6 review R1: clock_timestamp() (actual statement execution time), not
+            # now() (frozen at transaction start) — see update_password below for why
+            # this matters for the invalidation boundary.
             self._exec(
                 "UPDATE identity.app_user SET failed_login_count=0, locked_until=NULL, "
-                "last_login_at=now(), password_hash=%s, password_updated_at=now() WHERE id=%s",
+                "last_login_at=now(), password_hash=%s, password_updated_at=clock_timestamp() WHERE id=%s",
                 (rehashed_password, user_id),
             )
         else:
@@ -139,10 +163,14 @@ class UserRepo(Repo):
 
     def update_password(self, user_id: UUID, password_hash: str) -> None:
         """비밀번호 교체 — password_updated_at 을 갱신해 그 이전에 발급된 토큰을
-        무효화한다(iat < password_updated_at.timestamp(), P0 v3 develop 정렬,
-        auth_version 컬럼 없음)."""
+        무효화한다(iat <= password_updated_at.timestamp(), P0 v3 develop 정렬,
+        auth_version 컬럼 없음). clock_timestamp()(문장 실행 시각)를 쓴다 — now()는
+        트랜잭션 시작 시각이라, 오래 걸리는 트랜잭션 안에서는 실제 교체보다 이른 값이
+        찍힐 수 있다(P6 review R1). 동시성 자체는 auth_service.change_password/login이
+        이 사용자 행을 FOR UPDATE로 잠가 직렬화하는 것으로 막는다 — 이 컬럼 하나만
+        바꾼다고 경합이 없어지는 것은 아니다."""
         self._exec(
-            "UPDATE identity.app_user SET password_hash=%s, password_updated_at=now() WHERE id=%s",
+            "UPDATE identity.app_user SET password_hash=%s, password_updated_at=clock_timestamp() WHERE id=%s",
             (password_hash, user_id),
         )
 
@@ -178,7 +206,8 @@ class UserRepo(Repo):
                  email_normalized=%s, display_name=%s,
                  password_hash=NULL, failed_login_count=0, locked_until=NULL,
                  terms_version=NULL, terms_agreed_at=NULL, privacy_agreed_at=NULL,
-                 marketing_agreed_at=NULL, email_verified_at=NULL
+                 marketing_agreed_at=NULL, email_verified_at=NULL,
+                 ui_settings='{}'::jsonb, notification_settings='{}'::jsonb
                WHERE id=%s""",
             (anonymized_email, anonymized_name, user_id),
         )

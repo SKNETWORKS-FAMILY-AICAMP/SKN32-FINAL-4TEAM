@@ -28,6 +28,7 @@ import hashlib
 import json
 import math
 import uuid
+from collections import Counter
 from functools import lru_cache
 from pathlib import Path
 from uuid import NAMESPACE_URL, UUID, uuid5
@@ -153,7 +154,10 @@ def build_baby_requirements(conditions: dict, domain_snapshot: dict) -> list["Ba
     revision_id = str(conditions.get("revision_id") or "")
     mode = conditions.get("mode")
     needs = set(conditions.get("needs") or [])
-    owned = set(conditions.get("owned_items") or [])
+    # P2 review R5: a repeated label is the only quantity signal owned_items carries
+    # (P1 review R2) — count occurrences instead of set membership so owning N credits
+    # up to N, never just 1 regardless of how many were actually listed.
+    owned_counts = Counter(conditions.get("owned_items") or [])
     age_stage = conditions.get("age_stage") or {}
     age_months = age_stage.get("months")
     age_exact = age_stage.get("exact")
@@ -199,12 +203,12 @@ def build_baby_requirements(conditions: dict, domain_snapshot: dict) -> list["Ba
         slot_key = rule["slot_key"]
         required_qty = float(rule["required_qty"])
         owned_label = next((label for label, slot in owned_slot_map.items()
-                            if slot == slot_key and label in owned), None)
+                            if slot == slot_key and owned_counts.get(label, 0) > 0), None)
 
         owned_entries: list[dict] = []
         fulfilled_qty = 0.0
         if owned_label and required_qty > 0:
-            owned_qty = min(1.0, required_qty)
+            owned_qty = min(float(owned_counts[owned_label]), required_qty)
             owned_entries = [{"label": owned_label, "qty": owned_qty, "unit_code": rule["unit_code"]}]
             fulfilled_qty = owned_qty
 
@@ -230,23 +234,41 @@ def persist_baby_requirements(conn, revision_id, requirements: list[BabyRequirem
     새로 만들지 않는다. 보유 표시 ID는 `owned:<requirement UUID>:<condition
     UUID>` 로 파생하며 DB FK가 아니다(BasketItem.item_id 용, stage4_optimize).
 
-    슬롯마다 ensure_node(template_key=slot_key) 뒤 ensure_requirement 로
-    requirement 1개를 보장하고 quantity/unit_code/required + match_spec을
-    한 번에 갱신한다. 같은 revision_id/slot_key 재호출은 같은 실제 UUID를
-    재사용한다(멱등). 조건에서 보유를 빼고 다시 부르면 owned=[]/fulfilled_qty=0
-    으로 실제 행도 같이 갱신된다(보유 해제 반영).
+    슬롯마다 ensure_node(template_key=slot_key) 뒤 requirement 1개를 보장하고
+    quantity/unit_code/required + match_spec을 한 번에 갱신한다. 같은
+    revision_id/slot_key 재호출은 같은 실제 UUID를 재사용한다(멱등). 조건에서
+    보유를 빼고 다시 부르면 owned=[]/fulfilled_qty=0 으로 실제 행도 같이
+    갱신된다(보유 해제 반영). 이번 계산에 더 이상 없는 슬롯은 excluded로
+    전환되고(P2 review R3), 재요청되면 같은 UUID로 되살아난다.
+
+    동시 두 계산이 같은 리비전의 같은(신규) 슬롯을 동시에 만들면 서로 잠글 대상이
+    없는 경합이 생길 수 있어(PlanRepo._lock_revision 문서 참고) 이 함수 전체를
+    리비전 잠금 하에 직렬화한다(P2 review R2).
     """
     from src.repo.plan_repo import PlanRepo
 
     repo = PlanRepo(conn)
     if len({r.id for r in requirements}) != len(requirements):
         raise ValueError("duplicate_requirement_id")
+    if len({r.slot_key for r in requirements}) != len(requirements):
+        raise ValueError("duplicate_slot_key")
 
+    repo.lock_revision(revision_id)
+
+    # P2 review R1: caller-supplied owned qty is only ever trusted up to what the
+    # revision's actual owned_items condition VALUE reports — never just because
+    # source_condition_id happens to match. Allocation is tracked across every
+    # requirement in this call so the same real item is never double-counted into
+    # two different slots.
+    reported_counts: Counter = Counter()
     owned_condition_id: UUID | None = None
     if any(r.owned for r in requirements):
-        owned_condition_id = repo.active_condition_id(revision_id, "owned_items")
-        if owned_condition_id is None:
+        owned_condition = repo.active_condition(revision_id, "owned_items")
+        if owned_condition is None:
             raise ValueError("owned_items_condition_not_found_for_revision")
+        owned_condition_id = owned_condition["id"]
+        reported_counts = Counter((owned_condition["value"] or {}).get("value") or [])
+    allocated: Counter = Counter()
 
     out: list[BabyRequirement] = []
     for r in requirements:
@@ -256,8 +278,11 @@ def persist_baby_requirements(conn, revision_id, requirements: list[BabyRequirem
         owned_with_source = []
         fulfilled_qty = 0.0
         for entry in r.owned:
+            label = entry.get("label")
             qty = entry.get("qty", 0)
             unit_code = entry.get("unit_code", r.unit_code)
+            if not label:
+                raise ValueError(f"invalid_owned_label:{r.slot_key}")
             if not math.isfinite(qty) or qty < 0:
                 raise ValueError(f"invalid_owned_qty:{r.slot_key}")
             if unit_code != r.unit_code:
@@ -266,39 +291,67 @@ def persist_baby_requirements(conn, revision_id, requirements: list[BabyRequirem
             if source_condition_id is not None and str(source_condition_id) != str(owned_condition_id):
                 # Either stale (superseded) or from a different revision — never trusted.
                 raise ValueError(f"cross_revision_condition_rejected:{r.slot_key}")
+            available = reported_counts.get(label, 0) - allocated.get(label, 0)
+            if qty > available:
+                raise ValueError(f"owned_qty_exceeds_reported:{r.slot_key}:{label}")
+            allocated[label] += qty
             owned_with_source.append({**entry, "unit_code": unit_code,
                                       "source_condition_id": str(owned_condition_id)})
             fulfilled_qty += qty
         fulfilled_qty = min(fulfilled_qty, r.required_qty)
 
         node_id = repo.ensure_node(revision_id, r.slot_key, r.slot_key)
-        requirement_id = repo.ensure_requirement(revision_id, node_id, {})
+        existing = repo.get_requirement_by_node(revision_id, node_id)
+        if existing is None:
+            requirement_id = repo.ensure_requirement(revision_id, node_id, {})
+            existing_spec: dict = {}
+        else:
+            requirement_id = existing["id"]
+            existing_spec = existing["match_spec"] or {}
         persisted = r.model_copy(update={
             "id": str(requirement_id), "revision_id": str(revision_id),
             "owned": owned_with_source, "fulfilled_qty": fulfilled_qty,
         })
-        match_spec = {"schema_version": 3, "baby_requirement": persisted.model_dump(mode="json")}
+        # P2 review R4: preserve any other match_spec keys already on this requirement —
+        # only the baby_requirement key is ours to overwrite.
+        match_spec = {**existing_spec, "schema_version": 3,
+                      "baby_requirement": persisted.model_dump(mode="json")}
         repo.set_requirement_totals(
             requirement_id, quantity=r.required_qty, unit_code=r.unit_code,
             required=r.mandatory, match_spec=match_spec,
         )
         out.append(persisted)
+
+    repo.exclude_requirements_not_in(revision_id, [r.slot_key for r in requirements])
     return out
 
 
 def load_persisted_baby_requirements(conn, revision_id) -> list[BabyRequirement]:
     """Reload the same v3 boundary, including exact owned coverage — ordered by the
     owning plan_node's position/template_key (planning.requirement itself has
-    neither column; slot_key/position live on plan_node, joined here)."""
+    neither column; slot_key/position live on plan_node, joined here).
+
+    id/revision_id/slot_key always come from the real relational columns, never the
+    JSON copy inside match_spec (P2 review R4) — the JSON blob only supplies the
+    remaining BabyRequirement fields (required_qty/unit_code/owned/etc.)."""
     from src.repo.plan_repo import PlanRepo
     rows = PlanRepo(conn)._all(
-        "SELECT req.match_spec FROM planning.requirement req "
+        "SELECT req.id, req.revision_id, n.template_key AS slot_key, req.match_spec "
+        "FROM planning.requirement req "
         "JOIN planning.plan_node n ON n.id = req.node_id "
         "WHERE req.revision_id=%s AND req.status='active' ORDER BY n.position, n.template_key",
         (revision_id,),
     )
-    return [BabyRequirement.model_validate(row["match_spec"]["baby_requirement"])
-            for row in rows if "baby_requirement" in (row["match_spec"] or {})]
+    out = []
+    for row in rows:
+        spec = (row["match_spec"] or {}).get("baby_requirement")
+        if spec is None:
+            continue
+        out.append(BabyRequirement.model_validate({
+            **spec, "id": str(row["id"]), "revision_id": str(row["revision_id"]),
+            "slot_key": row["slot_key"],
+        }))
+    return out
 
 
 # TODO: 실제 룩업 테이블로 교체 (data/game_requirements.csv, balance_profiles 등)

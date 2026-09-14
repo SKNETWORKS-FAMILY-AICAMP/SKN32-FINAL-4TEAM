@@ -143,7 +143,14 @@ def rank_baby_candidates(
     weighted average instead of being scored as if a neutral review were observed.
     Structurally invalid candidates and candidates missing a CandidateCheck row are
     excluded from the ranked list but recorded in `excluded`, never silently dropped.
+
+    v3 (develop `da79839`, DEVELOP_DB_TRANSITION.md "Candidate edits and confirmation" /
+    P4_basket_optimizer.md P4 DELTA): a CandidateCheck's own `requirement_id` (when set —
+    kept nullable for older manual fixtures) must match the candidate's requirement_id,
+    and a candidate's unit_code must match its requirement's unit_code — a stale or
+    swapped check/candidate pairing is excluded, never silently trusted.
     """
+    req_by_id = {r.id: r for r in requirements}
     checks_by_id = {c.candidate_id: c for c in checks}
     weights: dict[str, float] = dict(profile.get("weights", {"price": 1.0}))
     version = profile.get("score_method_version", "unversioned")
@@ -156,16 +163,30 @@ def rank_baby_candidates(
     excluded: list[dict] = []
 
     for req_id, cands in by_req_raw.items():
+        requirement = req_by_id.get(req_id)
+        if requirement is None:
+            excluded.extend({"candidate_id": c.candidate_id, "requirement_id": req_id,
+                             "reason": "unknown_requirement"} for c in cands)
+            by_requirement[req_id] = []
+            continue
         pool: list[tuple[BabyCandidate, CandidateCheck]] = []
         for c in cands:
             reason = _invalid_reason(c)
             if reason:
                 excluded.append({"candidate_id": c.candidate_id, "requirement_id": req_id, "reason": reason})
                 continue
+            if c.unit_code != requirement.unit_code:
+                excluded.append({"candidate_id": c.candidate_id, "requirement_id": req_id,
+                                 "reason": "unit_mismatch"})
+                continue
             check = checks_by_id.get(c.candidate_id)
             if check is None:
                 excluded.append({"candidate_id": c.candidate_id, "requirement_id": req_id,
                                  "reason": "missing_candidate_check"})
+                continue
+            if check.requirement_id is not None and check.requirement_id != req_id:
+                excluded.append({"candidate_id": c.candidate_id, "requirement_id": req_id,
+                                 "reason": "requirement_mismatch"})
                 continue
             pool.append((c, check))
 
@@ -198,8 +219,10 @@ def rank_baby_candidates(
             scored.append(ScoredCandidate(
                 candidate_id=c.candidate_id, requirement_id=req_id, price=c.price,
                 unit_qty=c.unit_qty, score=score, score_breakdown=breakdown,
-                selection_allowed=check.selection_allowed, eligibility=check.eligibility,
-                tie_break=_tie_break(c),
+                # P4 review R1: enforced here too, not just trusted from check —
+                # unknown/fail can never carry selection_allowed=True downstream.
+                selection_allowed=check.selection_allowed and check.eligibility == "pass",
+                eligibility=check.eligibility, tie_break=_tie_break(c),
             ))
 
         # deterministic: highest score first, then lower price, then product/variant key

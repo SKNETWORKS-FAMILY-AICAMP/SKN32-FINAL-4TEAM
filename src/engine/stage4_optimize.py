@@ -23,6 +23,42 @@ from src.engine import LogFn
 # as a global optimum.
 BASKET_SEARCH_TOP_N = 8
 
+# v3 (develop `da79839`, DEVELOP_DB_TRANSITION.md "Candidate edits and confirmation"):
+# engine.recommendation_candidate.qty is a purchase pack count, integer 1-99. Applies to
+# any to_purchase qty this module produces or re-validates — not a domain-required-qty
+# cap (owned coverage / a requirement's own required_qty are unbounded).
+PURCHASE_QTY_MIN, PURCHASE_QTY_MAX = 1, 99
+
+
+def _purchase_qty_out_of_range(qty: float) -> bool:
+    return not math.isfinite(qty) or not float(qty).is_integer() or not (PURCHASE_QTY_MIN <= qty <= PURCHASE_QTY_MAX)
+
+
+def _pack_count_for(need: float, unit_qty: float, req_unit_code: str) -> int | None:
+    """P4 review R4: two different requirement unit conventions coexist (P2/P4
+    contract) and must not be collapsed into one formula:
+
+    - `req_unit_code == "pack"`: required_qty already counts purchase packs (e.g.
+      "2 packs of diapers") — the conversion factor is 1 (OP04/OP08 fixtures fix
+      this: qty stays == the remaining pack count, never divided by unit_qty).
+      `unit_qty` there is a pure content-count statistic (how many individual
+      diapers per pack), not a purchase divisor.
+    - anything else (e.g. "each"): required_qty counts base units, so the purchase
+      pack count is ceil(need/unit_qty) for THAT candidate's pack size.
+
+    Returns None (candidate excluded, not silently clamped) when the inputs are
+    unusable or the resulting count falls outside the develop 1-99 pack range (P4
+    review R2 — applies uniformly regardless of timing, including soon/later)."""
+    if not math.isfinite(need) or need <= 0:
+        return None
+    if req_unit_code == "pack":
+        count = math.ceil(need)
+    else:
+        if not math.isfinite(unit_qty) or unit_qty <= 0:
+            return None
+        count = math.ceil(need / unit_qty)
+    return count if PURCHASE_QTY_MIN <= count <= PURCHASE_QTY_MAX else None
+
 
 def _ranked(rank: RankResult, slot: str) -> list[Candidate]:
     return [Candidate.model_validate(c) for c in rank.slots.get(slot, {}).get("ranked", [])]
@@ -165,16 +201,32 @@ def optimize_baby(
             # No planning.item table in develop — each owned entry is presented by a
             # derived marker over the requirement + its real plan_condition source,
             # never a separate DB row (multiple owned entries each get their own line).
+            # P4 review R3: the entries must actually add up to r.fulfilled_qty, each
+            # source may only appear once, and an entry's own unit_code is kept (never
+            # silently rewritten to r.unit_code, which would hide a real mismatch).
+            seen_sources: set[str] = set()
+            entry_total = 0.0
             for entry in r.owned:
                 entry_qty = entry.get("qty", 0)
+                entry_unit = entry.get("unit_code", r.unit_code)
+                source = str(entry.get("source_condition_id", "unknown"))
+                if not math.isfinite(entry_qty) or entry_qty < 0:
+                    raise ValueError(f"invalid_owned_entry_qty:{r.id}")
+                if entry_unit != r.unit_code:
+                    raise ValueError(f"owned_entry_unit_mismatch:{r.id}")
+                if source in seen_sources:
+                    raise ValueError(f"duplicate_owned_source:{r.id}")
+                seen_sources.add(source)
+                entry_total += entry_qty
                 if entry_qty <= 1e-9:
                     continue
-                marker = f"owned:{r.id}:{entry.get('source_condition_id', 'unknown')}"
                 items.append(BasketItem(
-                    item_id=marker, requirement_id=r.id, group_key=r.group_key,
-                    status="owned", selected=False, qty=entry_qty, unit_code=r.unit_code,
+                    item_id=f"owned:{r.id}:{source}", requirement_id=r.id, group_key=r.group_key,
+                    status="owned", selected=False, qty=entry_qty, unit_code=entry_unit,
                     unit_qty=1, timing=r.timing, validation={"source": "owned_coverage"},
                 ))
+            if abs(entry_total - owned_qty) > 1e-9:
+                raise ValueError(f"owned_entries_do_not_sum_to_fulfilled_qty:{r.id}")
         else:
             owned_qty = owned_applied.get(r.id, 0.0)
             if not math.isfinite(owned_qty) or not 0 <= owned_qty <= r.required_qty:
@@ -196,14 +248,34 @@ def optimize_baby(
     optional_now = [(r, q) for r, q in remaining if not r.mandatory and r.timing == "now"]
     deferred = [(r, q) for r, q in remaining if r.timing in ("soon", "later")]
 
-    def pool_for(req_id: str) -> list[ScoredCandidate]:
-        allowed = [s for s in ranked.by_requirement.get(req_id, []) if s.selection_allowed and s.price is not None]
-        # allowed is already sorted best-first by rank_baby_candidates; truncate only
-        # when the pool genuinely exceeds the search bound (bounded-search, not exact,
-        # for that requirement — surfaced in `alternatives.bounded_requirements` below).
-        return allowed[:BASKET_SEARCH_TOP_N] if len(allowed) > BASKET_SEARCH_TOP_N else allowed
+    def _eligible_priced(req_id: str) -> list[ScoredCandidate]:
+        # P4 review R1: eligibility=="pass" is required in addition to
+        # selection_allowed at every auto-selection boundary here, not just in P3's
+        # own producer — a mismatched DTO must not slip an unknown/fail candidate
+        # into an automatic pick.
+        return [s for s in ranked.by_requirement.get(req_id, [])
+                if s.selection_allowed and s.eligibility == "pass" and s.price is not None]
 
-    pools = {r.id: pool_for(r.id) for r, _ in mandatory_now}
+    def pool_for(req_id: str, need: float, req_unit_code: str) -> list[tuple[ScoredCandidate, int]]:
+        out = []
+        for s in _eligible_priced(req_id):
+            count = _pack_count_for(need, s.unit_qty, req_unit_code)
+            if count is not None:
+                out.append((s, count))
+        # already best-first by rank_baby_candidates; truncate only when the pool
+        # genuinely exceeds the search bound (bounded-search, not exact, for that
+        # requirement — surfaced in `alternatives.bounded_requirements` below).
+        return out[:BASKET_SEARCH_TOP_N] if len(out) > BASKET_SEARCH_TOP_N else out
+
+    def _unresolved_reason(req_id: str, need: float, req_unit_code: str) -> str:
+        candidates = _eligible_priced(req_id)
+        if not candidates:
+            return "no_selectable_candidate"
+        if all(_pack_count_for(need, s.unit_qty, req_unit_code) is None for s in candidates):
+            return "qty_out_of_range"
+        return "no_selectable_candidate"
+
+    pools = {r.id: pool_for(r.id, q, r.unit_code) for r, q in mandatory_now}
     bounded_requirements = [r.id for r, _ in mandatory_now
                             if len(ranked.by_requirement.get(r.id, [])) > BASKET_SEARCH_TOP_N]
 
@@ -215,11 +287,11 @@ def optimize_baby(
         missing_requirements.append({
             "requirement_id": r.id, "slot_key": r.slot_key, "required_qty": q,
             "cheapest_feasible_subtotal": None, "shortfall": None,
-            "reason": "no_selectable_candidate",
+            "reason": _unresolved_reason(r.id, q, r.unit_code),
         })
 
     budget = budget_max if budget_max is not None else float("inf")
-    lower_bounds = [min(int(s.price * q) for s in pools[r.id]) for r, q in solvable]
+    lower_bounds = [min(int(s.price * cnt) for s, cnt in pools[r.id]) for r, q in solvable]
     suffix_lb = [0] * (len(solvable) + 1)
     for i in range(len(solvable) - 1, -1, -1):
         suffix_lb[i] = suffix_lb[i + 1] + lower_bounds[i]
@@ -227,11 +299,12 @@ def optimize_baby(
     best: dict[str, Any] = {"assignment": None, "total": None, "score": None, "tie": None}
     nodes_visited = 0
 
-    def dfs(i: int, running_total: int, assignment: list[ScoredCandidate], running_score: float) -> None:
+    def dfs(i: int, running_total: int, assignment: list[tuple[ScoredCandidate, int]],
+            running_score: float) -> None:
         nonlocal nodes_visited
         nodes_visited += 1
         if i == len(solvable):
-            tie = (running_total, tuple(c.tie_break for c in assignment))
+            tie = (running_total, tuple(c.tie_break for c, _ in assignment))
             if (best["assignment"] is None or running_score > best["score"]
                     or (running_score == best["score"] and tie < best["tie"])):
                 best.update(assignment=list(assignment), total=running_total, score=running_score, tie=tie)
@@ -239,11 +312,11 @@ def optimize_baby(
         if running_total + suffix_lb[i] > budget:
             return
         r, q = solvable[i]
-        for cand in pools[r.id]:
-            price_total = int(cand.price * q)
+        for cand, cnt in pools[r.id]:
+            price_total = int(cand.price * cnt)
             if running_total + price_total + suffix_lb[i + 1] > budget:
                 continue
-            assignment.append(cand)
+            assignment.append((cand, cnt))
             dfs(i + 1, running_total + price_total, assignment, running_score + (cand.score or 0.0))
             assignment.pop()
 
@@ -261,10 +334,10 @@ def optimize_baby(
     if unresolved or best["assignment"] is None:
         # infeasible — no automatic deferral of mandatory-now items (ALGORITHM step 5)
         for r, q in solvable:
-            cheapest = min(pools[r.id], key=lambda s: (int(s.price * q), s.tie_break))
+            cheapest_cand, cheapest_cnt = min(pools[r.id], key=lambda sc: (int(sc[0].price * sc[1]), sc[0].tie_break))
             missing_requirements.append({
                 "requirement_id": r.id, "slot_key": r.slot_key, "required_qty": q,
-                "cheapest_feasible_subtotal": int(cheapest.price * q), "shortfall": None,
+                "cheapest_feasible_subtotal": int(cheapest_cand.price * cheapest_cnt), "shortfall": None,
                 "reason": "over_budget" if best["assignment"] is None else "blocked_by_sibling_requirement",
             })
         cheapest_total = None if unresolved else sum(lower_bounds)
@@ -280,10 +353,10 @@ def optimize_baby(
                               feasible=False, alternatives=alternatives)
 
     running_total = best["total"]
-    for (r, q), cand in zip(solvable, best["assignment"]):
+    for (r, q), (cand, cnt) in zip(solvable, best["assignment"]):
         items.append(BasketItem(
             item_id=str(uuid4()), requirement_id=r.id, group_key=r.group_key,
-            candidate_id=cand.candidate_id, status="to_purchase", selected=True, qty=q,
+            candidate_id=cand.candidate_id, status="to_purchase", selected=True, qty=cnt,
             unit_code=r.unit_code, unit_qty=cand.unit_qty, timing="now", unit_price=cand.price,
             validation={"score": cand.score, "score_breakdown": cand.score_breakdown},
         ))
@@ -292,40 +365,45 @@ def optimize_baby(
     remaining_budget = (budget_max - running_total) if budget_max is not None else float("inf")
     optional_choices = []
     for r, q in optional_now:
-        pool = [s for s in ranked.by_requirement.get(r.id, []) if s.selection_allowed and s.price is not None]
+        pool = pool_for(r.id, q, r.unit_code)
         if pool:
-            optional_choices.append((r, q, pool[0]))  # already best-first
-    optional_choices.sort(key=lambda rqc: (-(rqc[2].score if rqc[2].score is not None else -1.0), rqc[2].tie_break))
+            optional_choices.append((r, pool[0][0], pool[0][1]))  # already best-first
+    optional_choices.sort(key=lambda rcc: (-(rcc[1].score if rcc[1].score is not None else -1.0), rcc[1].tie_break))
     optional_price = 0
-    for r, q, cand in optional_choices:
-        price_total = int(cand.price * q)
+    for r, cand, cnt in optional_choices:
+        price_total = int(cand.price * cnt)
         if price_total <= remaining_budget:
             items.append(BasketItem(
                 item_id=str(uuid4()), requirement_id=r.id, group_key=r.group_key,
-                candidate_id=cand.candidate_id, status="to_purchase", selected=True, qty=q,
+                candidate_id=cand.candidate_id, status="to_purchase", selected=True, qty=cnt,
                 unit_code=r.unit_code, unit_qty=cand.unit_qty, timing="now", unit_price=cand.price,
                 validation={"score": cand.score, "score_breakdown": cand.score_breakdown},
             ))
             remaining_budget -= price_total
             optional_price += price_total
 
-    # soon/later: reported separately, never charged against the "now" budget
+    # soon/later: reported separately, never charged against the "now" budget. Same
+    # eligibility + pack-count-range rules as now (P4 review R1/R2) — a deferred row
+    # with no viable candidate shows qty=0 with a reason, never an unclamped/raw
+    # base-unit number pretending to be a purchasable pack count.
     soon_price = later_price = 0
     for r, q in deferred:
-        pool = [s for s in ranked.by_requirement.get(r.id, []) if s.selection_allowed and s.price is not None]
-        cheapest = min(pool, key=lambda s: (int(s.price * q), s.tie_break)) if pool else None
-        unit_price = cheapest.price if cheapest else None
+        pool = pool_for(r.id, q, r.unit_code)
+        cand, cnt = pool[0] if pool else (None, None)
+        unit_price = cand.price if cand else None
         items.append(BasketItem(
             item_id=str(uuid4()), requirement_id=r.id, group_key=r.group_key,
-            candidate_id=cheapest.candidate_id if cheapest else None, status="to_purchase",
-            selected=False, qty=q, unit_code=r.unit_code, unit_qty=cheapest.unit_qty if cheapest else 1,
-            timing=r.timing, unit_price=unit_price, validation={"proposal_only": True},
+            candidate_id=cand.candidate_id if cand else None, status="to_purchase",
+            selected=False, qty=(cnt if cnt is not None else 0), unit_code=r.unit_code,
+            unit_qty=cand.unit_qty if cand else 1, timing=r.timing, unit_price=unit_price,
+            validation=({"proposal_only": True} if cand else
+                       {"proposal_only": True, "reason": _unresolved_reason(r.id, q, r.unit_code)}),
         ))
         if unit_price is not None:
             if r.timing == "soon":
-                soon_price += int(unit_price * q)
+                soon_price += int(unit_price * cnt)
             else:
-                later_price += int(unit_price * q)
+                later_price += int(unit_price * cnt)
 
     selected_now = [it for it in items if it.status == "to_purchase" and it.selected and it.timing == "now"]
     selected_price = sum(int(it.unit_price * it.qty) for it in selected_now)
@@ -366,6 +444,8 @@ def recalculate_basket(
             issues.append("unit_mismatch")
         if not math.isfinite(it.qty) or it.qty <= 0 or (it.status == "to_purchase" and not float(it.qty).is_integer()):
             issues.append("invalid_qty")
+        elif it.status == "to_purchase" and _purchase_qty_out_of_range(it.qty):
+            issues.append("invalid_qty")
         if not math.isfinite(it.unit_qty) or it.unit_qty <= 0:
             issues.append("invalid_unit_qty")
         if it.status == "to_purchase" and selected:
@@ -399,7 +479,15 @@ def recalculate_basket(
             continue
         counts = it.status in ("owned", "purchased") or (it.status == "to_purchase" and it.selected and it.timing == "now")
         if counts and not it.validation.get("issues"):
-            fulfilled[it.requirement_id] = fulfilled.get(it.requirement_id, 0.0) + it.qty
+            # P4 review R4: qty is a purchase PACK count for to_purchase/purchased rows
+            # (unit_qty=1 for owned rows, so this is a no-op there). When the
+            # requirement itself is denominated in packs (unit_code=="pack"), qty
+            # already IS the coverage amount — unit_qty there is only a per-pack
+            # content-count statistic, not a base-unit conversion factor (matches
+            # _pack_count_for's split; OP04/OP07 fixtures fix this).
+            req = req_by_id.get(it.requirement_id)
+            contribution = it.qty if (req is None or req.unit_code == "pack") else it.qty * it.unit_qty
+            fulfilled[it.requirement_id] = fulfilled.get(it.requirement_id, 0.0) + contribution
 
     missing_requirements: list[dict[str, Any]] = []
     for r in requirements:

@@ -24,11 +24,11 @@ def req(rid, slot, qty=1, mandatory=True, timing="now", unit_code="each", group_
 
 
 def cand(cid, rid, slot, price, *, product_key=None, variant_key="v1", pack_quantity=1, unit_qty=1,
-        review_rating=None):
+        unit_code="each", review_rating=None):
     return BabyCandidate(
         candidate_id=cid, requirement_id=rid, product_id="p", variant_id="v",
         product_key=cid if product_key is None else product_key, variant_key=variant_key, name=cid,
-        slot_key=slot, price=price, pack_quantity=pack_quantity, unit_qty=unit_qty,
+        slot_key=slot, price=price, pack_quantity=pack_quantity, unit_qty=unit_qty, unit_code=unit_code,
         review_summary={"avg_rating": review_rating} if review_rating is not None else None,
     )
 
@@ -124,7 +124,8 @@ def test_op03_purchased_status_excluded_by_recalculate():
 # ── OP04 — pack quantity does not get multiplied into price ────────────────────
 def test_op04_pack_quantity_not_multiplied_into_price():
     requirements = [req("r-diaper", "diaper", qty=2, unit_code="pack")]
-    candidates = [cand("diaper-pack", "r-diaper", "diaper", 10_000, pack_quantity=1, unit_qty=40)]
+    candidates = [cand("diaper-pack", "r-diaper", "diaper", 10_000, pack_quantity=1, unit_qty=40,
+                      unit_code="pack")]
     checks = [check("diaper-pack")]
 
     _, decision = _optimize(requirements, candidates, checks, budget_max=1_000_000)
@@ -270,7 +271,7 @@ def test_op08_owned_plus_purchase_fills_required_quantity_once():
 
 def test_op08_unit_mismatch_cannot_count_fulfillment():
     requirements = [req("r-diaper", "diaper", qty=2, unit_code="pack")]
-    candidates = [cand("diaper-pack", "r-diaper", "diaper", 10_000, unit_qty=40)]
+    candidates = [cand("diaper-pack", "r-diaper", "diaper", 10_000, unit_qty=40, unit_code="pack")]
     checks = [check("diaper-pack")]
     # owned "each" cannot fulfil a "pack" requirement
     owned_items = [{"slot_key": "diaper", "unit_code": "each", "qty": 5}]
@@ -332,6 +333,121 @@ def _brute_force_best(requirements, ranked, budget_max):
         if best is None or key < best[0]:
             best = (key, total)
     return best[1] if best else None
+
+
+# ── D4 — develop `da79839` DB alignment (P4_basket_optimizer.md ACTIVE DB CONTRACT) ──
+# Pure-function level only: real DB round-trip for the same owned/fulfilled_qty shape
+# is covered by tests/test_p1234_review_fixes.py::test_partial_owned_survives_storage_and_recalculation
+# (persist_baby_requirements -> load_persisted_baby_requirements -> optimize_baby).
+def test_d4_total2_owned1_purchases_only_remaining1():
+    r = req("r-bottle", "bottle", qty=2).model_copy(update={
+        "owned": [{"source_condition_id": "cond-1", "label": "젖병", "qty": 1, "unit_code": "each"}],
+        "fulfilled_qty": 1,
+    })
+    candidates = [cand("bottle-buy", "r-bottle", "bottle", 10)]
+    checks = [check("bottle-buy")]
+
+    _, decision = _optimize([r], candidates, checks, budget_max=100)
+
+    assert decision.feasible is True
+    owned_item = next(i for i in decision.items if i.status == "owned")
+    purchase_item = next(i for i in decision.items if i.status == "to_purchase")
+    assert owned_item.qty == 1
+    assert purchase_item.qty == 1          # 2 required - 1 owned, not 2
+    assert decision.totals["selected_price"] == 10
+
+
+def test_d4_owned_alone_does_not_wrongly_satisfy_full_requirement():
+    """owned=1 of required=2 with NO purchasable candidate must stay infeasible —
+    a requirement.owned entry existing must never be misread as 'fully covered'."""
+    r = req("r-bottle", "bottle", qty=2).model_copy(update={
+        "owned": [{"source_condition_id": "cond-1", "label": "젖병", "qty": 1, "unit_code": "each"}],
+        "fulfilled_qty": 1,
+    })
+    ranked = rank_baby_candidates([r], [], [], PROFILE)
+    decision = optimize_baby([r], ranked, [], 100)
+
+    assert decision.feasible is False
+    assert sum(i.qty for i in decision.items if i.status == "owned") == 1
+    assert any(m["requirement_id"] == "r-bottle" for m in decision.missing_requirements)
+
+
+def test_d4_invalid_fulfilled_qty_rejected():
+    bad = req("r-a", "a", qty=1).model_copy(update={
+        "owned": [{"source_condition_id": "c", "label": "x", "qty": 5, "unit_code": "each"}],
+        "fulfilled_qty": 5,   # exceeds required_qty=1 — must never be silently clamped/trusted
+    })
+    ranked = rank_baby_candidates([bad], [], [], PROFILE)
+    with pytest.raises(ValueError, match="invalid_fulfilled_qty"):
+        optimize_baby([bad], ranked, [], 100)
+
+
+def test_d4_duplicate_requirement_id_rejected():
+    r1 = req("dup", "a", qty=1)
+    r2 = req("dup", "b", qty=1)
+    ranked = rank_baby_candidates([r1, r2], [], [], PROFILE)
+    with pytest.raises(ValueError, match="duplicate_requirement_id"):
+        optimize_baby([r1, r2], ranked, [], 100)
+
+
+def test_d4_candidate_check_requirement_mismatch_excluded_from_ranking():
+    """A CandidateCheck whose own requirement_id names a DIFFERENT requirement than
+    the candidate's must never be trusted for that candidate (DEVELOP_DB_TRANSITION.md
+    'Candidate edits and confirmation' / P4 DELTA: verify CandidateCheck.requirement_id
+    match before using it)."""
+    requirements = [req("r-a", "a", qty=1)]
+    candidates = [cand("c1", "r-a", "a", 10)]
+    checks = [CandidateCheck(candidate_id="c1", requirement_id="r-other", eligibility="pass",
+                            verification="verified", coverage="full", selection_allowed=True)]
+
+    ranked = rank_baby_candidates(requirements, candidates, checks, PROFILE)
+
+    assert ranked.by_requirement["r-a"] == []
+    assert any(e["candidate_id"] == "c1" and e["reason"] == "requirement_mismatch" for e in ranked.excluded)
+
+
+def test_d4_candidate_unit_code_mismatch_excluded_from_ranking():
+    """A candidate whose unit_code doesn't match its requirement's unit_code (a stale
+    swap or data bug) is excluded from ranking, not silently scored and selected."""
+    requirements = [req("r-diaper", "diaper", qty=2, unit_code="pack")]
+    candidates = [cand("wrong-unit", "r-diaper", "diaper", 10, unit_code="each")]
+    checks = [check("wrong-unit")]
+
+    ranked = rank_baby_candidates(requirements, candidates, checks, PROFILE)
+
+    assert ranked.by_requirement["r-diaper"] == []
+    assert any(e["candidate_id"] == "wrong-unit" and e["reason"] == "unit_mismatch" for e in ranked.excluded)
+
+
+def test_d4_unconfigured_search_unknown_candidate_not_selected():
+    """A candidate whose safety check is 'unknown' because no search/manual was
+    configured (P3-D3-01 boundary) must not be auto-selected even when it is the
+    cheapest option and no other candidate exists."""
+    requirements = [req("r-seat", "car_seat", qty=1)]
+    candidates = [cand("only-option", "r-seat", "car_seat", 5)]
+    checks = [check("only-option", selection_allowed=False, eligibility="unknown")]
+
+    _, decision = _optimize(requirements, candidates, checks, budget_max=1000)
+
+    assert decision.feasible is False
+    assert not any(i.selected for i in decision.items)
+
+
+def test_d4_purchase_qty_99_allowed_100_rejected():
+    requirements = [req("r-a", "a", qty=1)]
+    checks = [check("c1")]
+
+    ok_item = [BasketItem(item_id="i1", requirement_id="r-a", candidate_id="c1", status="to_purchase",
+                          selected=True, qty=99, unit_code="each", unit_qty=1, timing="now", unit_price=1)]
+    ok = recalculate_basket(ok_item, requirements, budget_max=1000, checks=checks)
+    assert ok.items[0].selected is True
+    assert "issues" not in ok.items[0].validation
+
+    bad_item = [BasketItem(item_id="i1", requirement_id="r-a", candidate_id="c1", status="to_purchase",
+                           selected=True, qty=100, unit_code="each", unit_qty=1, timing="now", unit_price=1)]
+    bad = recalculate_basket(bad_item, requirements, budget_max=1000, checks=checks)
+    assert bad.items[0].selected is False
+    assert "invalid_qty" in bad.items[0].validation["issues"]
 
 
 @pytest.mark.parametrize("seed", range(8))

@@ -16,10 +16,13 @@ PC 사양 업로드와 baby accepts_spec_file=false도 보존한다."
 from __future__ import annotations
 
 import os
+from uuid import uuid4
 
 import psycopg
 import pytest
 from fastapi.testclient import TestClient
+
+from src.repo.plan_repo import PlanRepo
 
 DSN = os.getenv("DATABASE_URL")
 pytestmark = pytest.mark.skipif(
@@ -66,14 +69,13 @@ def test_d1_category_switch_pins_distinct_domain_version_rows(client: TestClient
     r = client.post("/session")
     list_id = r.json()["list_id"]
 
-    # baby 는 develop 시드에서 status='draft'(스텁)다 — 그래도 세션이 그 카테고리의
-    # 실제 domain_version에 고정되어야 한다("이 카테고리를 막는다"는 별도 업무 규칙이지,
-    # 세션 바인딩 자체를 막는 규칙이 아니다).
+    # baby는 더 이상 스텁이 아니다 — db/seed.py가 status='active'로 심고
+    # PlanRepo.published_domain_version이 실제로 active 버전만 선택한다(P1 review R1).
     resp = client.post(f"/session/{list_id}/category", json={"category": "baby", "mode": "born"})
     assert resp.status_code == 200, resp.text
     baby_row = _domain_version_row(raw_conn, list_id)
     assert baby_row["code"] == "baby"
-    assert baby_row["status"] == "draft"
+    assert baby_row["status"] == "active"
     assert baby_row["content_hash"], "실제 config.domain_version.content_hash 가 비어 있으면 안 된다"
 
     # 같은 목록에서 카테고리를 computer 로 바꾸면 실제 다른 domain_version 행으로 재결합된다.
@@ -83,6 +85,54 @@ def test_d1_category_switch_pins_distinct_domain_version_rows(client: TestClient
     assert pc_row["code"] == "computer"
     assert pc_row["status"] == "active"
     assert pc_row["domain_version_id"] != baby_row["domain_version_id"]
+
+
+# ── D1: draft/disabled 도메인은 실행 규칙으로 선택되지 않는다 (P1 review R1) ──
+def test_d1_published_domain_version_excludes_non_active_domains(raw_conn):
+    code = f"p1_r1_probe_{uuid4().hex[:8]}"
+    domain_id = raw_conn.execute(
+        "INSERT INTO config.domain (code, name, status) VALUES (%s, %s, 'draft') RETURNING id",
+        (code, "R1 probe"),
+    ).fetchone()[0]
+    raw_conn.execute(
+        "INSERT INTO config.domain_version (domain_id, version_no, definition, attribute_schema, content_hash) "
+        "VALUES (%s, 1, '{}'::jsonb, '{}'::jsonb, 'deadbeef')",
+        (domain_id,),
+    )
+    try:
+        repo = PlanRepo(raw_conn)
+        assert repo.published_domain_version(code) is None, "draft 도메인은 실행 버전으로 선택되면 안 된다"
+        raw_conn.execute("UPDATE config.domain SET status='disabled' WHERE id=%s", (domain_id,))
+        assert repo.published_domain_version(code) is None, "disabled 도메인도 마찬가지다"
+        raw_conn.execute("UPDATE config.domain SET status='active' WHERE id=%s", (domain_id,))
+        assert repo.published_domain_version(code) is not None, "active로 바뀌면 선택 가능해야 한다"
+    finally:
+        raw_conn.execute("DELETE FROM config.domain_version WHERE domain_id=%s", (domain_id,))
+        raw_conn.execute("DELETE FROM config.domain WHERE id=%s", (domain_id,))
+
+
+# ── D1: 이미 고정된 draft revision은 같은 카테고리 재선택 시 최신 version으로 옮겨가지 않는다 (P1 review R1) ──
+def test_d1_repeat_category_choice_keeps_pinned_domain_version(client: TestClient, raw_conn):
+    list_id = client.post("/session").json()["list_id"]
+    resp = client.post(f"/session/{list_id}/category", json={"category": "baby", "mode": "born"})
+    assert resp.status_code == 200, resp.text
+    first = _domain_version_row(raw_conn, list_id)
+
+    newer_id = raw_conn.execute(
+        "INSERT INTO config.domain_version (domain_id, version_no, definition, attribute_schema, content_hash) "
+        "SELECT domain_id, version_no+1, definition, attribute_schema, content_hash || '-newer-for-test' "
+        "FROM config.domain_version WHERE id=%s RETURNING id",
+        (first["domain_version_id"],),
+    ).fetchone()[0]
+    try:
+        # Re-choosing the SAME category (e.g. a mode switch) must keep the version this
+        # draft already pinned, not silently jump to the newest version_no that now exists.
+        resp = client.post(f"/session/{list_id}/category", json={"category": "baby", "mode": "prenatal"})
+        assert resp.status_code == 200, resp.text
+        second = _domain_version_row(raw_conn, list_id)
+        assert second["domain_version_id"] == first["domain_version_id"]
+    finally:
+        raw_conn.execute("DELETE FROM config.domain_version WHERE id=%s", (newer_id,))
 
 
 # ── D1: 같은 브라우저 두 목록(baby 하나, computer 하나) 동시 접근 ──
@@ -190,6 +240,26 @@ def test_d1_pc_spec_file_upload_and_baby_accepts_spec_file_false(client: TestCli
     client.post(f"/session/{baby_list}/category", json={"category": "baby", "mode": "born"})
     baby_state = client.get(f"/session/{baby_list}").json()
     assert baby_state["accepts_spec_file"] is False
+
+    # P1 review R3: the server must actually enforce this, not just display false —
+    # a direct POST against a baby (or computer/build, non-upgrade) revision is rejected.
+    baby_resp = client.post(
+        f"/session/{baby_list}/spec-file", json={"file_name": "spec.txt", "content": "CPU: i5"},
+    )
+    assert baby_resp.status_code == 422, baby_resp.text
+    assert raw_conn.execute(
+        """SELECT count(*) FROM planning.plan_condition pc
+           JOIN planning.plan p ON p.current_revision_id = pc.revision_id
+           WHERE p.id = %s AND pc.condition_key IN ('current_specs', 'spec_file_name') AND pc.status = 'active'""",
+        (baby_list,),
+    ).fetchone()[0] == 0, "거절된 업로드는 조건 행을 남기면 안 된다"
+
+    build_list = client.post("/session").json()["list_id"]
+    client.post(f"/session/{build_list}/category", json={"category": "computer", "mode": "build"})
+    build_resp = client.post(
+        f"/session/{build_list}/spec-file", json={"file_name": "spec.txt", "content": "CPU: i5"},
+    )
+    assert build_resp.status_code == 422, build_resp.text
 
     # computer/build (non-upgrade) also does not advertise spec-file acceptance
     build_list = client.post("/session").json()["list_id"]

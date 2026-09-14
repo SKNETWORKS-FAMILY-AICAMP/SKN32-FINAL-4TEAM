@@ -18,6 +18,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from src.auth.origin import OriginCheckMiddleware
 from src.config import APP_NAME, FRONTEND_DIR, assert_production_secret_safe
 from src.db import close_pool
 from src.errors import TruefitError
@@ -32,6 +33,7 @@ async def _lifespan(_app: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(title=f"{APP_NAME} API (skeleton)", lifespan=_lifespan)
+app.add_middleware(OriginCheckMiddleware)
 
 app.include_router(auth.router)
 app.include_router(session.router)

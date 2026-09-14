@@ -34,7 +34,7 @@ def _authenticate(token: str) -> UUID:
     status, password_updated_at = row
     if status != "active":
         raise Unauthorized("유효하지 않거나 만료된 인증 토큰입니다.")
-    if password_updated_at is not None and claims["iat"] < password_updated_at.timestamp():
+    if password_updated_at is not None and claims["iat"] <= password_updated_at.timestamp():
         raise Unauthorized("유효하지 않거나 만료된 인증 토큰입니다.")
     return user_id
 

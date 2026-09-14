@@ -7,18 +7,20 @@ from pydantic import BaseModel, Field
 
 
 class EvidenceRef(BaseModel):
+    """develop v3 (DEVELOP_DB_TRANSITION.md "Evidence and external search"): stored as
+    a plain array element, not wrapped in {schema_version,refs}. `provider`/
+    `external_hit_id` identify the external search backend hit this ref traces back
+    to; `retrieval_run_id` has no PostgreSQL rag FK to satisfy anymore and is purely
+    informational when present."""
     evidence_id: str
     claim_key: str
     material_id: str
     material_version: str
     file_sha256: str
     locator: dict[str, Any]
+    provider: str | None = None
+    external_hit_id: str | None = None
     retrieval_run_id: str | None = None
-
-
-class EvidenceRefs(BaseModel):
-    schema_version: Literal[1] = 1
-    refs: list[EvidenceRef] = Field(default_factory=list)
 
 
 class PublicEvidence(BaseModel):

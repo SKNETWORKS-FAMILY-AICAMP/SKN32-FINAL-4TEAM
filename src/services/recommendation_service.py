@@ -78,14 +78,23 @@ def start_recommendation(conn, revision_id: UUID, *, strategy: str = "default") 
         )
         return {"run_id": str(run_id), "status": "running"}
 
-    # ── baby ── P0 v3 develop 정렬: planning.item 이 없고 requirement 는 node 기반이라
-    # (schema-v1.md, DEVELOP_DB_TRANSITION.md), stage2_requirement.persist_baby_requirements
-    # 등 P2 엔진은 아직 이 스키마에 맞춰 다시 짜이지 않았다. 여기서 막지 않으면 존재하지
-    # 않는 테이블에 대한 SQL 오류가 그대로 502/트레이스로 샌다 — 대신 표준 501 봉투로
-    # 명확히 알린다(P0의 EDIT SURFACE는 P2 엔진 파일을 포함하지 않는다).
-    raise NotImplementedError(
-        "유아 추천은 develop 스키마 정렬(P0 v3) 이후 P2 저장소 적용을 기다리고 있습니다."
+    # P2 returns pure IDs; persist them first so the snapshot carries real
+    # planning.requirement UUIDs from this revision.
+    normalized = session_service.normalize_baby_conditions(values)
+    normalized["revision_id"] = str(revision_id)
+    domain_snapshot = _baby_domain_snapshot()
+    from src.engine.stage2_requirement import build_baby_requirements, persist_baby_requirements
+    requirements = persist_baby_requirements(conn, revision_id, build_baby_requirements(normalized, domain_snapshot))
+    snapshot = {"values": values, "normalized_conditions": normalized,
+                "domain_snapshot": domain_snapshot, "requirement_ids": [r.id for r in requirements],
+                "strategy": strategy}
+    run_id = erepo.start_run(
+        revision_id, revision["domain_version_id"], input_snapshot=snapshot,
+        input_hash=hashlib.sha256(json.dumps(snapshot, sort_keys=True, ensure_ascii=False, default=str).encode()).hexdigest(),
+        draft_lock_version=revision["lock_version"],
+        engine_versions={"pipeline": "baby-v3", "requirements": "baby-rules-v3"},
     )
+    return {"run_id": str(run_id), "status": "running"}
 
 
 def _baby_domain_snapshot() -> dict:
@@ -111,11 +120,24 @@ def execute_recommendation(revision_id: UUID, run_id: UUID) -> None:
     try:
         with get_conn() as conn:
             prepo, erepo, prodrepo = PlanRepo(conn), EngineRepo(conn), ProductRepo(conn)
-            full = prepo.load_full(revision_id)
-            values = {row["condition_key"]: (row["value"] if row["condition_key"] == "age_months" else row["value"].get("value")) for row in full["conditions"]}
-            category = values["category"]
+            # P5 review R4: use the conditions frozen into THIS run's input_snapshot at
+            # start_recommendation time, not a fresh re-query of plan_condition — the
+            # background task can run well after the request, during which the user
+            # may have edited conditions; execution must reproduce the input that was
+            # true at start, not whatever is true now (stale-completion handling in
+            # complete_run already covers publishing the result, this covers the
+            # computation itself being reproducible).
+            run = erepo.get_run(run_id)
+            if run is None:
+                raise ValueError("recommendation_run_not_found")
+            snapshot = run["input_snapshot"] or {}
+            values = snapshot.get("values") or {}
+            category = values.get("category")
+            if category is None:
+                raise ValueError("run_input_snapshot_missing_category")
             if category == "baby":
-                _execute_baby_recommendation(conn, prepo, erepo, revision_id, run_id, values)
+                conditions = snapshot.get("normalized_conditions") or {}
+                _execute_baby_recommendation(conn, prepo, erepo, revision_id, run_id, conditions)
                 erepo.complete_run(run_id)
                 return
             cat_def = load_category(category)
@@ -205,8 +227,14 @@ def execute_recommendation(revision_id: UUID, run_id: UUID) -> None:
         raise
 
 
-def _execute_baby_recommendation(conn, prepo, erepo, revision_id: UUID, run_id: UUID, values: dict) -> None:
+def _execute_baby_recommendation(conn, prepo, erepo, revision_id: UUID, run_id: UUID, conditions: dict) -> None:
     """백그라운드에서 실행되는 유아 경로 [3-0]→[3-C]→[4]→저장.
+
+    `conditions`는 start_recommendation이 실행 트랜잭션에서 정규화해 run.input_snapshot에
+    얼려 둔 그대로다(P5 review R4) — 여기서 plan_condition을 다시 읽거나 재정규화하지
+    않는다. 백그라운드 실행이 지연되는 동안 사용자가 조건을 바꿨더라도, 이 실행은 시작
+    시점의 입력을 재현해야 한다(조건 변경으로 인한 stale 처리는 complete_run이 별도로
+    담당한다 — 이건 계산 자체의 재현성 문제다).
 
     persist_baby_requirements 는 이미 start_recommendation(요청 트랜잭션)에서 실행됐다 —
     여기서는 그 결과를 다시 읽기만 한다(재계산 아님). 후보 수집(get_baby_candidates)은
@@ -219,13 +247,9 @@ def _execute_baby_recommendation(conn, prepo, erepo, revision_id: UUID, run_id: 
     from src.engine.stage3b_rank import load_baby_optimizer_profile
     from src.engine.stage5_explain import explain_baby_candidate
     from src.pipeline import run_baby_optimizer
-    from src.rag.embedding import get_embedder
+    from src.rag.provider import get_search_provider
     from src.rag.service import RagService
-    from src.repo.rag_repo import RagRepo
-    from src.services import session_service
-
-    conditions = session_service.normalize_baby_conditions(values)
-    conditions["revision_id"] = str(revision_id)
+    from src.repo.material_repo import MaterialRepo
 
     requirements = load_persisted_baby_requirements(conn, revision_id)
     candidates_by_req = get_baby_candidates(conn, requirements, corpus="synthetic")
@@ -244,7 +268,7 @@ def _execute_baby_recommendation(conn, prepo, erepo, revision_id: UUID, run_id: 
             )
             db_candidates.append((cand, cand.model_copy(update={"candidate_id": str(db_id)})))
 
-    rag_service = RagService(RagRepo(conn), get_embedder())
+    rag_service = RagService(MaterialRepo(conn), get_search_provider())
     run_context = {"recommendation_run_id": str(run_id)}
     checks = []
     for _catalog_cand, db_cand in db_candidates:
@@ -271,38 +295,15 @@ def _execute_baby_recommendation(conn, prepo, erepo, revision_id: UUID, run_id: 
                      if s.candidate_id == db_cand.candidate_id), None)
         erepo.set_candidate_result(UUID(db_cand.candidate_id), result=result, score=score)
 
-    # 실제 planning.item 행으로 영속화 — owned 는 persist_baby_requirements 가 이미 만든
-    # 진짜 UUID(fulfilled_by_item_id) 를 그대로 쓰고, to_purchase 는 새로 쓴다(이전 run 분은 지운다).
-    prepo.delete_purchase_items(revision_id)
+    # develop v3 stores mutable state on recommendation_candidate.  Do not recreate planning.item.
     req_by_id = {r.id: r for r in requirements}
     cand_by_id = {c.candidate_id: c for _o, c in db_candidates}
-    check_by_id = {c.candidate_id: c for c in checks}
-    for it in decision.items:
-        req = req_by_id.get(it.requirement_id)
-        slot_key = req.slot_key if req else None
-        if it.status == "owned":
-            continue  # 이미 planning.item 실행(persist_baby_requirements)에 실 UUID로 존재함
-        cand = cand_by_id.get(it.candidate_id) if it.candidate_id else None
-        check = check_by_id.get(it.candidate_id) if it.candidate_id else None
-        offer_id = None
-        if cand and cand.offer_observation_id:
-            row = prepo._one("SELECT offer_id FROM catalog.offer_observation WHERE id=%s",
-                             (cand.offer_observation_id,))
-            offer_id = row["offer_id"] if row else None
-        item_spec = {
-            "requirement_id": it.requirement_id, "candidate_id": it.candidate_id,
-            "run_id": str(run_id), "slot_key": slot_key,
-            "unit_price": it.unit_price,
-            "eligibility": check.eligibility if check else None,
-            "coverage": check.coverage if check else None,
-            "validation": it.validation,
-        }
-        variant_id = UUID(cand.variant_id) if cand and cand.variant_id else None
-        real_id = prepo.upsert_basket_item(
-            revision_id, item_id=None, variant_id=variant_id, offer_id=offer_id,
-            offer_observation_id=(UUID(cand.offer_observation_id) if cand and cand.offer_observation_id else None),
-            status=it.status, qty=it.qty, unit_code=it.unit_code, unit_qty=it.unit_qty,
-            timing=it.timing, selected=it.selected, item_spec=item_spec,
+    by_candidate = {it.candidate_id: it for it in decision.items if it.candidate_id}
+    for _raw, candidate in db_candidates:
+        item = by_candidate.get(candidate.candidate_id)
+        erepo.update_candidate_state(
+            UUID(candidate.candidate_id), selected=bool(item and item.selected),
+            qty=int(item.qty) if item else 1, timing=item.timing if item else "now",
         )
 
     headline = "예산 안에서 필요한 품목을 담았어요." if decision.feasible else "예산 안에서 채울 수 없는 필수 품목이 있어요."
@@ -355,44 +356,60 @@ def verify_and_persist_baby_candidate(*, conn, rag_service, run_id, candidate: d
     return {"check": check, "explanation": explanation}
 
 
-def _load_baby_basket_items(prepo, revision_id: UUID, requirements) -> tuple[list, list, dict]:
-    """저장된 planning.item 행을 P4 BasketItem/CandidateCheck 모양으로 되읽는다 (DB 읽기뿐 —
-    검색/임베딩 없음, RH02가 요구하는 GET 경로).
+def _load_baby_basket_items(erepo, revision_id: UUID, requirements) -> tuple[list, list, dict]:
+    """Rebuild v3 baby output from requirement ownership and candidate rows.
+
+    develop has no planning.item: owned rows are derived from match_spec/condition
+    coverage and purchase rows are the persisted recommendation_candidate state.
+
+    P5 review R2: baby's stable HTTP item_id is the requirement UUID, not a
+    candidate UUID — a requirement can have many evaluated candidate rows (one per
+    option verified during execution), so this emits exactly one to_purchase row per
+    requirement (whichever candidate is currently `selected`), never one per raw
+    candidate row.
     """
     from src.dto import BasketItem, CandidateCheck
 
-    req_by_fulfilled = {r.fulfilled_by_item_id: r for r in requirements if r.fulfilled_by_item_id}
     req_by_id = {r.id: r for r in requirements}
     items, checks, row_by_item_id = [], [], {}
-    for row in prepo.list_items_with_product(revision_id):
-        spec = row.get("item_spec") or {}
-        requirement_id = spec.get("requirement_id")
-        if requirement_id is None and row["status"] == "owned":
-            req = req_by_fulfilled.get(str(row["id"]))
-            requirement_id = req.id if req else None
-        if requirement_id is None:
-            continue  # 이 revision 소속이 아니거나(방어적) baby 소유 조각이 아닌 행
-        req = req_by_id.get(requirement_id)
-        candidate_id = spec.get("candidate_id")
-        item_id = str(row["id"])
-        row_by_item_id[item_id] = row
-        items.append(BasketItem(
-            item_id=item_id, requirement_id=requirement_id, group_key=req.group_key if req else None,
-            candidate_id=candidate_id, variant_id=str(row["variant_id"]) if row["variant_id"] else None,
-            status=row["status"], selected=row["selected"], qty=float(row["qty"]),
-            unit_code=row["unit_code"], unit_qty=float(row["unit_qty"]), timing=row["timing"],
-            unit_price=spec.get("unit_price"),
-            offer_observation_id=str(row["offer_observation_id"]) if row["offer_observation_id"] else None,
-            validation=spec.get("validation") or {},
-        ))
-        if candidate_id and spec.get("eligibility"):
-            checks.append(CandidateCheck(
-                candidate_id=candidate_id, requirement_id=requirement_id,
-                eligibility=spec["eligibility"], verification="verified",
-                coverage=spec.get("coverage") or "none", selection_allowed=spec["eligibility"] == "pass",
+    for req in requirements:
+        for owned in req.owned:
+            qty = float(owned.get("qty", 0))
+            if qty <= 0:
+                continue
+            items.append(BasketItem(
+                item_id=f"owned:{req.id}:{owned.get('source_condition_id', 'unknown')}",
+                requirement_id=req.id, group_key=req.group_key, status="owned", selected=False,
+                qty=qty, unit_code=req.unit_code, unit_qty=1, timing=req.timing,
+                validation={"source": "owned_coverage"},
             ))
+    run = erepo.get_latest_run(revision_id)
+    if run is None:
+        return items, checks, row_by_item_id
+    selected_by_requirement: dict[str, dict] = {}
+    for row in erepo.get_candidates(run["id"]):
+        if row["selected"] and str(row["requirement_id"]) in req_by_id:
+            selected_by_requirement[str(row["requirement_id"])] = row
+    for requirement_id, row in selected_by_requirement.items():
+        req = req_by_id[requirement_id]
+        candidate_id = str(row["id"])
+        eligibility = erepo.get_candidate_eligibility(run["id"], row["id"])
+        row_by_item_id[requirement_id] = row
+        items.append(BasketItem(
+            item_id=requirement_id, requirement_id=requirement_id, group_key=req.group_key,
+            candidate_id=candidate_id, variant_id=str(row["variant_id"]), status="to_purchase",
+            selected=True, qty=float(row["qty"]), unit_code=req.unit_code,
+            unit_qty=float(row["unit_qty"] or 1), timing=row["timing"],
+            unit_price=float(row["price"]) if row["price"] is not None else None,
+            offer_observation_id=str(row["offer_observation_id"]) if row["offer_observation_id"] else None,
+            validation={"eligibility": eligibility["eligibility"]},
+        ))
+        checks.append(CandidateCheck(
+            candidate_id=candidate_id, requirement_id=requirement_id,
+            eligibility=eligibility["eligibility"], verification="verified", coverage="none",
+            selection_allowed=eligibility["selection_allowed"],
+        ))
     return items, checks, row_by_item_id
-
 
 def _baby_items_and_totals(conn, prepo, erepo, revision_id: UUID, budget_max: int | None):
     """GET/PATCH/swap 이 공유하는 baby 결과 조립 — recalculate_basket()만 쓴다(순수 함수,
@@ -401,7 +418,7 @@ def _baby_items_and_totals(conn, prepo, erepo, revision_id: UUID, budget_max: in
     from src.engine.stage4_optimize import recalculate_basket
 
     requirements = load_persisted_baby_requirements(conn, revision_id)
-    basket_items, checks, row_by_item_id = _load_baby_basket_items(prepo, revision_id, requirements)
+    basket_items, checks, row_by_item_id = _load_baby_basket_items(erepo, revision_id, requirements)
     decision = recalculate_basket(basket_items, requirements, budget_max, checks)
     req_by_id = {r.id: r for r in requirements}
 
@@ -580,18 +597,41 @@ def get_owned_result(conn, list_id: UUID, principal) -> dict:
 
 
 def _require_candidate_item(conn, list_id: UUID, item_id: UUID, principal) -> tuple[dict, "EngineRepo", dict]:
-    """item_id == engine.recommendation_candidate.id (develop `0013_result_item_interaction.sql`
-    이 원래 의도한 모양 — 별도 planning.item 없이 후보 행 자체를 편집한다, P0 v3)."""
+    """PC: item_id == engine.recommendation_candidate.id, one row per slot (develop
+    `0013_result_item_interaction.sql` 이 원래 의도한 모양 — 별도 planning.item 없이
+    후보 행 자체를 편집한다, P0 v3).
+
+    Baby (P5 review R2/DEVELOP_DB_TRANSITION.md v3): item_id는 안정적인 requirement
+    UUID다 — 여기서 현재 run의 그 requirement에 대해 선택된 후보 행으로 resolve한다.
+    baby는 후보마다(평가된 것 전부) 별도 행이 이미 있으므로, 반환된 `row`는 그 자체가
+    실제 편집 대상이고 `item_id`(=requirement UUID)와는 다른 자기 id를 가진다.
+
+    두 카테고리 모두 revision.id 일치뿐 아니라 **현재(최신) run**인지도 확인한다
+    (P5 review R3) — 지나간 run에 속한 후보가 지금 것처럼 편집되지 않게."""
     from src.repo.engine_repo import EngineRepo
+    from src.repo.plan_repo import PlanRepo
     from src.services import session_service
 
     revision = session_service.load_owned_draft(conn, list_id, principal)
     erepo = EngineRepo(conn)
-    row = erepo.get_candidate(item_id)
-    if row is None:
+    current_run = erepo.get_latest_run(revision["id"])
+    if current_run is None:
         raise NotFound("항목을 찾을 수 없습니다.")
-    run = erepo.get_run(row["run_id"])
-    if run is None or str(run["revision_id"]) != str(revision["id"]):
+
+    if revision.get("category") == "baby":
+        requirement = PlanRepo(conn)._one(
+            "SELECT id FROM planning.requirement WHERE id=%s AND revision_id=%s",
+            (item_id, revision["id"]),
+        )
+        if requirement is None:
+            raise NotFound("항목을 찾을 수 없습니다.")
+        row = erepo.get_selected_candidate_for_requirement(current_run["id"], item_id)
+        if row is None:
+            raise NotFound("항목을 찾을 수 없습니다.")
+        return revision, erepo, row
+
+    row = erepo.get_candidate(item_id)
+    if row is None or str(row["run_id"]) != str(current_run["id"]):
         raise NotFound("항목을 찾을 수 없습니다.")
     return revision, erepo, row
 
@@ -621,15 +661,26 @@ def get_alternatives(conn, list_id: UUID, item_id: UUID, principal) -> dict:
 
 def swap_candidate(conn, list_id: UUID, item_id: UUID, candidate_id: str, principal, *,
                    if_match: int | None) -> dict:
-    """POST .../items/{item_id}/swap — item_id(행 자체)는 고정, 다른 후보의 상품으로 바꿔치기한다
-    (develop `EngineRepo.update_candidate_variant`)."""
+    """POST .../items/{item_id}/swap.
+
+    PC: item_id(행 자체)는 고정, 다른 후보의 상품으로 바꿔치기한다
+    (develop `EngineRepo.update_candidate_variant`).
+
+    Baby (P5 review R2): item_id(requirement UUID)는 그대로지만, 상품을 바꿔치기하지
+    않는다 — target은 이미 이 requirement에 대해 별도로 검증된 실제 행이므로, 그 행을
+    선택하고 기존 선택 행을 해제한다(`select_candidate_exclusive`). 이렇게 해야 각 행의
+    evidence_refs/validation이 실제 검증된 상품에 계속 정확히 붙어 있다."""
     from src.repo.plan_repo import PlanRepo
     from src.services import feedback_service
 
     revision, erepo, cand = _require_candidate_item(conn, list_id, item_id, principal)
     if if_match is None:
         raise ValidationFailed("If-Match(lock_version)이 필요합니다.", field="lock_version")
-    if if_match != revision["lock_version"]:
+    prepo = PlanRepo(conn)
+    # P5 review R3: lock + re-check under the lock, not the earlier unlocked read —
+    # a concurrent request that already bumped the version is now visible here.
+    locked = prepo.get_revision_locked(revision["id"])
+    if locked is None or if_match != locked["lock_version"]:
         raise Conflict("조건이 변경되어 최신 상태가 아닙니다. 최신 결과를 다시 불러오세요.", code="stale_version")
 
     target = erepo.get_candidate(UUID(candidate_id))
@@ -641,9 +692,13 @@ def swap_candidate(conn, list_id: UUID, item_id: UUID, candidate_id: str, princi
         raise ValidationFailed("안전성이 확인되지 않은 후보는 선택할 수 없습니다.",
                               field="candidate_id", code="selection_not_allowed")
 
-    erepo.update_candidate_variant(item_id, variant_id=target["variant_id"],
-                                   offer_observation_id=target["offer_observation_id"])
-    new_version = PlanRepo(conn).bump_lock_version(revision["id"])
+    if revision.get("category") == "baby":
+        erepo.select_candidate_exclusive(cand["run_id"], cand["requirement_id"], target["id"],
+                                         qty=cand["qty"], timing=cand["timing"])
+    else:
+        erepo.update_candidate_variant(item_id, variant_id=target["variant_id"],
+                                       offer_observation_id=target["offer_observation_id"])
+    new_version = prepo.bump_lock_version(revision["id"], expected_version=if_match)
     feedback_service.emit_replaced(
         conn, plan_id=revision["plan_id"], revision_id=revision["id"], run_id=cand["run_id"],
         item_id=item_id, version=new_version,
@@ -660,13 +715,23 @@ def update_item(conn, list_id: UUID, item_id: UUID, changes: dict, principal, *,
     revision, erepo, cand = _require_candidate_item(conn, list_id, item_id, principal)
     if if_match is None:
         raise ValidationFailed("If-Match(lock_version)이 필요합니다.", field="lock_version")
-    if if_match != revision["lock_version"]:
+    prepo = PlanRepo(conn)
+    locked = prepo.get_revision_locked(revision["id"])
+    if locked is None or if_match != locked["lock_version"]:
         raise Conflict("조건이 변경되어 최신 상태가 아닙니다. 최신 결과를 다시 불러오세요.", code="stale_version")
 
     was_selected = cand["selected"]
     selected = changes.get("selected", was_selected)
-    erepo.update_candidate_state(item_id, selected=selected, qty=changes.get("qty"), timing=changes.get("timing"))
-    new_version = PlanRepo(conn).bump_lock_version(revision["id"])
+    if selected:
+        # P5 review R3: never persist selected=true without re-checking P3 eligibility
+        # here — result-assembly recomputes it for display, but that must not be the
+        # only gate on what's actually stored as selected.
+        elig = erepo.get_candidate_eligibility(cand["run_id"], cand["id"])
+        if not elig["selection_allowed"]:
+            raise ValidationFailed("안전성이 확인되지 않은 후보는 선택할 수 없습니다.",
+                                  field="selected", code="selection_not_allowed")
+    erepo.update_candidate_state(cand["id"], selected=selected, qty=changes.get("qty"), timing=changes.get("timing"))
+    new_version = prepo.bump_lock_version(revision["id"], expected_version=if_match)
     if was_selected and not selected:
         feedback_service.emit_removed(
             conn, plan_id=revision["plan_id"], revision_id=revision["id"],

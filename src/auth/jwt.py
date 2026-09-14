@@ -25,7 +25,7 @@ def issue(user_id: UUID, email: str, *, ttl_seconds: int | None = None) -> str:
 
     P0 v3 develop 정렬: 별도 `auth_version` 세대 카운터 컬럼 없이 `iat`(발급 시각)만 쓴다.
     비밀번호 변경/탈퇴는 `identity.app_user.password_updated_at`/`status`를 갱신하고,
-    `src.auth.deps`가 `claims["iat"] < password_updated_at.timestamp()` 또는
+    `src.auth.deps`가 `claims["iat"] <= password_updated_at.timestamp()` 또는
     `status != 'active'`이면 거부한다(develop 원안의 iat 기반 무효화,
     DEVELOP_DB_TRANSITION.md). `iat`은 정수 초가 아니라 부동소수 유닉스 시각으로
     저장한다 — 정수 초로 반올림하면 "비밀번호 변경 직후 같은 초 안에 발급된 이전

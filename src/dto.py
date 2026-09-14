@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import Any, Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 Category = Literal["computer", "baby"]
 Mode = Literal["build", "upgrade", "born", "prenatal"]
@@ -225,6 +225,15 @@ class CandidateCheck(BaseModel):
     issues: list[dict[str, Any]] = Field(default_factory=list)
     explanation_evidence: list[dict[str, Any]] = Field(default_factory=list)
     error_code: str | None = None
+
+    @model_validator(mode="after")
+    def _selection_requires_pass(self) -> "CandidateCheck":
+        """P4 review R1: fail/unknown must never carry selection_allowed=True — this
+        is enforced at construction so a mismatched/hand-built DTO fails loudly at
+        the P3 producer boundary instead of silently reaching P4's auto-selection."""
+        if self.selection_allowed and self.eligibility != "pass":
+            raise ValueError("selection_allowed=True requires eligibility=='pass'")
+        return self
 
 
 class ExplanationWithRefs(BaseModel):

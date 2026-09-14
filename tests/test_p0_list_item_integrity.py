@@ -60,6 +60,7 @@ def _seed_run_with_one_candidate(conn):
     # Force category to computer so PlanRepo.get_candidates()/list_service's node join works.
     from src.repo.plan_repo import PlanRepo as _PR
     _PR(conn).bind_domain_version(rev['id'], 'computer')
+    rev = PlanRepo(conn).get_current_revision(lid)  # re-fetch: bind_domain_version just changed it
     node = PlanRepo(conn).ensure_node(rev['id'], 'CPU', 'CPU')
     req = PlanRepo(conn).ensure_requirement(rev['id'], node, {})
     offer = conn.execute(
@@ -77,7 +78,11 @@ def _seed_run_with_one_candidate(conn):
 
 def test_candidate_requirement_must_belong_to_same_run_revision(conn):
     """engine.recommendation_candidate.requirement_id from a DIFFERENT revision's requirement
-    must be rejected — a candidate can never point outside its own run's revision."""
+    must be rejected — a candidate can never point outside its own run's revision.
+
+    Not a DB constraint in develop's schema (no composite FK to the (run, revision)
+    pair), so EngineRepo.add_candidate itself must refuse the write (P0 review R1) —
+    no row may exist afterward, not merely be unreadable as "in scope"."""
     _, a = revision(conn)
     _, b = revision(conn)
     node_a = PlanRepo(conn).ensure_node(a['id'], 'CPU', 'CPU')
@@ -88,16 +93,11 @@ def test_candidate_requirement_must_belong_to_same_run_revision(conn):
     offer = conn.execute(
         'SELECT o.variant_id FROM catalog.offer o LIMIT 1'
     ).fetchone()
-    # Not a DB constraint in develop's schema (no composite FK to (run, revision) pair),
-    # but the application-level scope check must reject reading it back as "in scope".
-    cand_id = engine.add_candidate(run_b, req_a, offer['variant_id'], result='pending')
-    cand = engine.get_candidate(cand_id)
-    run = engine.get_run(cand['run_id'])
-    assert str(run['revision_id']) == str(b['id'])
-    # req_a belongs to revision a, not b — recommendation_service._require_candidate_item
-    # must not resolve this candidate as belonging to a's list.
-    other_req = conn.execute('SELECT revision_id FROM planning.requirement WHERE id=%s', (req_a,)).fetchone()
-    assert str(other_req['revision_id']) != str(run['revision_id'])
+    with pytest.raises(ValueError, match='cross_revision_candidate_rejected'):
+        engine.add_candidate(run_b, req_a, offer['variant_id'], result='pending')
+    assert conn.execute(
+        'SELECT count(*) AS n FROM engine.recommendation_candidate WHERE run_id=%s', (run_b,)
+    ).fetchone()['n'] == 0, 'no candidate row may exist for the rejected cross-revision write'
 
 
 def test_missing_candidate_reference_rejected(conn):
@@ -146,7 +146,7 @@ def test_confirm_reads_purchase_line_snapshot_and_is_repeatable(conn):
     lid, rev, run, cand_id, offer = _seed_run_with_one_candidate(conn)
     # confirm() needs an *owned* revision — rebuild with the real user as owner.
     conn.execute('UPDATE planning.plan SET owner_user_id=%s WHERE id=%s', (user, lid))
-    args = dict(name='Snapshot', planned_purchase_at=None, target_amount=None, memo='')
+    args = dict(name='Snapshot', planned_purchase_at=None, target_amount=None, memo='', if_match=rev['lock_version'])
     report = list_service.confirm(conn, UUID(lid), principal, **args)
     assert len(report['items']) == 1
     assert list_service.confirm(conn, UUID(lid), principal, **args) == report
@@ -169,4 +169,31 @@ def test_confirm_rejects_when_nothing_selected(conn):
     conn.execute('UPDATE planning.plan SET owner_user_id=%s WHERE id=%s', (user, lid))
     from src.errors import ValidationFailed
     with pytest.raises(ValidationFailed):
-        list_service.confirm(conn, UUID(lid), principal, name='x', planned_purchase_at=None, target_amount=None, memo='')
+        list_service.confirm(conn, UUID(lid), principal, name='x', planned_purchase_at=None, target_amount=None, memo='', if_match=rev['lock_version'])
+
+
+def test_confirm_rejects_when_conditions_changed_without_a_new_run(conn):
+    """P7 review R2: editing a condition after a completed run (without ever
+    starting a new recommend) must block confirm even though If-Match matches the
+    CURRENT lock_version — the completed run's own input_snapshot no longer
+    reflects the current conditions, so confirming it would charge/record a basket
+    that was never actually computed against what the user now has answered."""
+    key = uuid4().hex
+    user = conn.execute(
+        "INSERT INTO identity.app_user(email_normalized,auth_subject,display_name) VALUES (%s,%s,'Reviewer') RETURNING id",
+        (key + '@example.test', key),
+    ).fetchone()['id']
+    principal = Principal(user_id=user, browser_token=None)
+    lid, rev, run, cand_id, offer = _seed_run_with_one_candidate(conn)
+    conn.execute('UPDATE planning.plan SET owner_user_id=%s WHERE id=%s', (user, lid))
+
+    # The completed run's input_snapshot has no 'values' at all (fixture uses {});
+    # adding ANY condition now makes "current conditions" diverge from it.
+    PlanRepo(conn).upsert_condition(rev['id'], 'budget_max', {'value': 999999}, 'explicit')
+    fresh = PlanRepo(conn).get_current_revision(lid)
+
+    from src.errors import Conflict
+    with pytest.raises(Conflict) as exc_info:
+        list_service.confirm(conn, UUID(lid), principal, name='x', planned_purchase_at=None,
+                             target_amount=None, memo='', if_match=fresh['lock_version'])
+    assert exc_info.value.code == 'stale_recommendation'

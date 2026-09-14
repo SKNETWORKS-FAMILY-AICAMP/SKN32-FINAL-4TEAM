@@ -371,6 +371,14 @@ def _validate_baby_value(cat_def: dict, field: str, value, *, mode: str | None, 
             bad = [v for v in value if v not in _NEEDS_ALLOWED]
             if bad:
                 raise ValidationFailed(f"허용되지 않는 값입니다: {bad}", field=field)
+        if field == "owned_items":
+            # P1 review R2: a repeated label is the only quantity signal this string-array
+            # wire contract carries ("owning 2" = the label listed twice) — deduping here
+            # would silently collapse it back to 1. P2's build_baby_requirements/
+            # persist_baby_requirements count occurrences instead of set membership.
+            if not value:
+                raise ValidationFailed("최소 1개 이상 선택해야 합니다.", field=field)
+            return list(value)
         deduped = list(dict.fromkeys(value))
         if not deduped:
             raise ValidationFailed("최소 1개 이상 선택해야 합니다.", field=field)
@@ -519,6 +527,14 @@ def _parse_spec_file(content: str) -> dict:
 def attach_spec_file(conn, list_id: UUID, file_name: str, content: str, principal: Principal) -> dict:
     repo = PlanRepo(conn)
     current = load_owned_draft(conn, list_id, principal)
+    # P1 review R3: the server must actually enforce what accepts_spec_file only
+    # *displays* — baby (or computer/build) posting this endpoint directly must be
+    # rejected, not silently accepted into current_specs/spec_file_name.
+    values, _ = _current_values(repo, current["id"])
+    if current["category"] != "computer" or values.get("mode") != "upgrade":
+        raise ValidationFailed(
+            "이 카테고리/모드에서는 사양 파일을 첨부할 수 없습니다.", field="mode", code="spec_file_not_accepted",
+        )
     ext = file_name.rsplit(".", 1)[-1].lower() if "." in file_name else ""
     if ext not in _ALLOWED_SPEC_EXTENSIONS:
         raise ValidationFailed("지원하지 않는 파일 형식입니다.", field="file_name", code="unsupported_file")

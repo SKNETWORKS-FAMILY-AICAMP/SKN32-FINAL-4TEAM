@@ -28,7 +28,7 @@ from __future__ import annotations
 
 import os
 import threading
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import psycopg
 import pytest
@@ -66,6 +66,18 @@ def _create(c: TestClient) -> str:
     r = c.post("/session")
     assert r.status_code == 200, r.text
     return r.json()["list_id"]
+
+
+def _signed_up_client() -> TestClient:
+    """A logged-in (not guest) client — list_service.confirm() requires p.user_id."""
+    c = TestClient(app)
+    r = c.post("/auth/signup", json={
+        "email": f"p7-{uuid4().hex[:12]}@example.test", "password": "abcd1234",
+        "display_name": "P7 Reviewer", "terms_agreed": True, "privacy_agreed": True,
+        "marketing_agreed": False,
+    })
+    assert r.status_code == 201, r.text
+    return c
 
 
 def _choose_baby(c: TestClient, list_id: str) -> dict:
@@ -123,7 +135,7 @@ def _seed_editable_to_purchase_item(raw_conn, revision_id: str, run_id: str) -> 
         assert rows, "seeded catalog must have at least one bottle offer"
         row = min(rows, key=lambda r: r["price"])
         req_row = conn.execute(
-            "SELECT id FROM planning.requirement WHERE revision_id=%s AND slot_key='bottle'",
+            "SELECT r.id FROM planning.requirement r JOIN planning.plan_node n ON n.id=r.node_id WHERE r.revision_id=%s AND n.template_key='bottle'",
             (revision_id,),
         ).fetchone()
         assert req_row is not None, "bottle requirement must already be persisted by start_recommendation"
@@ -144,16 +156,11 @@ def _seed_editable_to_purchase_item(raw_conn, revision_id: str, run_id: str) -> 
         persist_candidate_check(conn, UUID(run_id), candidate_id, check, None)
         erepo.set_candidate_result(candidate_id, result="selected", score=1.0)
 
-        item_id = prepo.upsert_basket_item(
-            UUID(revision_id), item_id=None, variant_id=row["variant_id"], offer_id=row["offer_id"],
-            offer_observation_id=row["offer_observation_id"], status="to_purchase", qty=2,
-            unit_code="each", unit_qty=1, timing="now", selected=True,
-            item_spec={"requirement_id": requirement_id, "candidate_id": str(candidate_id),
-                      "run_id": run_id, "slot_key": "bottle", "unit_price": int(row["price"]),
-                      "eligibility": "pass", "coverage": "none", "validation": {}},
-        )
+        erepo.update_candidate_state(candidate_id, selected=True, qty=2, timing="now")
         conn.commit()
-        return {"item_id": str(item_id), "candidate_id": str(candidate_id),
+        # P5 review R2: baby's stable HTTP item_id is the requirement UUID, not this
+        # candidate row's own id (candidate_id changes on swap, item_id never does).
+        return {"item_id": requirement_id, "candidate_id": str(candidate_id),
                "requirement_id": requirement_id, "price": int(row["price"]),
                "other_variant_ids": [r["variant_id"] for r in rows if r["variant_id"] != row["variant_id"]]}
     finally:
@@ -178,7 +185,7 @@ def test_rh01_full_guest_flow_produces_real_persisted_recommendation(client: Tes
 
     # 실제 requirement/candidate/validation 행이 이 리비전/run 스코프로 저장됐다.
     reqs = raw_conn.execute(
-        "SELECT slot_key FROM planning.requirement WHERE revision_id=%s AND status='active'",
+        "SELECT n.template_key FROM planning.requirement r JOIN planning.plan_node n ON n.id=r.node_id WHERE r.revision_id=%s AND r.status='active'",
         (revision_id,),
     ).fetchall()
     assert {"stroller", "car_seat"} <= {r[0] for r in reqs}
@@ -310,16 +317,16 @@ def test_rh04_concurrent_recommend_only_one_active_run(client: TestClient):
     recommendation_service.execute_recommendation(revision_id, UUID(first["run_id"]))
 
 
-def test_rh04_embedder_outage_marks_failed_not_fake_done(client: TestClient, monkeypatch):
+def test_rh04_search_provider_outage_marks_failed_not_fake_done(client: TestClient, monkeypatch):
     list_id = _create(client)
     _choose_baby(client, list_id)
     state = _fill_complete_conditions(client, list_id, needs=["외출"], owned=["없음"])
     revision_id = UUID(state["revision_id"])
 
     def _boom():
-        raise RuntimeError("simulated embedder outage")
+        raise RuntimeError("simulated search provider outage")
 
-    monkeypatch.setattr("src.rag.embedding.get_embedder", _boom)
+    monkeypatch.setattr("src.rag.provider.get_search_provider", _boom)
     with get_conn() as conn:
         accepted = recommendation_service.start_recommendation(conn, revision_id)
     run_id = UUID(accepted["run_id"])
@@ -432,3 +439,30 @@ def test_rh06_result_message_documented_rule_and_clarification(client: TestClien
     r2 = client.get(f"/session/{list_id}/result")
     assert r2.json() == unresolved_result or r2.json()["lock_version"] == unresolved_result["lock_version"], \
         "ambiguous message must not mutate the basket"
+
+
+# ── P7 review R1 ─────────────────────────────────────────────────────────────
+def test_p7_confirm_rejects_when_mandatory_requirement_is_uncovered(raw_conn):
+    """P7 review R1: confirm() must recheck full requirement coverage (all active
+    requirements, not just whatever candidates happen to be selected). This
+    catalog's car_seat is always selection_allowed=False (module docstring), so a
+    '외출'+'수유' recommendation always has an uncovered mandatory requirement —
+    confirm must refuse it even with a real, validly-selected bottle candidate
+    present (seeded the same way RH05 does), since a per-selected-candidate-only
+    check would happily confirm on that one item and never notice car_seat."""
+    signed_up = _signed_up_client()
+    list_id = _create(signed_up)
+    _choose_baby(signed_up, list_id)
+    _fill_complete_conditions(signed_up, list_id, needs=["외출", "수유"], owned=["없음"], budget=2_000_000)
+    data = _recommend_and_wait(signed_up, list_id)
+    assert data["feasible"] is False, "documented catalog property: car_seat always blocks 외출"
+    _seed_editable_to_purchase_item(raw_conn, data["revision_id"], data["run_id"])
+
+    state = signed_up.get(f"/session/{list_id}/result").json()
+    r = signed_up.post(f"/lists/{list_id}/confirm", json={"name": "P7 확정 테스트"},
+                       headers={"If-Match": str(state["lock_version"])})
+    assert r.status_code == 422, r.text
+    assert r.json()["error"]["code"] == "basket_infeasible"
+    assert raw_conn.execute(
+        "SELECT count(*) FROM planning.purchase_line WHERE revision_id=%s", (data["revision_id"],)
+    ).fetchone()[0] == 0, "a rejected confirm must not leave any purchase_line rows"

@@ -43,7 +43,6 @@ def verify_seat(
     ]
     if not hits:
         return base
-    service.repo.mark_context(result.run_id, [h["evidence_id"] for h in hits])
     patterns = {
         "age_months": r"좌석 모드 월령: (\d+(?:\.\d+)?) 개월 이상\.",
         "weight_kg": r"좌석 모드 체중: (\d+(?:\.\d+)?) kg 이하\.",

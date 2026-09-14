@@ -44,6 +44,11 @@ AUTH_COOKIE_SECURE: bool = IS_PRODUCTION or os.getenv("AUTH_COOKIE_SECURE", "0")
 AUTH_CODE_TTL_MIN: int = 10
 AUTH_CODE_MAX_ATTEMPTS: int = 5
 
+# 쿠키 인증 변경 요청의 Origin 허용 목록(P6 review R3) — 요청 자신의 scheme+host는 항상
+# 암묵적으로 same-origin 허용이며, 이 목록은 다른 포트/도메인에서 서빙되는 프런트 등
+# "추가" origin만 담는다. 콤마 구분, 기본값은 same-origin만 허용.
+ALLOWED_ORIGINS: list[str] = [o.strip() for o in os.getenv("ALLOWED_ORIGINS", "").split(",") if o.strip()]
+
 
 def assert_production_secret_safe() -> None:
     """운영 환경에서 개발용 기본 JWT_SECRET 를 그대로 쓰는 배포를 막는다."""

@@ -323,9 +323,27 @@ class ReportOut(BaseModel):
     target_amount: int | None = None
     memo: str = ""
     total: int
+    totals: dict[str, int] = Field(default_factory=dict)
     confirmed_at: str | None = None
     items: list[dict] = Field(default_factory=list)
     buy_links: list[dict] = Field(default_factory=list)
+    missing_requirements: list[dict] = Field(default_factory=list)
+    owned: list[dict] = Field(default_factory=list)
+    data_notice: str | None = None
+
+
+# ── price alert (develop `da79839`; P0 review R3 — restore the dropped route/service) ──
+class AlertIn(BaseModel):
+    enabled: bool
+    target_amount: int | None = Field(default=None, ge=0)
+
+
+class PriceWatchOut(BaseModel):
+    enabled: bool
+    target_amount: int | None = None
+    status: Literal["waiting", "tracking", "reached"] = "waiting"
+    latest_total: int | None = None
+    observed_at: str | None = None
 
 
 # ── reviews (A7) ──

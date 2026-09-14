@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import os
 import threading
+import time
 
 import psycopg
 import pytest
@@ -283,6 +284,47 @@ def test_au04_password_change_invalidates_old_jwt_immediately(client: TestClient
     assert _login(_fresh_client(), "au04@example.com", password="newpass99").status_code == 200
 
 
+def test_au04_login_blocked_by_concurrent_password_change_sees_new_password():
+    """P6 review R1: a login reading the OLD password hash must never issue a token
+    after a concurrent password change has already committed. FOR UPDATE row
+    locking (UserRepo.get_by_email_locked/get_by_id_locked) serializes the two — a
+    login that starts while a change is in flight blocks until the change commits,
+    then re-reads the NEW hash and fails, instead of racing a stale-but-valid token
+    into existence."""
+    from src.auth.passwords import hash_password
+
+    email = "au-race@example.com"
+    _signup(_fresh_client(), email)
+
+    hold_conn = psycopg.connect(DSN, autocommit=False)
+    hold_conn.execute(
+        "SELECT id FROM identity.app_user WHERE email_normalized=%s FOR UPDATE", (email,)
+    )
+    try:
+        results: dict = {}
+
+        def attempt_login():
+            results["status"] = _login(_fresh_client(), email, password="abcd1234").status_code
+
+        t = threading.Thread(target=attempt_login)
+        t.start()
+        time.sleep(0.3)  # let the login request actually reach and block on the lock
+        assert t.is_alive(), "login must be blocked while the password-change lock is held"
+
+        hold_conn.execute(
+            "UPDATE identity.app_user SET password_hash=%s, password_updated_at=clock_timestamp() "
+            "WHERE email_normalized=%s",
+            (hash_password("newpass99"), email),
+        )
+        hold_conn.commit()
+
+        t.join(timeout=5)
+        assert not t.is_alive(), "login must complete once the lock is released"
+        assert results["status"] == 401, "the blocked login must see the NEW password, not succeed with the old one"
+    finally:
+        hold_conn.close()
+
+
 def test_au04_change_password_wrong_current_401(client: TestClient):
     _signup(client, "au04b@example.com")
     r = client.post("/auth/password", json={"current_password": "wrongcurrent1", "new_password": "newpass99"})
@@ -454,3 +496,94 @@ def test_au07_me_endpoint_only_source_of_truth_no_token_field(client: TestClient
     assert "token" not in r.json()
     r2 = client.get("/auth/me")
     assert "token" not in r2.json()
+
+# ── D6 develop DB contract ────────────────────────────────────────────────
+def test_d6_iat_boundary_rejects_token_at_password_change_and_relogin_works(
+    client: TestClient, raw_conn, monkeypatch
+):
+    """v3 policy: the equality boundary is stale, not just timestamps before it."""
+    from src.auth import jwt
+
+    _signup(client, "d6-iat-boundary@example.com")
+    user_id = raw_conn.execute(
+        "SELECT id FROM identity.app_user WHERE email_normalized=%s",
+        ("d6-iat-boundary@example.com",),
+    ).fetchone()[0]
+    # Set password_updated_at FIRST, then read back the exact stored value and sign
+    # the boundary token from THAT — not the other way around. A Python float unix
+    # timestamp round-tripped through to_timestamp()/timestamptz (microsecond
+    # precision) is not always bit-identical to the original float (P6 review R2),
+    # so deriving the token's iat from an independently-computed float and hoping it
+    # matches what got stored is flaky; reading the stored value back removes that.
+    raw_conn.execute(
+        "UPDATE identity.app_user SET password_updated_at=now() WHERE id=%s", (user_id,),
+    )
+    boundary_iat = raw_conn.execute(
+        "SELECT password_updated_at FROM identity.app_user WHERE id=%s", (user_id,),
+    ).fetchone()[0].timestamp()
+    monkeypatch.setattr("time.time", lambda: boundary_iat)
+    boundary_token = jwt.issue(user_id, "d6-iat-boundary@example.com")
+    monkeypatch.undo()
+    stale = _fresh_client()
+    stale.cookies.set("truefit_session", boundary_token)
+    assert stale.get("/auth/me").status_code == 401
+
+    fresh_client = _fresh_client()
+    relogin = _login(fresh_client, "d6-iat-boundary@example.com")
+    assert relogin.status_code == 200
+    assert relogin.cookies.get("truefit_session")
+    # P6 review R2: "usable replacement cookie" must actually be demonstrated, not
+    # just inferred from a 200 + cookie presence — call an authenticated endpoint
+    # with the SAME client that just relogged in.
+    assert fresh_client.get("/auth/me").status_code == 200
+
+
+def test_d6_guest_merge_is_idempotent_and_only_moves_its_own_active_plans(client: TestClient, raw_conn):
+    _signup(_fresh_client(), "d6-merge@example.com")
+    guest = _fresh_client()
+    first = guest.post("/session").json()["list_id"]
+    second = guest.post("/session").json()["list_id"]
+    guest_cookie = guest.cookies.get("truefit_guest")
+    assert _login(guest, "d6-merge@example.com").status_code == 200
+    assert _login(guest, "d6-merge@example.com").status_code == 200
+    rows = raw_conn.execute(
+        """SELECT p.id, p.owner_user_id, c.guest_session_hash
+             FROM planning.plan p JOIN identity.conversation c ON c.id=p.conversation_id
+             WHERE p.id = ANY(%s) ORDER BY p.id""",
+        ([first, second],),
+    ).fetchall()
+    assert len(rows) == 2
+    assert all(row[1] is not None and row[2] is None for row in rows)
+    replay = _fresh_client()
+    replay.cookies.set("truefit_guest", guest_cookie)
+    assert replay.get(f"/session/{first}").status_code == 404
+
+
+def test_d6_app_user_settings_survive_login_and_are_erased_on_withdraw(client: TestClient, raw_conn):
+    _signup(client, "d6-settings@example.com")
+    raw_conn.execute(
+        "UPDATE identity.app_user SET ui_settings=%s::jsonb, notification_settings=%s::jsonb "
+        "WHERE email_normalized=%s",
+        ('{"theme":"dark"}', '{"price_watch":false}', "d6-settings@example.com"),
+    )
+    client.post("/auth/logout")
+    assert _login(client, "d6-settings@example.com").status_code == 200
+    assert raw_conn.execute(
+        "SELECT ui_settings, notification_settings FROM identity.app_user WHERE email_normalized=%s",
+        ("d6-settings@example.com",),
+    ).fetchone() == ({"theme": "dark"}, {"price_watch": False})
+    assert client.post("/auth/withdraw", json={"password": "abcd1234"}).status_code == 204
+    assert raw_conn.execute(
+        "SELECT ui_settings, notification_settings FROM identity.app_user "
+        "WHERE display_name='탈퇴한 사용자' ORDER BY deleted_at DESC LIMIT 1"
+    ).fetchone() == ({}, {})
+
+
+def test_d6_real_auth_roundtrip_uses_develop_app_user_without_removed_tables(client: TestClient, raw_conn):
+    assert raw_conn.execute("SELECT to_regclass('identity.user_preference')").fetchone()[0] is None
+    assert raw_conn.execute(
+        "SELECT 1 FROM information_schema.columns WHERE table_schema='identity' "
+        "AND table_name='app_user' AND column_name='auth_version'"
+    ).fetchone() is None
+    assert _signup(client, "d6-develop-schema@example.com").status_code == 201
+    assert client.get("/auth/me").status_code == 200
