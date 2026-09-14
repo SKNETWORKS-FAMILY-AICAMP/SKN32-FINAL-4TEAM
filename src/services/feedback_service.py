@@ -24,6 +24,21 @@ _ACTION_TO_EVENT_TYPE = {
     "confirmed": "plan_confirmed",
 }
 
+# P8 IMPLEMENTATION7: "payload whitelist IDs/action/version/reason code; no body/
+# email/token/private note." Keys must end in _id (identifiers), or be one of these
+# scalar fields; values must be JSON scalars — never a nested dict/list, which is
+# exactly how a body/email/token would otherwise be smuggled in through this "id".
+_PAYLOAD_SCALAR_KEYS = {"action", "version", "reason_code", "source"}
+
+
+def _validate_payload(payload: dict[str, Any]) -> None:
+    for key, value in payload.items():
+        allowed_key = key in _PAYLOAD_SCALAR_KEYS or key.endswith("_id")
+        if not allowed_key:
+            raise ValueError(f"feedback payload key not allowed: {key!r}")
+        if value is not None and not isinstance(value, (str, int, float, bool)):
+            raise ValueError(f"feedback payload value for {key!r} must be a scalar, got {type(value).__name__}")
+
 
 def _event_key(*, run_id: UUID | str | None, item_id: UUID | str | None, version: int, action: str) -> str:
     """멱등성 키 — run/item/version(=plan_revision.lock_version)/action 에 결정적으로 묶는다."""
@@ -40,6 +55,7 @@ def emit(conn, *, plan_id: UUID, revision_id: UUID, run_id: UUID | str | None,
     """
     if action not in _ACTION_TO_EVENT_TYPE:
         raise ValueError(f"unknown feedback action: {action}")
+    _validate_payload(payload or {})
     event_type = _ACTION_TO_EVENT_TYPE[action]
     event_key = _event_key(run_id=run_id, item_id=item_id, version=version, action=action)
     row = conn.execute(

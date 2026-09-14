@@ -1,0 +1,3 @@
+{"sample_id": "s1", "label": "retained", "review_status": "approved", "reviewer_ref": "mod-a", "method_version": "manual-v1", "observations": [], "confidence": 0.1}
+{"sample_id": "s2", "label": "retained", "review_status": "approved", "reviewer_ref": "mod-a", "method_version": "manual-v1", "observations": [], "confidence": 0.15}
+{"sample_id": "s3", "label": "excluded", "review_status": "approved", "reviewer_ref": "mod-a", "method_version": "manual-v1", "observations": ["burst7", "prolific_rate"], "confidence": 0.92}

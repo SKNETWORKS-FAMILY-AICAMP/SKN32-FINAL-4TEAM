@@ -5,10 +5,13 @@ assembled_self_reported 확인 후 게시(C11). 외부 리뷰 원문 미저장.
 """
 from __future__ import annotations
 
+import os
 from uuid import UUID
 
 from src.config import REVIEW_SUMMARIES_DEMO
-from src.errors import NotFound
+from src.errors import NotFound, ValidationFailed
+from src.db import get_conn
+from src.repo.review_repo import ReviewRepo, ReviewSubjectRepo
 from src.repo.review_repo import (OBS_LABEL, SUSPECT_SOURCE, ReviewSummaryDemoFile,
                                  default_risk_store, default_suspect_counts)
 from src.schemas import ProductRiskOut, ReviewSummaryOut, ReviewTelemetry, SyntheticDemoOut
@@ -49,22 +52,49 @@ def candidate_keys(product_key: str) -> list[str]:
     return keys
 
 
-def get_summary(product_key: str) -> ReviewSummaryOut:
-    """S5 리뷰 상세. 실측(관계·행동 축 관측)과 합성 데모 블록을 분리해 낸다.
+def _db_backed_analysis(product_key: str) -> dict | None:
+    """P8: evidence.review_aggregate에 검수 승인된 파일 기반 분석이 있으면 그 값을 낸다.
 
-    - 관측은 상품 단위이고 점수가 아니다. 개별 리뷰의 진위가 아니다
-    - cleaned_rating · cleanse_ratio 는 항상 null — 판정기가 없다(docs/decisions/0001)
+    `DATABASE_URL`이 명시적으로 설정된 배포/통합-테스트 환경에서만 시도한다 — 환경변수를
+    안 준 개발/PC 단위테스트(config.py의 하드코드 기본값으로 앰비언트 DB에 잡히는 상황)에서
+    조용히 진짜 DB에 연결해 기존 파일 전용 경로의 동작을 바꾸지 않기 위해서다. 연결·조회
+    실패는 모두 "분석 없음"으로 접는다 — 이 경로가 있다고 기존 PC 관측 경로가 죽으면 안 된다.
+    """
+    if not os.environ.get("DATABASE_URL"):
+        return None
+    try:
+        with get_conn() as conn:
+            subject_id = ReviewSubjectRepo(conn).resolve_by_key(product_key)
+            if subject_id is None:
+                return None
+            repo = ReviewRepo(conn)
+            aggregate = repo.get_summary(subject_id)
+            if aggregate is None:
+                return None
+            return {"aggregate": aggregate, "summaries": repo.top_summaries(aggregate)}
+    except Exception:
+        return None
+
+
+def get_summary(product_key: str) -> ReviewSummaryOut:
+    """S5 리뷰 상세. 실측(관계·행동 축 관측 + P8 파일 기반 분석)과 합성 데모 블록을 분리해 낸다.
+
+    - 관측(관계·행동 축)은 상품 단위이고 점수가 아니다. 개별 리뷰의 진위가 아니다
+    - cleaned_rating · cleanse_ratio 는 그 관측 경로에서 항상 null — 판정기가 없다(docs/decisions/0001)
+    - P8 파일 기반 분석(evidence.review_aggregate)이 있으면 excluded_count/rating_refined/
+      distribution_refined를 실제 값으로 낸다 — 검수 승인된 sample+label에서 계산된 값이다
     - 항목별 평가·요약 3건은 지금 합성 데모뿐이라 `synthetic_demo` 에 표지와 함께 둔다
     """
     store, demo = _stores()
-    key, facts, d = product_key, None, None
+    key, facts, d, db = product_key, None, None, None
     for cand in candidate_keys(product_key):
         facts = store.get(cand) if store else None
         d = demo.get(cand) if demo else None
-        if facts is not None or d is not None:
+        db = _db_backed_analysis(cand)
+        if facts is not None or d is not None or db is not None:
             key = cand
             break
-    if facts is None and d is None:
+    if facts is None and d is None and db is None:
         raise NotFound(f"리뷰 요약 없음: {product_key}", field="product_key")
 
     if facts is not None:
@@ -92,6 +122,30 @@ def get_summary(product_key: str) -> ReviewSummaryOut:
         note = ("관측 없음 — 이 상품은 관계·행동 축 산출물에 없다(리뷰 수 문턱 미만이거나 데이터 기간 밖). "
                 "정제 평점·제외 비율은 산출하지 않는다.")
 
+    excluded_count = excluded_ratio = rating_refined = None
+    distribution_raw: dict = {}
+    distribution_refined: dict = {}
+    analysis_version = None
+    status = "unavailable"
+    if db is not None:
+        agg = db["aggregate"]
+        ratings = agg.get("ratings") or {}
+        analyzed = agg["analyzed_count"]
+        if not total:
+            total = analyzed
+        if orig is None:
+            orig = ratings.get("raw_avg")
+        excluded_count = agg["excluded_count"]
+        excluded_ratio = round(agg["excluded_count"] / analyzed, 6) if analyzed else None
+        rating_refined = ratings.get("refined_avg")
+        distribution_raw = ratings.get("raw_distribution") or {}
+        distribution_refined = ratings.get("refined_distribution") or {}
+        analysis_version = agg["processing_version"]
+        status = "ready"
+        summaries = summaries + db["summaries"]
+        if note.startswith("관측 없음"):
+            note = "검수 승인된 파일 기반 분석 있음 — 개별 리뷰 표본 기준 집계."
+
     synthetic = None
     if d is not None:
         synthetic = SyntheticDemoOut(
@@ -104,6 +158,9 @@ def get_summary(product_key: str) -> ReviewSummaryOut:
     return ReviewSummaryOut(
         product_key=key, product_name=d.get("product_name") if d else None,
         total_count=total, rating_raw=orig, summaries=summaries, data_notice=note,
+        excluded_count=excluded_count, excluded_ratio=excluded_ratio, rating_refined=rating_refined,
+        distribution_raw=distribution_raw, distribution_refined=distribution_refined,
+        analysis_version=analysis_version, status=status,
         product_manipulation_risk=risk_out, synthetic_demo=synthetic)
 
 
@@ -122,7 +179,23 @@ def usage_context_with_telemetry(usage_context: dict | None, telemetry: ReviewTe
 def write_part_review(user_id: UUID, variant_id: UUID, *, rating: int, title: str,
                       body: str, axis_scores: dict, telemetry: ReviewTelemetry | None = None) -> dict:
     """usage_context = usage_context_with_telemetry(…, telemetry) 로 add_revision 에 넘긴다."""
-    raise NotImplementedError
+    if not 1 <= rating <= 5:
+        raise ValidationFailed("평점은 1~5점입니다.", field="rating")
+    if not title.strip() or not body.strip():
+        raise ValidationFailed("제목과 본문은 비워둘 수 없습니다.")
+    if len(title) > 120 or len(body) > 5000:
+        raise ValidationFailed("리뷰 길이 제한을 초과했습니다.")
+    if not isinstance(axis_scores, dict) or any(not isinstance(v, (int, float)) for v in axis_scores.values()):
+        raise ValidationFailed("axis_scores 형식이 올바르지 않습니다.", field="axis_scores")
+    with get_conn() as conn:
+        variant = conn.execute("SELECT id FROM catalog.product_variant WHERE id=%s", (variant_id,)).fetchone()
+        if variant is None: raise NotFound("리뷰 대상 옵션이 없습니다.", field="variant_id")
+        repo = ReviewRepo(conn); domain = repo.baby_domain_version()
+        if domain is None: raise ValidationFailed("baby domain_version이 준비되지 않았습니다.")
+        subject = ReviewSubjectRepo(conn).get_or_create(variant_id=variant_id)
+        review_id = repo.create(user_id, subject)
+        revision_id = repo.add_revision(review_id, domain_version_id=domain, rating=rating, title=title.strip(), body=body.strip(), axis_scores=axis_scores, usage_context=usage_context_with_telemetry({}, telemetry))
+    return {"review_id": str(review_id), "revision_id": str(revision_id), "status": "draft"}
 
 
 def write_build_review(user_id: UUID, build_version_id: UUID, *, rating: int, title: str,
@@ -133,12 +206,22 @@ def write_build_review(user_id: UUID, build_version_id: UUID, *, rating: int, ti
 
 
 def publish(review_id: UUID, user_id: UUID) -> None:
-    raise NotImplementedError
+    with get_conn() as conn:
+        repo = ReviewRepo(conn); review = repo.owned(review_id,user_id)
+        if review is None: raise NotFound("리뷰를 찾을 수 없습니다.")
+        row = conn.execute("SELECT id FROM community.review_revision WHERE review_id=%s ORDER BY revision_no DESC LIMIT 1", (review_id,)).fetchone()
+        if row is None: raise ValidationFailed("게시할 리뷰 버전이 없습니다.")
+        repo.publish(review_id,row[0])
 
 
 def list_pending_for_user(user_id: UUID) -> dict:
     """A7: 작성해야 할 리뷰 / 개봉 확인 / 내가 쓴 리뷰."""
-    raise NotImplementedError
+    with get_conn() as conn:
+        rows = conn.execute("""SELECT r.id, r.status, r.current_revision_id, v.id AS variant_id,p.model AS product_key,p.name
+          FROM community.review r JOIN evidence.review_subject s ON s.id=r.subject_id
+          JOIN catalog.product_variant v ON v.id=s.variant_id JOIN catalog.product p ON p.id=v.product_id
+          WHERE r.author_user_id=%s ORDER BY r.updated_at DESC""", (user_id,)).fetchall()
+    return {"items": [{"review_id":str(r[0]),"status":r[1],"revision_id":str(r[2]) if r[2] else None,"variant_id":str(r[3]),"product_key":r[4],"name":r[5]} for r in rows]}
 
 
 # ── [5] 리뷰 관측을 저장 경로로 나르기 ──────────────────────────────────────

@@ -7,23 +7,26 @@
 """
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, status
+from uuid import UUID
 
 from src import schemas
 from src.services import review_service
+from src.auth.deps import current_user
 
 router = APIRouter(prefix="/reviews", tags=["reviews"])
 
 
 @router.get("/pending")
-def pending() -> dict:
+def pending(user_id: UUID = Depends(current_user)) -> dict:
     """작성해야 할 리뷰 / 개봉 확인 / 내가 쓴 리뷰."""
-    raise NotImplementedError
+    return review_service.list_pending_for_user(user_id)
 
 
-@router.post("/part")
-def write_part(body: schemas.PartReviewIn) -> dict:
-    raise NotImplementedError
+@router.post("/part", status_code=status.HTTP_201_CREATED)
+def write_part(body: schemas.PartReviewIn, user_id: UUID = Depends(current_user)) -> dict:
+    return review_service.write_part_review(user_id, UUID(body.variant_id), rating=body.rating, title=body.title,
+                                             body=body.body, axis_scores=body.axis_scores, telemetry=body.telemetry)
 
 
 @router.post("/build")
@@ -32,8 +35,9 @@ def write_build(body: schemas.BuildReviewIn) -> dict:
 
 
 @router.post("/{review_id}/publish")
-def publish(review_id: str) -> dict:
-    raise NotImplementedError
+def publish(review_id: UUID, user_id: UUID = Depends(current_user)) -> dict:
+    review_service.publish(review_id, user_id)
+    return {"review_id": str(review_id), "status": "published"}
 
 
 @router.get("/summary/{product_key}", response_model=schemas.ReviewSummaryOut)
