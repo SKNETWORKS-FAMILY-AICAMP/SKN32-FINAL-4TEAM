@@ -1,265 +1,254 @@
-# TrueFit — 목적성 쇼핑 플래너
+# TrueFit — Purpose-Driven Shopping Planner
 
-사용자의 목적·예산·조건에 맞춰 필요한 물품을 구성하고, 선택 근거와 외부 구매 링크를 제공하는 프로젝트입니다. 설계 범위는 **PC 본체 조립과 유아용품 준비**이며 요리 도메인은 제외합니다.
+**English** · [한국어](README.ko.md)
 
-**현재는 PC 추천 시나리오 데모, 가상 설명서 생성기, 설명서 RAG, 화면 목업을 개발한 단계입니다.** 일반 사용자 API·인증·계획 저장·알림까지 연결된 서비스는 아직 아닙니다. 아래는 2026-09-11
-저장소의 코드와 산출물 기준입니다.
+TrueFit turns a goal — *"a quiet gaming PC under ₩2,000,000"*, *"everything an 8-month-old needs for going out"* — into a concrete, budget-checked shopping list, and shows its work: why each item was chosen, which compatibility or safety checks passed or are still open, and what the review data actually shows about each product.
 
-유아용품의 최신 상태는 [서비스 전체 흐름·구현 현황·직접 확인법·후속 구현 계획](docs/유아용품_서비스흐름_구현현황_2026-09-12.md)을 참고하세요. 2026-09-13 최신 코드·stash 복원 후 검증과 P0 재작업 판단으로 아래의 이전 현황을 보완합니다.
+- **Two domains.** PC builds (set optimization + compatibility verification) and baby products (per-item safety gating + budget allocation).
+- **Agents where judgment needs language, code where it needs numbers.** Two [Strands Agents SDK](https://strandsagents.com/) agents run the free-text conversation and the result-screen edits through tool calls; ranking, verification scores, budget math and every persisted value come from code.
+- **Evidence, not scores.** Review analysis reports *observed facts* ("100 of 200 reviews landed within 7 days — category median 5.5%") and never a "fake review" verdict. Before-you-buy checks cite a care-guide passage. Explanations are generated from stored facts only.
 
-![](docs/service-flow/슬라이드1.PNG)
-![](docs/service-flow/슬라이드2.PNG)
-![](docs/service-flow/슬라이드3.PNG)
+What it is **not**: it is not a store (purchase links go to sellers), the demo catalog prices and reviews are **synthetic** and labeled as such in the UI (`data_notice`), and it does not decide whether a review is fake or a part is "better".
 
-## 개발 현황
+> Snapshot of branch `feat/sllm-work` on **2026-09-14** (upstream `develop` + 13 commits). Built for the AWS *Agents for Humans* hackathon; development continues to 2026-10-26. Sections marked *(Korean)* link to team documents written in Korean.
 
-| 영역             | 구현된 내용                                                                                          | 현재 한계                                                                               |
-|------------------|------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------|
-| PC 추천 데모     | 조건 정리 → 요구사양 → 후보 → 필터·순위 → 구성 → 검증·재탐색 → 설명의 콘솔 실행                      | LLM·가격·성능값·검증 점수에 목(mock) 데이터 사용. 실제 호환성·예산 준수 보장 없음       |
-| 화면             | `frontend/`의 멀티페이지 화면(랜딩·카테고리·조건 대화·추천 결과·확정·리포트·로그인·회원가입·회원정보), 장바구니 전환·이름 변경·삭제 | 실제 API(`TF_API`)를 호출하도록 연결되어 있으나 백엔드 대부분이 501이라 실제로는 미동작    |
-| API              | FastAPI 앱, 요청·응답 모델, 공통 오류 처리, 상태 확인·개발용 시나리오 API                            | 일반 사용자용 20개 작업은 미구현이며 호출 시 501 등 오류 반환                           |
-| 데이터베이스     | 12개 스키마·58개 업무 테이블의 DDL, FK·UNIQUE·CHECK·인덱스·갱신 시각 트리거, 활성 임베딩 프로필 제약 | 공통 연결 풀과 대부분의 repo 미구현. 전체 업무 무결성·권한·상태 전이 구현은 남아 있음   |
-| 설명서 생성      | 유모차·젖병·기저귀·컵의 규칙 기반 부분 설명서, 사실 원장·인용 위치·해시·검증 파일                    | 모든 출력은 `partial`. 입력에 없는 조작법과 전체 안전 지침을 생성하지 않음              |
-| 설명서 RAG       | Markdown 청크화, DB 적재·게시, pgvector+키워드 검색, 검색·인용 기록, 권한·철회 검사                  | 관리자 CLI 중심. 단일 가상 유모차 자료로 회귀 평가. PDF/OCR·S3·전체 추천 UI 연결 미구현 |
-| 임베딩           | Bedrock Titan v2 어댑터와 명시적 `local-test` 1024차원 벡터                                          | Bedrock 실모델 품질 평가는 미수행. local-test는 어휘 해시 벡터                          |
-| 리뷰·데이터 도구 | PC 합성 리뷰 요약 생성, 공식 스펙 수집 스크립트, 유아용품 상품 생성 코드                             | 운영 리뷰 작성·집계·학습 파이프라인 미구현. 상품 생성 기본 사전 파일 누락               |
-| 리뷰 관계·행동 축 | 공개 리뷰 데이터(Amazon Reviews'23)에서 리뷰어–상품 그래프의 **관측 사실**(7일 몰림·공유 리뷰어·계정 구성)을 배치로 산출하고 데모 부품 25종에 연결. 계약 리더(`ProductRiskStore`)까지 | 조작 라벨이 없어 탐지율·정제 후 평점은 산출하지 않음(`cleaned_rating`은 null). `GET /reviews/summary`·[3-B] 리뷰축·[5] 설명에 연결됨. 수집기·`author_ref` 저장은 미구현 |
+## What you see
 
-## 빠른 시작
+Landing → Category → Conditions chat → Results → Confirm → Report, plus login/sign-up/account. Every screen is a separate static page under `frontend/` served by the API on the same origin; every value comes from the API and the database — no demo accounts, no client-side fake data. The UI has a Korean/English toggle; in an English session the server also writes its questions, chips, progress steps and explanations in English and reads unit-less budgets as US dollars (`USD_KRW_RATE`, fixed).
 
-프로젝트 루트에서 실행합니다. Python **3.11**과 `uv`를 사용합니다. DB 없이 PC 콘솔 데모와 기본 테스트를 실행할 수 있습니다.
+| Screen | Page | What happens |
+|---|---|---|
+| Category | `category.html` | Pick PC (new build / upgrade) or baby (expecting / born). Creates a guest session cookie — no login needed to get a recommendation |
+| Conditions | `conditions.html` | Mixed chat: chips for required fields, free text for anything else (`POST /session/{id}/message` → conditions agent when enabled, keyword rules otherwise). Upgrade mode accepts a text spec file |
+| Results | `results.html` | Items per slot with price, budget share, **reason**, **before-you-buy checks**, and a review line. Swap from alternatives, change quantity/timing, remove/restore, or type a request ("cheaper CPU") → result agent when enabled. "Show the process" opens `logs.html` |
+| Confirm | `confirm.html` | Name, planned purchase date, target amount, memo (pre-filled from the result). Login required from here on; a guest's baskets merge into the account on sign-up |
+| Report | `report.html` | Confirmed snapshot with seller links and an optional target-price watch |
 
-```powershell
-uv sync --locked
-uv run python main.py --list
-uv run python main.py computer_pass
-uv run python main.py computer_research
-uv run python -m pytest -q
+## Architecture
+
+```mermaid
+flowchart LR
+  subgraph Browser["Browser — frontend/ (10 static pages, KO/EN)"]
+    UI["TF_API fetch wrapper<br/>httpOnly cookies only"]
+  end
+  subgraph API["FastAPI — src/api.py (38 operations)"]
+    S["/session · conversation, recommend, result edits"]
+    L["/lists · confirm, report, price watch"]
+    A["/auth · email + password, JWT cookie"]
+    RV["/reviews · summary (relation axis)"]
+  end
+  subgraph Agents["Strands Agents SDK (opt-in)"]
+    CA["Conditions agent<br/>set_condition · add_extra_condition · clear_condition"]
+    RA["Result agent<br/>list_alternatives · swap · set_qty · set_timing<br/>remove_or_restore · explain"]
+  end
+  subgraph Engine["Recommendation engine — src/engine"]
+    E["[1] intent → [2] requirement → [3-0] candidates → [3-A] hard filter<br/>→ [3-B] rank → [4] optimize ⇄ [3-C] verify → [5] explain"]
+  end
+  subgraph Evidence["Evidence sources"]
+    RX["Review relation axis<br/>Amazon Reviews'23 batch → JSON"]
+    CG["Part care-guide RAG<br/>18 guides, in-memory embeddings"]
+    MR["Manual search provider<br/>local-file, outside PostgreSQL"]
+  end
+  DB[("PostgreSQL 16<br/>10 schemas · 38 tables")]
+  LLM["OpenAI API<br/>chat + embeddings"]
+  UI --> API
+  S --> CA & RA & Engine
+  Engine --> RX & CG & MR
+  API --> DB
+  CA & RA --> LLM
+  Engine -- "[3-C] issue sentences · [5] explanation" --> LLM
+  CG --> LLM
 ```
 
-- `computer_pass`: 8개 PC 슬롯을 구성하고 1회 검증으로 통과하는 목 시나리오입니다.
-- `computer_research`: 주입된 점수 72 → 후보 교체·재탐색 → 86 흐름을 보여줍니다.
-- `stage4_optimize.py`는 현재 슬롯별 후보를 고르는 근사 구현입니다. 로그의 조합 수는 실제 완전탐색 수행량이 아니며, 재탐색 후 예산을 초과할 수 있습니다.
-- 검증 점수·고정 기여도·합성 가격을 실제 상품의 품질·시세·호환성 평가로 해석하지 않습니다.
+The engine runs the same stages for both domains up to ranking, then branches: **PC** optimizes the set first and verifies it as a whole (below the confidence threshold it swaps a candidate and re-runs — `computer_research` shows one such round); **baby** verifies each item first (manual applicability, recall, certification) and then allocates the budget across mandatory and optional items. `POST /session/{id}/recommend` returns `202` immediately and the run persists its requirements, candidates, checks and explanation to PostgreSQL; `GET …/result` polls.
 
-설정은 **프로세스 환경변수**로 전달합니다. [`.env.example`](.env.example)을 `.env` 로 복사해 값을 채우면 `src/config.py` 가 시작할 때 읽습니다. 이미 설정된 프로세스 환경변수가 `.env` 값보다 우선합니다. PC 데모는 기본
-`MOCK_MODE=1`로 동작합니다. 설명서 RAG CLI의 `--provider`는 이 값과 별개입니다.
+## Agents (Strands Agents SDK)
 
-### API 실행
+| Agent | Endpoint | Tools | Boundary |
+|---|---|---|---|
+| **Conditions agent** — `src/agent/conditions_agent.py` | `POST /session/{id}/message` | `set_condition`, `add_extra_condition`, `clear_condition` | May only touch fields in `config/categories/<cat>.yaml` `slot_schema`; enum/type/nullability is validated in code and a violation is returned to the model as an error to fix. Never touches the DB — patches are written by `session_service` with the same origin as the rule path. Asks the next missing required question |
+| **Result agent** — `src/agent/result_agent.py` | `POST /session/{id}/result-message` | `list_alternatives`, `swap`, `set_qty`, `set_timing`, `remove_or_restore`, `explain` | Wraps existing service functions; optimization, verification and ranking stay in the engine. `explain` returns stored reasons, issues and review observations only — no "is this review fake?", no "is this part better?" |
 
-```powershell
+Design rule kept throughout: **verdicts and numbers come from code; the LLM narrates.** The same OpenAI-backed `call_llm` also writes the [3-C] verification issue sentences and the [5] explanation from facts the engine hands it. Everything runs without a key in `MOCK_MODE=1` — you then see `[MOCK] …` placeholder sentences and the rule-based paths (keyword extraction; "slot + cheaper/better" edits).
+
+Turn the agents on with all of `MOCK_MODE=0 · LLM_PROVIDER=openai · LLM_MODEL · OPENAI_API_KEY` plus `CONDITIONS_AGENT=1` / `RESULT_AGENT=1`. Design notes *(Korean)*: [conditions agent](docs/조건대화_에이전트_strands.md) · [result agent](docs/결과화면_에이전트_strands.md).
+
+## Quick start
+
+Python **3.11** and [`uv`](https://docs.astral.sh/uv/). Configuration is read from process environment variables, with `.env` in the project root as a fallback (`.env.example` lists them).
+
+### A. Console demo — no database, no API key
+
+```bash
+uv sync --locked
+uv run python main.py --list
+uv run python main.py computer_pass        # 8 slots, passes verification in one round
+uv run python main.py computer_research    # injected score 72 → swap candidate → 86
+uv run python -m pytest -q                 # 264 passed, 162 skipped without a DB (see Tests)
+```
+
+The console pipeline runs from scenario files in `data/scenarios/` with mock LLM output and **injected** verification scores; `stage4_optimize.py` picks per-slot candidates approximately. Do not read its confidence, contributions or synthetic prices as real product quality, market prices or compatibility.
+
+### B. Full stack — web UI + PostgreSQL
+
+```bash
+cp .env.example .env                        # defaults: MOCK_MODE=1, agents off
+docker compose up -d db                     # pgvector/pgvector:pg16 on localhost:5432
+export DATABASE_URL=postgresql://truefit:truefit@localhost:5432/truefit
+uv run python db/setup_all.py               # 15 migrations · domains · 51 PC parts · 153 review summaries
+uv run python scripts/generate_and_seed_baby_catalog.py   # 188 synthetic baby products (baby domain)
 uv run uvicorn src.api:app --reload --host 127.0.0.1 --port 8000
 ```
 
-- API 문서: [Swagger UI](http://127.0.0.1:8000/docs)
-- 상태 확인: [GET /health](http://127.0.0.1:8000/health)
+Open <http://127.0.0.1:8000> — the API serves the frontend on the same origin, so no second server. Swagger UI is at `/docs`; `GET /health` only says the process is up, not that the DB is reachable. [`db/README.md`](db/README.md) *(Korean)* is the canonical DB setup guide and includes a conda route without Docker. Every developer uses a local DB; there is no shared one.
 
-```powershell
-Invoke-RestMethod http://127.0.0.1:8000/dev/scenarios
-Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/dev/run -ContentType 'application/json' -Body '{"scenario":"computer_pass"}'
+### C. Real LLM and agents
+
+```ini
+MOCK_MODE=0
+LLM_PROVIDER=openai
+LLM_MODEL=gpt-4o-mini
+OPENAI_API_KEY=...
+CONDITIONS_AGENT=1
+RESULT_AGENT=1
 ```
 
-`/dev/*`는 DB를 사용하지 않는 개발용 목 실행 경로입니다. `/health`의 성공은 DB 연결이나 전체 서비스 준비 완료를 뜻하지 않습니다. 현재 앱에는 개발 라우터가 포함되어 있으므로 배포 전에 노출
-정책을 적용해야 합니다.
+The test suite reads `.env` too — run it with `MOCK_MODE=1 uv run python -m pytest -q` or the result-agent tests will call OpenAI.
 
-### 화면 목업 보기
+### D. Deploy with Docker
 
-API와 별도 터미널에서 정적 파일 서버를 실행합니다.
-
-```powershell
-uv run python -m http.server 5500 --bind 127.0.0.1 --directory frontend
+```bash
+docker compose up -d --build                     # db + api (image: Dockerfile)
+docker compose exec api python db/setup_all.py   # first run
 ```
 
-[TrueFit 랜딩](http://127.0.0.1:5500/index.html)을 엽니다. 페이지마다 파일이 나뉜 멀티페이지 구조이며(화면 지도는 `frontend/CLAUDE.md` 참고), 모든 화면이 `TF_API`로 실제 백엔드를 호출합니다. 지금 열어 둔 장바구니 ID만 브라우저 `localStorage`에 남고, 나머지 데이터는 API·서버 계정을 거칩니다. 백엔드 대부분이 아직 501이라 API와 같은 도메인에서 서빙하거나 CORS를 열어야 화면이 정상 동작하며, 구체적인 요청 사항은 `docs/frontend_외부수정요청.md`에 정리되어 있습니다.
+The image does not include `scripts/`, so seed the baby catalog from the host against the published port. Set `JWT_SECRET` (the app refuses the dev default when `APP_ENV=production`), `COOKIE_SECURE=1` behind HTTPS, and `ALLOWED_ORIGINS` only if the UI is served from another origin — the API is same-origin by design and answers `403` to mutating requests carrying a foreign `Origin`.
 
-## 데이터베이스와 구조 문서
+## What works today, and what does not
 
-PostgreSQL과 pgvector를 같은 DB에서 사용합니다. 설계상 파일 원본은 별도 객체 저장소에 두며, 현재 설명서 RAG는 관리자용 로컬 `.rag-files/`를 사용합니다.
+| Area | Working | Limits |
+|---|---|---|
+| PC recommendation (web) | Guest session → conditions → run → result with reasons, checks, review line, alternatives, swap, quantity/timing, result chat → confirm → report → price watch, all persisted | Catalog of 51 parts with **synthetic prices**; compatibility checks are approximations (socket, power, size); a swap does not re-run verification (the UI offers "another build" for that) |
+| Baby recommendation (web) | Conditions (age, needs, health/skin, owned items, weight, sitting) → run → per-item candidates with safety checks → budget allocation | With the shipped synthetic catalog **no candidate passes gating** (no reviewed safety rule per category; active-recall flags), so the basket ends *done* with 0 selected items and the message "mandatory items cannot be filled within budget" — the mechanism runs, the data does not yet let it choose |
+| Conversation | Chips + free text; Strands conditions agent (opt-in) reflects "extra conditions/changes" that keyword rules miss; English sessions fully in English | Rule path only knows fixed keywords; the agent needs an OpenAI key |
+| Auth & lists | Email + password (argon2), httpOnly JWT cookie, guest → account merge, rename/delete, soft withdrawal | Email verification and password-reset mail are deferred (10/26); `/auth/request-code`, `/auth/verify` are stubs (`501`) |
+| Review evidence | Relation/behavior-axis facts for 25 of 51 demo parts, in [3-B] ranking (demotion, never exclusion), [5] explanation and `GET /reviews/summary` | No manipulation labels → **no detection rate and no cleaned rating** (`cleaned_rating` is always null — [decision 0001](docs/decisions/0001-정제-후-평점을-판정기-없이-내지-않는다.md) *(Korean)*). Review **writing** is out of demo scope |
+| RAG | *Before you buy* checks cite 18 synthetic part care guides via in-memory embeddings; baby manuals are published to a local-file search provider (`BABY_SEARCH_PROVIDER=local-file`; 5 chunks, 21/21 regression queries) that verifies seat conditions from reviewed sentences only | The PostgreSQL `rag` schema was dropped (migration 0011) after mentor review — chunks and vectors do not belong in the RDB. A hosted vector store is planned but not configured; without a provider the eligibility is *unknown*, never a silent fallback |
+| Database | 10 schemas / 38 tables after the 58 → 38 reduction, FK/UNIQUE/CHECK, `updated_at` triggers, one-shot `db/setup_all.py`, RDS-compatible SQL | Optimistic locking, state-transition and cross-schema invariants are enforced in services, not the DB |
+| Data tools | Amazon Reviews'23 batch, synthetic catalogs and manuals, spec scraper | No live price or spec feed; notification and feedback-learning workers are stubs |
 
-![데이터베이스 → 스키마 → 테이블 구조도](docs/db/database-structure-overview.png)
+## API surface
 
-- [테이블 명세서 v4](docs/db/table_spec.md): 설계 기준, 58개 테이블·컬럼·제약·수용 기준
-- [데이터 구조 설계 근거](데이터_구조_설계_근거.md): 업무별 분리 이유, 초기 범위, 리뷰·학습 데이터 정책
-- [개발 역할 분담](개발_역할_분담.md): 5인 소유 영역, 통합 순서, 충돌 방지 규칙과 가격 알림 제외 범위
-- [확대 가능한 SVG](docs/db/database-structure-overview.svg)
-- [항목을 편집할 수 있는 PPTX](docs/db/pptx/database-structure-overview.pptx): 가로형 1장, 텍스트·도형·선 개별 편집
-- [DB 마이그레이션 설명](db/README.md)
+38 operations in the OpenAPI document (`/docs`). Cookie auth: `truefit_guest` for anonymous sessions, `truefit_session` (JWT) after login.
 
-### 로컬 DB 준비
+| Group | Operations | State |
+|---|---|---|
+| `/session` (14) | `POST /session`, `GET /session/{id}`, `POST …/category`, `PATCH …/slot`, `POST …/message`, `…/answer`, `…/reset`, `…/spec-file`, `POST …/recommend` (202), `GET …/result`, `PATCH …/items/{item_id}`, `GET …/items/{item_id}/alternatives`, `POST …/items/{item_id}/swap`, `POST …/result-message` | Working, no login required |
+| `/lists` (6) | `GET /lists`, `PATCH /lists/{id}`, `DELETE /lists/{id}`, `POST …/confirm` (with `If-Match` lock version), `GET …/report`, `POST …/alert` | Working; confirm/report/alert require login |
+| `/auth` (10) | `signup`, `login`, `logout`, `GET/PATCH me`, `password`, `withdraw`, `email-availability` | Working. `request-code`, `verify` → `501` (reserved for email verification) |
+| `/reviews` (5) | `GET /reviews/summary/{product_key}` (engine key, summary key or ASIN) | Working. `pending` / `part` / `publish` read and write review drafts against the DB; `build` → `501`. Review writing is out of demo scope |
+| `/dev` (2) | `GET /dev/scenarios`, `POST /dev/run` | Scenario pipeline without a DB; remove or guard before exposing publicly |
+| `/health` | `GET /health` | Process liveness only |
 
-Docker를 사용할 수 있는 환경에서 실행합니다.
+Errors use one envelope: `{"error": {"code", "message", "field"}}`. The contract the frontend is built against is [`docs/frontend_외부수정요청.md`](docs/frontend_외부수정요청.md) *(Korean)*.
 
-```powershell
-docker compose up -d db
-$env:DATABASE_URL='postgresql://truefit:truefit@localhost:5432/truefit'
-uv run python db/migrate.py up
-uv run python db/migrate.py status
-```
+## Review evidence — relation and behavior axis
 
-컨테이너는 `pgvector/pgvector:pg16`을 사용합니다. DB가 연결 가능한 상태가 된 뒤 마이그레이션을 적용합니다.
+Without reading review text, the batch looks at **who reviewed what, when** and produces per-product observations that anyone can check or refute: share of reviews landing within 7 days, reviewers shared with other products, account composition — each against the median of the same product category as control. Source: Amazon Reviews'23 (Electronics: 43.9 M reviews, ≈12 GB, ≈6 min). Raw `.jsonl` files are not in the repository and `data/amazon23/` is git-ignored.
 
-| 마이그레이션                  | 내용                                   |
-|-------------------------------|----------------------------------------|
-| `0000_prereq.sql`             | vector 확장·12개 스키마·갱신 시각 함수 |
-| `0001_tables.sql`             | 58개 업무 테이블·PK·CHECK·기본값       |
-| `0002_unique.sql`             | 단순·복합·부분·표현식 UNIQUE           |
-| `0003_foreign_keys.sql`       | 스키마 간 FK와 소속 일치 복합 FK       |
-| `0004_triggers.sql`           | updated_at 갱신 트리거                 |
-| `0005_indexes.sql`            | 조회·조인·검색 인덱스                  |
-| `0006_rag_active_profile.sql` | 활성 임베딩 프로필 하나만 허용         |
-
-벡터 컬럼은 현재 `vector(1024)`입니다. 명세의 차원 D와 달리 실행 코드에는 초기 차원이 정해져 있으므로 모델·차원 변경 시 재임베딩과 마이그레이션을 검토해야 합니다. DDL 제공이나 RAG 통합 테스트
-통과가 모든 업무 규칙 구현을 뜻하지는 않습니다.
-
-## 가상 사용설명서 생성
-
-예제 유모차 입력에서 별도의 새 출력 폴더로 부분 설명서를 생성합니다. API 키·LLM 호출은 필요 없습니다.
-
-```powershell
-uv run python scripts/generate_baby_manual.py --input data/synthetic_manuals/stroller_example.json --output generated/synthetic_manuals/stroller_readme_run
-```
-
-출력 폴더가 이미 있으면 덮어쓰기를 거절합니다. 재실행할 때 새 경로를 지정합니다. 저장소에는 `generated/synthetic_manuals/stroller_example/` 예시가 이미 있습니다.
-
-출력은 `manual.md`, `facts.jsonl`, `mapping.json`, 상품·참조·프로필 스냅샷, `validation.json`, `manifest.json`입니다. 생성기의 검증 통과는 데이터
-일관성 검사이며 실제 제품 안전 인증이나 사람 검수 완료를 뜻하지 않습니다.
-
-[생성기 구현·입력 계약·테스트](docs/synthetic_manual_generator.md)
-
-## 설명서 RAG 실행
-
-마이그레이션을 적용한 개발 DB와 저장소의 설명서 예시를 사용합니다. 다음은 AWS 호출 없는 가상 코퍼스 회귀 실행입니다.
-
-```powershell
-$env:DATABASE_URL='postgresql://truefit:truefit@localhost:5432/truefit'
-uv run python scripts/rag_manual.py ingest --provider local-test
-uv run python scripts/rag_manual.py query --provider local-test --new-test-run --query '바구니 최대 하중은?'
-uv run python scripts/rag_manual.py evaluate --provider local-test --new-test-run --report generated/rag/stroller_readme_evaluation.json
-```
-
-- `manual.md`만 검색합니다. 사실 원장·상품 스냅샷·평가 정답은 검색·임베딩에서 제외합니다.
-- 절 단위 청크와 원문 해시·문자 범위·줄 번호를 보존하고 검색 실행·결과·인용을 DB에 기록합니다.
-- 정확 코사인 검색과 한국어 문자 bigram/모델명 키워드를 RRF로 결합합니다.
-- 검색과 인용 반환 시 권한·자료 상태·상품/옵션·언어·시장·도메인·모델 프로필을 검사합니다.
-- 근거 부족과 오류를 구분하며, 장애 시 목 결과나 local-test로 자동 대체하지 않습니다.
-- `--new-test-run`은 가상 평가용 실행 문맥을 만듭니다. 실제 소비처는 권한을 확인한 추천 실행 ID를 전달해야 합니다.
-- `--reviewed`는 관리자의 검수 완료 표시입니다. 생성기 검증 결과로 자동 설정하지 않습니다.
-
-Bedrock 경로는 `--provider bedrock`, AWS 자격증명·리전, 기본 `amazon.titan-embed-text-v2:0`을 사용합니다. local-test 모델이 이미 활성인 DB에 다른
-모델을 바로 게시할 수 없습니다. 별도 DB 또는 명시적 프로필 전환이 필요합니다. `RAG_TEST_DATABASE_URL`이 설정돼 있으면 CLI는 `DATABASE_URL`보다 그 값을 우선 사용합니다.
-
-[상세 실행법·PGlite 테스트 DB·Bedrock 설정·제한](docs/rag_implementation.md) · [기존 회귀 평가 산출물](generated/rag/README.md)
-
-## 리뷰 관계·행동 축 실행
-
-본문을 보지 않고 **누가·언제** 리뷰했는지로 상품 단위 관측 사실을 만듭니다. 산출물은 점수가 아니라
-"리뷰 200건 중 100건(50%)이 7일 안에 몰림 — 부류 중앙값 5.5%" 같은 확인·반박 가능한 문장입니다.
-공개 데이터 원본(jsonl)은 저장소에 없고 `data/amazon23/`은 `.gitignore`입니다.
-
-```powershell
-uv sync --group review-analysis --group test                     # pandas·numpy·scipy (배치) · httpx (API 테스트)
-uv run python scripts/amazon23_edges.py <Electronics.jsonl> --cat electronics       # 리뷰 jsonl → 엣지 표 (원문 버림)
+```bash
+uv sync --group review-analysis --group test          # pandas · numpy · scipy · httpx
+uv run python scripts/amazon23_edges.py <Electronics.jsonl> --cat electronics      # reviews → edge table (text dropped)
 uv run python scripts/amazon23_meta_slim.py <meta_Electronics.jsonl> --cat electronics
-uv run python scripts/map_parts_to_asin.py                        # data/parts_list.csv ↔ ASIN (data/parts_asin_map.csv)
-uv run python -m src.workers.review_cleanse_worker data/amazon23/electronics_edges.tsv `
-    --meta data/amazon23/electronics_meta.tsv --category "Computer Components|Data Storage" `
-    --out data/amazon23/pcparts_product_risk.json                 # 43.9M건 ≈ 12GB·6분. 대조군은 같은 부류로
-uv run python -m src.workers.review_cleanse_worker --lookup amd-ryzen-5-5600   # 부품 하나의 카드
-uv run python main.py computer_pass                               # 결과표 아래 "리뷰 관측" 줄
+uv run python scripts/map_parts_to_asin.py            # data/parts_list.csv ↔ ASIN (25/51 mapped; the rest launched after 2023-09)
+uv run python -m src.workers.review_cleanse_worker data/amazon23/electronics_edges.tsv \
+    --meta data/amazon23/electronics_meta.tsv --category "Computer Components|Data Storage" \
+    --out data/amazon23/pcparts_product_risk.json
+uv run python -m src.workers.review_cleanse_worker --lookup amd-ryzen-5-5600   # one product's card
 ```
 
-- 산출 JSON(`data/amazon23/pcparts_product_risk.json`, 5MB)이 없는 환경에서는 `ProductRiskStore`가 `None`이고
-  호출자는 "관측 없음"으로 다룹니다. 팀원 기계에는 이 파일을 따로 전달해야 합니다
-- 정제 후 평점(`cleaned_rating`)은 판정기가 없어 **항상 null**입니다 — [결정 0001](docs/decisions/0001-정제-후-평점을-판정기-없이-내지-않는다.md).
-  합성 데모값(`data/review_summaries.json`)은 `is_synthetic: true`와 함께만 나오며 화면은 그 표지를 붙여야 합니다
-- 수집 시점에 잡을 것은 [수집기 설계](docs/review_collector.md) — 작성자 해시·게시 시각·옵션 단위 대상. 빠지면 소급이 안 됩니다
+- Where the output JSON is absent, `ProductRiskStore` is `None` and every consumer shows *no observation* — it never invents a value.
+- `GET /reviews/summary` returns the observed block and, separately, a synthetic demo block flagged `is_synthetic: true`; the UI must keep the flag visible.
+- What a future collector must capture on day one (author hash, posting time, variant-level subject) is in [`docs/review_collector.md`](docs/review_collector.md) *(Korean)*; the stored columns are [decision 0002](docs/decisions/0002-review_summary에-작성자-해시와-게시시각을-둔다.md) *(Korean)*. Nothing can be back-filled later.
 
-## API 계약과 구현 상태
+## Data and tools
 
-OpenAPI에는 업무·개발용 22개 작업과 `/health` 1개가 등록되어 있습니다. 인증 표시는 구현 목표이며 현재 인증 기능은 미구현입니다.
+| Tool | Purpose |
+|---|---|
+| `db/setup_all.py` | Migrations + reference data + PC catalog + review summaries, idempotent |
+| `scripts/generate_and_seed_baby_catalog.py` | Deterministic synthetic baby catalog (188 products, 18 item types) → DB upsert; `--dry-run` validates without a DB |
+| `scripts/generate_baby_manual.py` | Rule-based **partial** product manual from a JSON spec (`data/synthetic_manuals/stroller_example.json`) with fact ledger, citations, hashes and validation — never invents operating or safety instructions. [Details](docs/synthetic_manual_generator.md) *(Korean)* |
+| `scripts/rag_manual.py ingest\|query\|evaluate --provider local-file` | Publish a generated manual to the local-file search provider (`.baby-search-index/`), query it, run the 21-case regression. The API uses the same index when `BABY_SEARCH_PROVIDER=local-file` is set; unset means *unconfigured* |
+| `scripts/build_specs.py` | First-party spec scraper for CPU/GPU/mainboard with source URLs (1 req/s, robots.txt, cache). Most target sites render client-side, so expect a manual to-do list. [Notes](scripts/README.md) *(Korean)* |
+| `scripts/gen_review_summaries.py` | Synthetic review summaries for the demo (`data/review_summaries.json`) — not real reviews |
+| `scripts/import_review_analysis.py` · `evaluate_review_signals.py` | Load a file-based review analysis into `evidence.*`; research-only evaluation that refuses leaky splits |
+| `scripts/check_baby_readiness.py` | Read-only readiness report of a baby DB (JSON, no connection string) |
 
-| 그룹   | 경로                                                                                                                                                       | 현재 상태                          |
-|--------|------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------|
-| 상태   | `GET /health`                                                                                                                                              | 동작                               |
-| 개발   | `GET /dev/scenarios`, `POST /dev/run`                                                                                                                      | 목 시나리오 실행                   |
-| 인증   | `POST /auth/request-code`, `/auth/verify`, `/auth/logout`, `GET /auth/me`                                                                                  | 이메일 코드·JWT·세션 병합 미구현   |
-| 세션   | `POST /session`, `POST /session/{list_id}/category`, `/message`, `/answer`, `/recommend`, `PATCH /session/{list_id}/slot`, `GET /session/{list_id}/result` | 계약·진입점 중심, 서비스 구현 필요 |
-| 리스트 | `POST /lists/{list_id}/confirm`, `GET /lists/{list_id}/report`, `GET /lists`                                                                               | 확정·저장·리포트 미구현            |
-| 리뷰   | `GET /reviews/pending`, `POST /reviews/part`, `/reviews/build`, `/reviews/{review_id}/publish`                                                            | 작성·게시·운영 집계 미구현. 작성 요청의 `telemetry`(폼 계측값, 횟수·시간만) 계약은 확정 |
-| 리뷰 요약 | `GET /reviews/summary/{product_key}`                                                                                                                    | 동작 — 관계 축 관측 + 합성 데모 블록(표지 포함). 인증 없음 |
+Data actually tracked in the repo: `data/parts_list.csv` (51 parts), `data/parts_asin_map.csv`, `data/parts_specs*.{csv,json}`, `data/pc_care_guides.json`, `data/review_summaries.json` (synthetic), `data/review_suspect_counts.json`, `data/baby/catalog_demo_v1.json`, two scenarios, one manual input.
 
-설명서 RAG는 CLI·서비스 함수로 구현되어 있으며 별도 HTTP 엔드포인트를 제공하지 않습니다. 공통 `src/db` 연결 풀은 미구현이지만 RAG CLI·검색 함수는 psycopg 직접 연결과 `RagRepo`
-를 사용합니다.
-
-## 데이터 준비 도구
-
-| 도구                                | 용도와 실행 조건                                                                                                                                                                              |
-|-------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `scripts/build_specs.py`            | PC 공식 스펙 수집, 출처·실패 목록 저장. `requests`, `beautifulsoup4`, `lxml` 추가 설치 필요. 코드에는 Chrome/Edge를 이용한 `--render` 재시도 경로도 있음. 추출되지 않은 규격은 수동 확인 필요 |
-| `scripts/gen_review_summaries.py`   | `data/parts_list.csv`에서 데모용 합성 리뷰 요약·평점 생성. 실행하면 기존 출력 파일을 다시 작성함. 운영 후기나 실제 조작 판정 데이터가 아님                                                    |
-| `scripts/amazon23_edges.py` · `amazon23_meta_slim.py` · `map_parts_to_asin.py` | Amazon Reviews'23 리뷰 jsonl → 엣지 표(원문 버림), 메타 → 제목·카테고리 TSV, 데모 부품 ↔ ASIN(부품별 손 규칙, 25/51 — 나머지는 2023-09 이후 출시). 원본은 별도 수령 |
-| `scripts/generate_baby_products.py` | 23개 유아용품 품목군의 가상 상품 생성 코드. 기본 입력인 `scripts/유아용품_가상제품_스펙사전_v1.json`은 현재 저장소에 없어 기본 실행 불가. 호환 사전을 `--dictionary`로 제공해야 함            |
-
-[스펙 수집기 설명](scripts/README.md)과 [상품 생성기 기존 사용법](가상제품_생성기_사용법.md)은 참고 문서입니다. 기존 문서의 일부 경로·`--render` 구현 상태·상품 생성 테스트/사전
-목록은 현재 배치와 다르므로 코드 및 위 표를 함께 확인합니다. 부분 설명서 생성은 별도 예제 입력을 사용하므로 누락된 상품 사전 없이 실행할 수 있습니다.
-
-## 저장소 구성
+## Repository layout
 
 ```text
-main.py                        PC 콘솔 데모 진입점
+main.py                       console pipeline entry point (scenario files, mock LLM)
 src/
-  api.py, routers/, schemas.py  FastAPI 라우트와 API 계약
-  pipeline.py, engine/         추천 단계·재탐색·설명, 일부 목/근사
-  rag/                        설명서 청크화·임베딩·검색·검증·설명
-  repo/rag_repo.py             RAG SQL 적재·게시·검색·인용
-  repo/catalog_repo.py         CSV 기반 PC 데모 후보
-  repo/                       그 외 업무 저장소는 대부분 미구현
-  db/, auth/, services/        공통 연결·인증·업무 서비스 뼈대
-  workers/                    추출·리뷰·가격·알림·학습 작업 진입점
-  workers/relation_axis.py    리뷰어–상품 그래프 관측 사실·근거 카드 (review_cleanse_worker 가 호출)
-config/categories/            computer 정의, baby 추천 정의 stub
-frontend/                     멀티페이지 화면(*.html) + css/js, 화면 지도는 frontend/CLAUDE.md
-scripts/                      스펙 수집·합성 데이터·설명서·RAG CLI
-data/                        PC 부품·리뷰 예시·시나리오·설명서 입력
-docs/decisions/              되돌리기 어려운 결정과 대가 · docs/review_collector.md 수집 시점 목록
-generated/                   설명서 예시·RAG 평가 산출물
-db/                          마이그레이션 러너와 SQL
-docs/                        RAG·설명서 생성·DB 명세와 구조도
-tests/                       파이프라인·설명서·RAG·SQL 통합 테스트
+  api.py, routers/, schemas.py FastAPI app, 5 routers, API contract; serves frontend/
+  services/                   session · recommendation · list · auth · review · feedback
+  agent/                      Strands agents: conditions_agent.py, result_agent.py
+  engine/                     stages [1]–[6] (+ slot_rules keyword extraction, prompts, lang)
+  pipeline.py                 console orchestration of the stages
+  rag/                        care_guides (in-memory RAG) · provider (external search boundary) ·
+                              ingestion · evidence_search · verification · contracts
+  repo/                       SQL repositories (plan, engine, product, user, review, rag, …)
+  workers/                    review_cleanse_worker + relation_axis (batch); other workers are stubs
+  auth/, db/, config.py       JWT/argon2/origin check · psycopg pool · env config
+config/categories/            computer.yaml · baby.yaml (slots, questions, modes) + baby rules
+frontend/                     10 pages, css/, js/ (api.js · core.js · planner-shell.js · i18n.js · pages/)
+db/                           migrate.py · 15 migrations · seed*.py · setup_all.py · README.md
+scripts/                      catalog/manual generators · RAG CLI · Amazon'23 batch · spec scraper
+data/                         parts list, specs, care guides, scenarios, synthetic inputs
+docs/                         DB spec & diagram, API contract, agent notes, decisions/, meeting-derived reports
+generated/                    example manual, RAG evaluation outputs
+tests/                        pipeline · agents · HTTP flows · services · SQL/migration checks
+Dockerfile, docker-compose.yml
 ```
 
-## 테스트와 확인 범위
+## Tests and what was verified
 
-```powershell
-# DB 없이 실행. DB 통합 테스트는 환경변수 미설정 시 건너뜀
-uv run python -m pytest -q
-
-# 별도 임시 테스트 DB를 준비하고 마이그레이션한 경우
-$env:RAG_TEST_DATABASE_URL='postgresql://postgres:postgres@127.0.0.1:55432/postgres?sslmode=disable'
-uv run python -m pytest -q tests/test_rag_postgres.py
+```bash
+MOCK_MODE=1 uv run python -m pytest -q                       # without DATABASE_URL: DB tests skip
+DATABASE_URL=postgresql://…/<disposable> MOCK_MODE=1 uv run python -m pytest -q   # after setup_all + baby seed
 ```
 
-두 번째 명령은 전용 테스트 DB가 필요합니다. Docker 없는 환경의 PGlite 서버 실행·마이그레이션 순서는 [RAG 문서](docs/rag_implementation.md)를 따릅니다.
+Measured on 2026-09-14 for this README:
 
-| 확인 구분                       | 결과                                                                                                          |
-|---------------------------------|---------------------------------------------------------------------------------------------------------------|
-| 이번 README 갱신 시 기본 테스트 | 31 passed, 27 skipped, 3 subtests passed. DB 통합 환경변수 미설정으로 27건 건너뜀                             |
-| 이번 PC 콘솔 확인               | `computer_pass`, `computer_research` 모두 종료 성공                                                           |
-| 기존 저장된 RAG 통합 결과       | PGlite/pgvector에서 58 passed, 3 subtests passed, 설명서 질의 21/21. 이번 갱신에서 DB 통합 재실행은 하지 않음 |
-| 미확인 영역                     | Bedrock 실모델 검색 품질, 운영 PostgreSQL 부하·동시성, 실제 제품 안전성, 브라우저와 백엔드 전체 연결          |
+| Run | Result |
+|---|---|
+| No database | **264 passed, 162 skipped, 1 failed** in <1 s. The failure pins the migration list to an older `develop` commit and flags `0014_candidate_checks.sql` as drift — the test is stale, not the schema |
+| Fresh database (`setup_all.py` + baby seed), mock LLM | **402 passed, 17 failed, 8 skipped** in 8 s. Failures: 6 baby-track HTTP tests written against a pre-merge result shape (`status` per item), 7 auth-hardening acceptance tests not yet satisfied (rate limit on `email-availability`, lock-counter reset, JWT invalidation right after a password change, consent-timestamp erasure on withdrawal), 2 double-confirm/lock-version conflict tests, 1 requirement-shape test, and the stale migration pin above. Skips: pandas not installed (2), tests that demand their own throwaway DB (6) |
+| Console | `computer_pass`, `computer_research` finish; results table + review observation lines |
+| HTTP, PC domain | Session → conditions from free text ("게임용으로 200만원, 조용했으면") → recommend → `done`, 8 items, ₩1,439,000 of ₩2,000,000, confidence 94, checks and review lines present → result chat swaps the CPU → alternatives listed → review summary returns *unavailable* honestly for an unmapped part |
+| HTTP, baby domain | Three need sets (going out, feeding, sleep) each reach `done`; 19–26 candidates listed with their check text; 0 selected (see limits) |
+| RAG | `rag_manual.py ingest/query/evaluate --provider local-file`: 5 chunks, extractive answer with `verification_status: partial`, 21/21 |
 
-기본 테스트 실행에는 pytest 캐시 디렉터리 쓰기 권한 경고 1건이 있었으며 테스트 자체는 통과했습니다. 기존 결과 파일은 [generated/rag](generated/rag/README.md)에서 확인할 수
-있습니다.
+Not verified: real-LLM output quality over many sessions, production PostgreSQL load, real product safety, prices or compatibility, and the Docker image on AWS.
 
-## 다음 구현 과제
+## Known gaps and next steps
 
-1. 공통 DB 연결 풀과 계획·사용자·상품 등 저장소 구현, 명세의 교차 무결성·불변성·동시 수정 검사 적용
-2. 이메일 코드·JWT·소유권 확인, 일반 사용자 API와 화면 목업 연결
-3. 실제 상품 규격·가격 연동, PC 하드필터·호환 검사·예산 준수 최적화 구현
-4. 설명서 RAG의 실제 Bedrock 평가, PDF/OCR·이미지·객체 저장소·비동기 처리 확장
-5. 유아용품 사전 복원·입력 검증, `baby.yaml`과 품목별 추천·예산 분기 구현
-6. 실제 PC 리뷰·운영 집계, 단일 부모 리뷰 증강·라벨 검수·내보내기 구현. 사람 라벨링을 시작하기 전에 검토 큐 유입 경로와 무작위 대조 표본 비율을 정한다 — 첫 라벨 뒤에는 소급이 안 됨.
-   외부 리뷰 수집기는 [수집 시점에 잡을 것](docs/review_collector.md)대로 작성자 해시·게시 시각·옵션 단위 대상을 처음부터 잡는다
-7. 가격 추적·알림·사용자 행동 기록 구현. 자동 학습 배치는 현재 명세에서 보류
+1. **Baby catalog that can pass its own gates** — reviewed safety rules per category and certification/recall data on the synthetic products, so the allocation step has something to choose from.
+2. **Hosted vector search** behind `src/rag/provider.py` (the boundary and a local-file implementation exist); then wire manual evidence into PC checks too.
+3. Auth hardening the tests already describe: rate limiting, lock-counter semantics, immediate JWT invalidation, full anonymization on withdrawal; email verification and password reset (deferred to 10/26).
+4. Re-verify after a swap; real spec/price feeds and exact compatibility rules; PC hard filters beyond the current approximations.
+5. Reviews: a collector that captures author hash, posting time and variant subject from the first record; a human-labeling protocol (queue origin and random control share fixed **before** the first label); only then a cleaned rating.
+6. Price tracking, notifications and feedback learning — workers exist as stubs; batch learning is on hold.
 
-[프로젝트 기획서](프로젝트_기획서_v2.md) · [기술 기획서](기술기획서_데모+최종.md)
+## License and documents
+
+MIT — see [`LICENSE`](LICENSE).
+
+- [`db/README.md`](db/README.md) — DB setup (canonical), migration list, AWS/RDS compatibility notes *(Korean)*
+- [`docs/db/table_spec.md`](docs/db/table_spec.md) — table specification; [structure diagram](docs/db/database-structure-overview.png) · [SVG](docs/db/database-structure-overview.svg) · [reduction proposal](docs/db/db_schema_reduction_proposal_2026-09-12.md) *(Korean)*
+- [`docs/frontend_외부수정요청.md`](docs/frontend_외부수정요청.md) — frontend ↔ backend API contract *(Korean)*; [`frontend/CLAUDE.md`](frontend/CLAUDE.md) — page map and frontend rules *(Korean)*
+- [`docs/decisions/`](docs/decisions/README.md) — decisions that are hard to reverse, with the alternatives that were tried *(Korean)*
+- [`docs/review_analysis_contract.md`](docs/review_analysis_contract.md) · [`docs/review_collector.md`](docs/review_collector.md) · [`docs/review_module_handoff.md`](docs/review_module_handoff.md) — review analysis file contract, collector requirements, module hand-off *(Korean)*
+- [`docs/agent-tasks/baby/`](docs/agent-tasks/baby/README.md) — baby-domain work packages P0–P9 and their acceptance reports *(Korean)*
+- [`docs/synthetic_manual_generator.md`](docs/synthetic_manual_generator.md) — manual generator input contract; [`docs/rag_implementation.md`](docs/rag_implementation.md) describes the **removed** pgvector design and is kept for history *(Korean)*
