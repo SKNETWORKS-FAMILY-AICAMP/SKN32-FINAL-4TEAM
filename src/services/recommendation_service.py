@@ -9,6 +9,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import re
 from datetime import datetime, timezone
 from uuid import UUID
 
@@ -245,6 +246,55 @@ def _conditions_summary(cat_def: dict, values: dict) -> str:
     return " · ".join(parts)
 
 
+_SWAP_RE = re.compile(r"자동 추천은 '(.+?)'\(([\d,]+)원\)였고 이 후보는 ([+-][\d,]+)원")
+
+
+def memo_suggestion(result: dict, values: dict) -> str:
+    """04 리스트 확정 "메모" 초기값. 저장된 사실만 — 조건, 확정 구성, 사용자가 직접 바꾼 것, 확인이 필요한 것.
+    LLM 없음(요약 문장은 이미 03 에서 만들었고, 메모는 사용자가 고쳐 쓰는 칸이다). 1,000자 제한 안."""
+    items = result.get("items") or []
+    totals = result.get("totals") or {}
+    lines: list[str] = []
+    cond = result.get("conditions_summary") or ""
+    if result.get("budget_max") and f"{result['budget_max']:,}원" not in cond:   # 조건 요약에 이미 예산이 있으면 반복 안 함
+        cond += (" · " if cond else "") + f"예산 {result['budget_max']:,}원"
+    if cond:
+        lines.append(f"[조건] {cond}")
+    chosen = [it for it in items if it["selected"]]
+    if chosen:
+        parts = [f"{it['slot']} {it['product']['name']}" + (f" ×{it['qty']}" if it["qty"] > 1 else "")
+                 + (" (나중에)" if it["timing"] == "later" else " (곧)" if it["timing"] == "soon" else "")
+                 for it in chosen]
+        tail = ""
+        if totals.get("budget_remaining") is not None:
+            tail = (f", 예산 초과 {-totals['budget_remaining']:,}원" if totals.get("over_budget")
+                    else f", 예산 잔여 {totals['budget_remaining']:,}원")
+        lines.append(f"[구성] {len(chosen)}개 부품 {totals.get('selected_price', 0):,}원{tail} — " + ", ".join(parts))
+    removed = [it["slot"] for it in items if not it["selected"]]
+    if removed:
+        lines.append("[뺀 것] " + ", ".join(removed))
+    swapped = []
+    for it in items:
+        m = _SWAP_RE.search(((it.get("reason") or {}).get("text") or ""))
+        if m:
+            swapped.append(f"{it['slot']} {m.group(1)} → {it['product']['name']} ({m.group(3)}원)")
+    if swapped:
+        lines.append("[직접 바꾼 것] " + "; ".join(swapped) + " — 호환·검증은 교체 전 구성 기준")
+    headline = (result.get("explanation") or {}).get("headline")
+    if headline:
+        lines.append(f"[요약] {headline}")
+    checks = []
+    if values.get("extra"):
+        checks.append("추가 요청 미반영: " + ", ".join(map(str, values["extra"])) + " — 직접 확인")
+    v = result.get("verification") or {}
+    if v.get("confidence") is not None:
+        checks.append(f"세트 검증 신뢰도 {v['confidence']}점" + (" (쟁점 있음)" if v.get("issues") else ""))
+    if checks:
+        lines.append("[확인] " + " · ".join(checks))
+    text = "\n".join(lines)
+    return text if len(text) <= 1000 else text[:997] + "…"
+
+
 def explanation_text(summary: str, caveats: list[str]) -> str:
     """explanation.text — 요약 문단 + "확인이 필요한 것". 화면은 한 상자에 그대로 보여준다."""
     if not caveats:
@@ -381,6 +431,7 @@ def get_stored_result(conn, revision_id: UUID) -> dict | None:
         "headline": run.get("explanation_headline"),
         "text": run.get("explanation_text"),
     }
+    result["memo_suggestion"] = memo_suggestion(result, values)
     return result
 
 

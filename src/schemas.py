@@ -271,6 +271,8 @@ class RecommendResultOut(BaseModel):
     explanation: ExplanationOut = Field(default_factory=lambda: ExplanationOut(status="pending"))
     reasoning_log: list[dict] = Field(default_factory=list)
     data_notice: str = "상품·가격·리뷰는 합성 데이터입니다."
+    # 04 리스트 확정 "메모" 초기값 — 조건·구성·직접 바꾼 것·확인 필요 사항을 코드가 정리한 문장 (done 일 때만)
+    memo_suggestion: str = ""
     error: RecommendErrorOut | None = None
 
 

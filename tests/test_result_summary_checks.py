@@ -50,3 +50,37 @@ def test_item_checks_unknown_axis_applies_to_all_slots(monkeypatch):
     monkeypatch.setattr("src.services.review_service.get_summary", lambda key: (_ for _ in ()).throw(NotFound("x")))
     out = rs._item_checks(_item("케이스"), [{"rule_key": "예산", "message": "110% 초과"}], 80)
     assert "[예산] 110% 초과" in out["text"]
+
+
+def test_memo_suggestion_collects_facts_only():
+    def item(slot, name, price, *, selected=True, timing="now", qty=1, reason=None):
+        return {"slot": slot, "product": {"name": name, "product_key": name}, "price": price, "selected": selected,
+                "timing": timing, "qty": qty, "reason": {"status": "ready", "text": reason}}
+    result = {
+        "conditions_summary": "새 컴퓨터 · 게임 · 1,500,000원 · 가성비", "budget_max": 1_500_000,
+        "items": [
+            item("CPU", "Intel 265K", 255_000),
+            item("GPU", "RTX 5090", 609_000, reason="사용자 요청으로 교체한 부품입니다 — 자동 추천은 'RX 7600'(525,000원)였고 이 후보는 +84,000원입니다. 순위·검증 점수는 교체 전 구성 기준입니다."),
+            item("케이스", "NR200P", 69_000, timing="later"),
+            item("쿨러", "AK400", 45_000, selected=False),
+            item("저장장치", "MX500", 93_000, qty=2),
+        ],
+        "totals": {"selected_price": 1_119_000, "budget_remaining": 381_000, "over_budget": False},
+        "explanation": {"status": "ready", "headline": "게임용 구성, 신뢰도 94점."},
+        "verification": {"confidence": 94, "issues": [{"axis": "power", "text": "…"}]},
+    }
+    memo = rs.memo_suggestion(result, {"extra": ["흰색 케이스"]})
+    assert memo.splitlines()[0] == "[조건] 새 컴퓨터 · 게임 · 1,500,000원 · 가성비"     # 예산 중복 없음
+    assert "[구성] 4개 부품 1,119,000원, 예산 잔여 381,000원 — " in memo
+    assert "케이스 NR200P (나중에)" in memo and "저장장치 MX500 ×2" in memo and "쿨러" not in memo.split("[뺀 것]")[0]
+    assert "[뺀 것] 쿨러" in memo
+    assert "[직접 바꾼 것] GPU RX 7600 → RTX 5090 (+84,000원) — 호환·검증은 교체 전 구성 기준" in memo
+    assert "[요약] 게임용 구성, 신뢰도 94점." in memo
+    assert "[확인] 추가 요청 미반영: 흰색 케이스 — 직접 확인 · 세트 검증 신뢰도 94점 (쟁점 있음)" in memo
+    assert len(memo) <= 1000
+
+
+def test_memo_suggestion_over_budget_and_empty():
+    result = {"conditions_summary": "", "budget_max": 100, "items": [], "totals": {"selected_price": 0, "budget_remaining": -50, "over_budget": True},
+              "explanation": {}, "verification": {}}
+    assert rs.memo_suggestion(result, {}) == "[조건] 예산 100원"
