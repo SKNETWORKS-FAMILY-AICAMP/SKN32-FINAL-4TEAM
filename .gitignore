@@ -23,6 +23,7 @@ ENV/
 
 # ── 테스트 / 타입 / 린트 캐시 ──
 .pytest_cache/
+.pytest_tmp/
 node_modules/
 .rag-files/
 .baby-search-index/
