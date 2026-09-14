@@ -387,14 +387,16 @@ def review_demotion_step(demoted_by_slot: dict[str, list[dict]] | None,
 
 
 def explanation_text_with_caveats(
-    item_reasons: list[str],
+    summary: str,
     caveats: list[str],
     *,
     locale: Locale = "ko-KR",
 ) -> str:
-    """explanation_text = 추천 이유 목록 + 확인이 필요한 것. caveats 가 비면 이유만."""
-    body = "\n".join(f"- {r}" for r in item_reasons)
+    """explanation_text = 추천 요약(summary) + 확인이 필요한 것. caveats 가 비면 요약만.
+
+    전엔 슬롯별 reason 8줄을 이어붙였는데 그건 요약이 아니었다 — summary 로 바뀌었다.
+    """
     if not caveats:
-        return body
+        return summary
     heading = "Things to check:" if locale == "en-US" else "확인이 필요한 것:"
-    return body + f"\n\n{heading}\n" + "\n".join(f"- {c}" for c in caveats)
+    return summary + f"\n\n{heading}\n" + "\n".join(f"- {c}" for c in caveats)
