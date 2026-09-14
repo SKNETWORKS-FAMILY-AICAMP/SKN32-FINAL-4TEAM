@@ -94,7 +94,6 @@ flow.addEventListener('click',e=>{
  const remove=e.target.closest('[data-plan-remove]');if(remove){tfResultAction(listId=>TF_PLAN.updateItem(listId,remove.dataset.planRemove,{selected:false})).then(applyAndRerender);return}
  const qty=e.target.closest('[data-plan-qty]');if(qty){const item=tfFindItem(qty.dataset.planItem);if(item){const nextQty=Math.max(1,Math.min(99,(Number(item.qty)||1)+Number(qty.dataset.planQty)));tfResultAction(listId=>TF_PLAN.updateItem(listId,item.item_id,{qty:nextQty})).then(applyAndRerender)}return}
  const swap=e.target.closest('[data-plan-swap-candidate]');if(swap){const itemId=swap.dataset.planSwapItem;tfResultAction(listId=>TF_PLAN.swap(listId,itemId,swap.dataset.planSwapCandidate),{errorTarget:'#tf-swap-error'}).then(data=>{if(data){closeResultOverlay();applyAndRerender(data);toast(tfIsEnglish()?'Switched to the selected candidate.':'선택한 후보로 바꿨어요.')}});return}
- const productUrl=e.target.closest('[data-plan-product-url]');if(productUrl){e.preventDefault();const url=productUrl.dataset.planProductUrl||'';if(/^https?:\/\//i.test(url))window.open(url,'_blank','noopener');else toast(tfIsEnglish()?'The retailer link is not available yet.':'판매처 링크가 아직 연결되지 않았어요.');return}
  const rerun=e.target.closest('[data-plan-rerun]');if(rerun){tfStartRecommend(rerun,rerun.dataset.planRerun||undefined);return}
 });
 flow.addEventListener('change',e=>{
