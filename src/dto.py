@@ -163,6 +163,7 @@ class ExplanationDraft(BaseModel):
     """
 
     headline: str = ""
+    summary: str = ""          # 구성이 사용자 조건에 어떻게 맞는지·어디서 타협했는지 2~3문장 (03 요약)
     items: list[ExplanationDraftItem] = Field(default_factory=list)
     caveats: list[str] = Field(default_factory=list)
 
@@ -177,6 +178,7 @@ class ExplanationItem(BaseModel):
 class Explanation(BaseModel):
     list_id: str
     headline: str = ""
+    summary: str = ""          # 03 화면 "추천 요약" 본문. 슬롯별 reason 은 items 에, 여기엔 반복하지 않는다
     contribution: dict[str, int] = Field(default_factory=dict)   # 가격/성능/호환성
     items: list[ExplanationItem] = Field(default_factory=list)
     caveats: list[str] = Field(default_factory=list)

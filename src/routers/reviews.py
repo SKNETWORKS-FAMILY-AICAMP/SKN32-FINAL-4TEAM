@@ -7,7 +7,7 @@
 """
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Request, Depends, status
 from uuid import UUID
 
 from src import schemas
@@ -41,10 +41,11 @@ def publish(review_id: UUID, user_id: UUID = Depends(current_user)) -> dict:
 
 
 @router.get("/summary/{product_key}", response_model=schemas.ReviewSummaryOut)
-def review_summary(product_key: str) -> schemas.ReviewSummaryOut:
+def review_summary(product_key: str, request: Request) -> schemas.ReviewSummaryOut:
     """S5 리뷰 상세 — 실측 관측(관계·행동 축)과 합성 데모 블록을 분리해 낸다.
 
     product_key 는 엔진 키(`amd-ryzen-5-5600`)·요약 키·ASIN 모두 받는다.
     읽기 전용 공개 데이터라 인증 없이 둔다 (auth 구현 후 optional_principal 로 소유 세션 연결).
     """
-    return review_service.get_summary(product_key)
+    lang = "en" if (request.headers.get("x-truefit-lang") or "").lower() == "en" else "ko"   # 프론트 언어 토글
+    return review_service.get_summary(product_key, lang)

@@ -16,6 +16,8 @@ slot_schema:
   health_skin:           { type: list, none_allowed: true }                # ["none"] = 특이사항 없음(응답함, 미응답과 다름)
   owned_items:            { type: list, none_allowed: true }               # ["none"] = 보유 물품 없음(응답함, 미응답과 다름)
   budget_max:             { type: money, nullable: true }
+  currency:               { type: enum, values: [KRW, USD], nullable: true }   # 사용자가 말한 통화. 저장 금액은 항상 원화
+  language:               { type: enum, values: [ko, en], nullable: true }   # 사용자가 쓰는 언어 (02 가 감지). 문장 언어만 바뀐다
   weight_kg:              { type: float, nullable: true, mode_only: born }  # 선택 — 관련 need 확인 후에만 질문
   independent_sitting:    { type: bool, nullable: true, mode_only: born }   # 선택 — 관련 need 확인 후에만 질문
 
@@ -31,6 +33,7 @@ fields:
   - { key: health_skin, label: "건강·피부 특성" }
   - { key: owned_items, label: "이미 보유한 물품" }
   - { key: budget_max, label: "예산" }
+  - { key: currency, label: "통화", display: { KRW: "원화", USD: "달러" }, display_en: { KRW: "KRW", USD: "USD" } }
   - { key: weight_kg, label: "몸무게(kg)", mode_only: born }
   - { key: independent_sitting, label: "혼자 앉기 가능", mode_only: born }
 
@@ -38,25 +41,37 @@ question_sets:
   - { id: q_age, select: single, maps_to: age_months, mode_only: born, exact: false,
       label: "아이는 몇 개월인가요?",
       options: ["0~3개월", "4~6개월", "7~12개월", "13~24개월", "25개월 이상"],
-      values: [1, 5, 9, 18, 30] }
+      values: [1, 5, 9, 18, 30],
+      label_en: "How old is your baby?",
+      options_en: ["0–3 months", "4–6 months", "7–12 months", "13–24 months", "25+ months"] }
   - { id: q_due_date, select: free, maps_to: due_date, mode_only: prenatal,
-      label: "출산 예정일이 언제인가요? (예: 2026-12-01)" }
+      label: "출산 예정일이 언제인가요? (예: 2026-12-01)",
+      label_en: "When is the due date? (e.g. 2026-12-01)" }
   - { id: q_needs, select: multi, maps_to: needs,
       label: "지금 필요한 영역을 골라주세요.",
-      options: ["수유", "이유식·식사", "수면", "외출", "목욕·위생", "기저귀·배변", "의류", "놀이", "안전·건강"] }
+      options: ["수유", "이유식·식사", "수면", "외출", "목욕·위생", "기저귀·배변", "의류", "놀이", "안전·건강"],
+      label_en: "Which areas do you need right now?",
+      options_en: ["Feeding", "Weaning/meals", "Sleep", "Outings", "Bath/hygiene", "Diapers", "Clothing", "Play", "Safety/health"] }
   - { id: q_health_skin, select: multi, maps_to: health_skin,
       label: "피부·건강에 특이사항이 있나요?",
       options: ["아토피", "민감성 피부", "특이사항 없음"],
-      none_option: "특이사항 없음" }
+      none_option: "특이사항 없음",
+      label_en: "Any skin or health considerations?",
+      options_en: ["Atopic dermatitis", "Sensitive skin", "None"] }
   - { id: q_owned, select: multi, maps_to: owned_items,
       label: "이미 갖고 있는 물품이 있나요?",
       options: ["유모차", "카시트", "젖병", "아기침대", "기저귀", "없음"],
-      none_option: "없음" }
+      none_option: "없음",
+      label_en: "Do you already own any of these?",
+      options_en: ["Stroller", "Car seat", "Bottles", "Crib", "Diapers", "None"] }
   - { id: q_budget_max, select: free, maps_to: budget_max,
-      label: "예산은 얼마까지 생각하시나요?" }
+      label: "예산은 얼마까지 생각하시나요?",
+      label_en: "What is your budget?" }
   # 안전 관련 선택 질문 — 외출·안전건강 need 가 확인된 뒤에만 물어본다(관련 없는 사용자에게 강요 안 함).
   - { id: q_weight, select: free, maps_to: weight_kg, mode_only: born, requires_need: [외출, 안전·건강],
-      label: "아이 몸무게가 어느 정도인가요? (kg)" }
+      label: "아이 몸무게가 어느 정도인가요? (kg)",
+      label_en: "How much does your baby weigh? (kg)" }
   - { id: q_sitting, select: single, maps_to: independent_sitting, mode_only: born, requires_need: [외출, 안전·건강],
       label: "아이가 혼자 앉을 수 있나요?",
-      options: ["예", "아니오"], values: [true, false] }
+      options: ["예", "아니오"], values: [true, false],
+      label_en: "Can your baby sit up unassisted?", options_en: ["Yes", "No"] }

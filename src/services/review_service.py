@@ -76,7 +76,11 @@ def _db_backed_analysis(product_key: str) -> dict | None:
         return None
 
 
-def get_summary(product_key: str) -> ReviewSummaryOut:
+OBSERVATION_SOURCE_EN = "relation/behavior-axis observation (not review text)"
+SUSPECT_SOURCE_EN = "rule-based count — not a manipulation verdict (2+ indicators, no ground-truth labels)"
+
+
+def get_summary(product_key: str, lang: str = "ko") -> ReviewSummaryOut:
     """S5 리뷰 상세. 실측(관계·행동 축 관측 + P8 파일 기반 분석)과 합성 데모 블록을 분리해 낸다.
 
     - 관측(관계·행동 축)은 상품 단위이고 점수가 아니다. 개별 리뷰의 진위가 아니다
@@ -97,8 +101,9 @@ def get_summary(product_key: str) -> ReviewSummaryOut:
     if facts is None and d is None and db is None:
         raise NotFound(f"리뷰 요약 없음: {product_key}", field="product_key")
 
+    en = lang == "en"
     if facts is not None:
-        auth = store.get_review_authenticity(key)
+        auth = store.get_review_authenticity(key, lang)
         risk = auth["product_manipulation_risk"]
         ref = risk.get("product_ref")
         risk_out = ProductRiskOut(
@@ -109,17 +114,19 @@ def get_summary(product_key: str) -> ReviewSummaryOut:
         # 관측 문장을 계약의 summaries 자리에 낸다. 화면에 문장을 실을 칸이 여기뿐이다.
         # source 로 출처를 밝혀 리뷰 발췌로 읽히지 않게 한다 — 이건 본문이 아니라 집계 사실이다.
         # (오버레이에 관측 사실 전용 칸이 생기면 그쪽으로 옮긴다)
-        summaries = [{"text": t, "source": OBSERVATION_SOURCE, "observed_at": None}
+        summaries = [{"text": t, "source": OBSERVATION_SOURCE_EN if en else OBSERVATION_SOURCE, "observed_at": None}
                      for t in risk["evidence"]]
         # 규칙 기반 의심 건수 — 판정이 아니라는 표시(SUSPECT_SOURCE)를 문장과 함께 붙인다
         sus = default_suspect_counts()
-        line = sus.sentence(key) if sus else None
+        line = sus.sentence(key, lang) if sus else None
         if line:
-            summaries.append({"text": line, "source": SUSPECT_SOURCE, "observed_at": None})
+            summaries.append({"text": line, "source": SUSPECT_SOURCE_EN if en else SUSPECT_SOURCE, "observed_at": None})
     else:
         risk_out = ProductRiskOut(evidence=[], reliable_range=None)
         orig, total, summaries = None, 0, []
-        note = ("관측 없음 — 이 상품은 관계·행동 축 산출물에 없다(리뷰 수 문턱 미만이거나 데이터 기간 밖). "
+        note = (("No observation — this product is not in the relation/behavior-axis output (below the review-count "
+                 "threshold or outside the data period). No cleaned rating or exclusion ratio is computed.") if en else
+                "관측 없음 — 이 상품은 관계·행동 축 산출물에 없다(리뷰 수 문턱 미만이거나 데이터 기간 밖). "
                 "정제 평점·제외 비율은 산출하지 않는다.")
 
     excluded_count = excluded_ratio = rating_refined = None
@@ -274,7 +281,7 @@ REVIEW_TRACE_STEP = "리뷰 관측"
 
 
 def review_trace_steps(review_line_by_slot: dict[str, str],
-                       evidence_by_slot: dict[str, list[dict]] | None = None) -> list[dict]:
+                       evidence_by_slot: dict[str, list[dict]] | None = None, lang: str = "ko") -> list[dict]:
     """[5] 의 리뷰 관측을 reasoning_log 단계들로. 관측이 없으면 빈 목록.
 
     첫 단계는 요약(N/M 슬롯), 이어서 **관측 문장이 있는 슬롯마다 한 단계**다.
@@ -289,13 +296,18 @@ def review_trace_steps(review_line_by_slot: dict[str, str],
     "볼 리뷰가 없었다" 는 다른 말이고, 뒤쪽을 앞쪽으로 보이게 하면 안 된다.
     """
     observed = {slot: line for slot, line in (review_line_by_slot or {}).items()
-                if line and not line.startswith("리뷰 관측 없음")}
+                if line and not line.startswith(("리뷰 관측 없음", "No review observation"))}
     if not observed:
         return []
+    en = lang == "en"
+    from src.services.recommendation_service import slot_label   # 슬롯 표시명 (엔진 키는 그대로)
+    sl = (lambda x: slot_label(x, "en")) if en else (lambda x: x)
+    step_name = "Review observations" if en else REVIEW_TRACE_STEP
     steps = [{
-        "step": REVIEW_TRACE_STEP,
-        "title": f"{REVIEW_TRACE_STEP} {len(observed)}/{len(review_line_by_slot)} 슬롯",
-        "detail": " · ".join(f"{slot} {line}" for slot, line in observed.items()),
+        "step": step_name,
+        "title": (f"{step_name} {len(observed)}/{len(review_line_by_slot)} slots" if en
+                  else f"{REVIEW_TRACE_STEP} {len(observed)}/{len(review_line_by_slot)} 슬롯"),
+        "detail": " · ".join(f"{sl(slot)} {line}" for slot, line in observed.items()),   # 관측 문장은 데이터(한국어)
     }]
     for slot in observed:
         facts = [e for e in (evidence_by_slot or {}).get(slot, []) if e.get("text")]
@@ -304,16 +316,17 @@ def review_trace_steps(review_line_by_slot: dict[str, str],
         detail = " · ".join(e["text"] for e in facts)
         verify = next((e.get("verify_url") for e in facts if e.get("verify_url")), None)
         if verify:
-            detail += f" — 확인: {verify}"
+            detail += (f" — verify: {verify}" if en else f" — 확인: {verify}")
         steps.append({
-            "step": f"{REVIEW_TRACE_STEP} · {slot}",
-            "title": f"{slot} 관측 사실 {len(facts)}건 (점수 아님)",
+            "step": f"{step_name} · {sl(slot)}",
+            "title": (f"{sl(slot)}: {len(facts)} observed facts (not a score)" if en
+                      else f"{slot} 관측 사실 {len(facts)}건 (점수 아님)"),
             "detail": detail,
         })
     return steps
 
 
-def review_demotion_step(demoted_by_slot: dict[str, list[dict]] | None) -> dict | None:
+def review_demotion_step(demoted_by_slot: dict[str, list[dict]] | None, lang: str = "ko") -> dict | None:
     """리뷰축이 **순위를 낮춘 후보**를 reasoning_log 한 단계로. 없으면 None.
 
     추천된 8개는 대개 "특이 없음" 이다 — 걸린 후보가 감점을 받아 밀려나기 때문이다. 그래서
@@ -333,6 +346,12 @@ def review_demotion_step(demoted_by_slot: dict[str, list[dict]] | None) -> dict 
         facts = " · ".join(f"{OBS_LABEL.get(k, k)} {100 * v:.1f}% (부류 중앙값 {100 * m:.1f}%)"
                            for k, v, m in d["over"])
         parts.append(f"{slot} {d.get('name', '?')} — {facts}")
+    if lang == "en":
+        return {
+            "step": "Review observations · ranking",
+            "title": f"{len(rows)} candidates ranked lower because of observations (not excluded)",
+            "detail": " · ".join(parts) + " — still in the candidate list, only ranked lower",
+        }
     return {
         "step": f"{REVIEW_TRACE_STEP} · 순위 조정",
         "title": f"관측 때문에 순위를 낮춘 후보 {len(rows)}개 (제외 아님)",

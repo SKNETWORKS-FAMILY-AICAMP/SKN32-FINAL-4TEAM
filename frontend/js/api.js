@@ -6,6 +6,8 @@ const TF_API={
  async request(method,path,body,extraHeaders){
   const headers={Accept:'application/json',...extraHeaders};if(body!==undefined)headers['Content-Type']='application/json';
   let response;
+  // TF-DEV: 언어 토글(i18n.js, localStorage 'planbasket-lang')을 서버에 알린다 — 서버가 만드는 문장(질문·요약·이유·메모)이 그 언어로 나온다
+  try{const l=localStorage.getItem('planbasket-lang');if(l==='en'||l==='ko')headers['X-TrueFit-Lang']=l}catch{}
   try{response=await fetch(TF_API_BASE+path,{method,credentials:'include',headers,body:body===undefined?undefined:JSON.stringify(body)})}catch{throw new TF_ApiError(0,'network_error','서버에 연결할 수 없어요. 잠시 후 다시 시도해 주세요.')}
   if(response.status===204)return null;
   let data=null;try{data=await response.json()}catch{}

@@ -8,6 +8,7 @@ from src.agent import conditions_agent
 from src.auth.deps import Principal
 from src.categories import available_categories, load_category
 from src.engine import slot_rules
+from src.engine.lang import L, lang_of
 from src.errors import Conflict, FileTooLarge, NotFound, ValidationFailed
 from src.repo.plan_repo import PlanRepo
 from src.repo.user_repo import ConversationRepo
@@ -171,12 +172,15 @@ def _field_value(meta: dict, values: dict):
     return values.get(meta["key"])
 
 
-def _display(meta: dict, value) -> str | None:
+def _display(meta: dict, value, values: dict | None = None) -> str | None:
+    values = values or {}
     if value in (None, [], ""):
         return None
     if meta.get("computed"):
         return value["label"]
     disp_map = meta.get("display")
+    if values.get("language") == "en" and meta.get("display_en"):   # 영어 사용자 — 패널·조건 요약의 표시값 (라벨은 프론트 i18n)
+        disp_map = meta["display_en"]
     if disp_map:
         return disp_map.get(value, disp_map.get(str(value), str(value)))
     if isinstance(value, list):
@@ -186,6 +190,9 @@ def _display(meta: dict, value) -> str | None:
     if isinstance(value, bool):
         return "예" if value else "아니오"
     if meta["key"] == "budget_max" and isinstance(value, (int, float)):
+        if values.get("currency") == "USD":   # 달러로 말한 사용자 — 달러만 (고정 환율 src/config.USD_KRW_RATE)
+            from src.agent.conditions_agent import usd
+            return usd(int(value))
         return f"{int(value):,}원"
     return str(value)
 
@@ -205,7 +212,7 @@ def _build_fields(cat_def: dict, values: dict) -> list[dict]:
             status = "assumed"
         out.append({
             "key": meta["key"], "label": meta["label"], "value": value,
-            "display": _display(meta, value), "status": status, "editable": True,
+            "display": _display(meta, value, values), "status": status, "editable": True,
         })
     return out
 
@@ -224,6 +231,7 @@ def compute_missing(cat_def: dict, values: dict) -> list[str]:
 
 def _next_question(cat_def: dict, values: dict) -> dict | None:
     mode = values.get("mode")
+    en = lang_of(values) == "en"      # 영어 사용자 — yaml 의 label_en/options_en (없으면 한국어 그대로)
     missing = set(compute_missing(cat_def, values))
     for q in cat_def.get("question_sets", []):
         if q.get("mode_only") and q["mode_only"] != mode:
@@ -232,9 +240,11 @@ def _next_question(cat_def: dict, values: dict) -> dict | None:
             continue
         options = q.get("options") or []
         qvalues = q.get("values") or options
+        labels = (q.get("options_en") if en and q.get("options_en") else None) or options
         return {
-            "id": q["id"], "field": q["maps_to"], "text": q["label"], "select": q["select"],
-            "options": [{"value": v, "label": o} for o, v in zip(options, qvalues)],
+            "id": q["id"], "field": q["maps_to"], "text": (q.get("label_en") if en else None) or q["label"],
+            "select": q["select"],
+            "options": [{"value": v, "label": o} for o, v in zip(labels, qvalues)],
         }
     return None
 
@@ -291,7 +301,9 @@ def get_session_state(conn, list_id: UUID, principal: Principal) -> dict:
     return _state(conn, list_id, principal)
 
 
-def choose_category(conn, list_id: UUID, category: str, mode: str | None, principal: Principal) -> dict:
+def choose_category(conn, list_id: UUID, category: str, mode: str | None, principal: Principal,
+                    language: str | None = None) -> dict:
+    """language 는 프론트 언어 토글(X-TrueFit-Lang 헤더). 조건 대화 없이 칩만 눌러도 [3-C]·[5]·결과 문장이 그 언어로 나온다."""
     repo = PlanRepo(conn)
     current = _owned(repo, list_id, principal)
     cat_def = _category(category)
@@ -307,6 +319,8 @@ def choose_category(conn, list_id: UUID, category: str, mode: str | None, princi
         repo.bind_domain_version(current["id"], category)
     repo.upsert_condition(current["id"], "category", {"value": category}, "explicit")
     repo.upsert_condition(current["id"], "mode", {"value": mode}, "explicit")
+    if language in ("ko", "en") and "language" in (cat_def.get("slot_schema") or {}):
+        repo.upsert_condition(current["id"], "language", {"value": language}, "explicit")
     if previous_category is not None and previous_category != category:
         for key in values:
             if key not in {"category", "mode"}:
@@ -315,7 +329,7 @@ def choose_category(conn, list_id: UUID, category: str, mode: str | None, princi
         keys = ("due_date",) if mode == "born" else ("age_months", "weight_kg", "independent_sitting")
         for key in keys:
             repo.clear_condition(current["id"], key)
-    nq = _next_question(cat_def, {"mode": mode})
+    nq = _next_question(cat_def, {"mode": mode, "language": language})
     if nq:
         ConversationRepo(conn).add_message(current["conversation_id"], "assistant", nq["text"])
     return _state(conn, list_id, principal)
@@ -344,6 +358,7 @@ def _current_values(repo: PlanRepo, revision_id: UUID) -> tuple[dict, str | None
 
 
 _ALL_SET = "필요한 조건을 모두 확인했어요. 이 조건으로 추천을 받아보세요."
+_ALL_SET_EN = "All the required conditions are set. You can get a recommendation now."
 
 
 def handle_message(conn, list_id: UUID, text: str, principal: Principal) -> dict:
@@ -383,10 +398,11 @@ def handle_message(conn, list_id: UUID, text: str, principal: Principal) -> dict
 
     nq = _next_question(cat_def, values)
     if reply is None:
+        lang = lang_of(values)
         if nq:
-            reply = nq["text"] if extracted else "죄송해요, 이해하지 못했어요. " + nq["text"]
+            reply = nq["text"] if extracted else L(lang, "죄송해요, 이해하지 못했어요. ", "Sorry, I didn't catch that. ") + nq["text"]
         else:
-            reply = _ALL_SET
+            reply = L(lang, _ALL_SET, _ALL_SET_EN)
     convo.add_message(current["conversation_id"], "assistant", reply)
     return _state(conn, list_id, principal)
 
@@ -426,7 +442,7 @@ def handle_answer(conn, list_id: UUID, question_id: str, selected: list, princip
     values[key] = value
 
     nq = _next_question(cat_def, values)
-    reply = nq["text"] if nq else "필요한 조건을 모두 확인했어요. 이 조건으로 추천을 받아보세요."
+    reply = nq["text"] if nq else L(lang_of(values), _ALL_SET, _ALL_SET_EN)
     convo.add_message(current["conversation_id"], "assistant", reply)
     return _state(conn, list_id, principal)
 
@@ -438,7 +454,8 @@ def reset_conditions(conn, list_id: UUID, principal: Principal) -> dict:
     for row in full["conditions"]:
         if row["condition_key"] not in ("category", "mode"):
             repo.upsert_condition(current["id"], row["condition_key"], {"value": None}, "explicit")
-    ConversationRepo(conn).add_message(current["conversation_id"], "system", "조건을 초기화했어요.")
+    ConversationRepo(conn).add_message(current["conversation_id"], "system",
+                                       L(lang_of(_current_values(repo, current["id"])[0]), "조건을 초기화했어요.", "Conditions were reset."))
     return _state(conn, list_id, principal)
 
 
