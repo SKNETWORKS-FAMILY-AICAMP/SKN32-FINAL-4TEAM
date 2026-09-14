@@ -105,11 +105,32 @@ function tfReviewSignalsHtml(review, english) {
  return '<div class="evidence review-signals"><h4>' + (english ? 'Reviews at a glance' : '리뷰 한눈에 보기')
   + '<span class="review-signals-count">' + esc(countText) + '</span></h4>' + rows.join('') + '</div>';
 }
-// TF-DEV: 리뷰 클렌징 담당의 해석 안내문(요청 C). 서버가 ready로 문구를 줄 때만 보인다 — 임시 문구를 만들지 않는다.
+// TF-DEV: Review Cleansing Summary — 서버가 만든 유저용 문장(review.plain, docs/리뷰관측_문장_초안.md)과 해석 안내문
+// (cleansing_summary, 요청 C)을 한 카드에 그린다: headline → points(살펴볼 점) → "자세히"(details·원문·아마존 링크) → 면책.
+// 프론트는 숫자로 문장을 만들거나 판정을 덧붙이지 않는다. 관측이 없으면(plain.reason) 사유 한 줄만 — 면책은 붙일 것이 없다.
+// plain 도 안내문도 없으면(옛 서버) 카드를 그리지 않는다.
+function tfReviewPlainBody(plain,english){
+ if(!plain||!plain.headline)return '';
+ const li=list=>(list||[]).map(t=>'<li>'+esc(t)+'</li>').join('');
+ let body='<strong>'+esc(plain.headline)+'</strong>';
+ if(plain.points?.length)body+='<ul class="review-points">'+li(plain.points)+'</ul>';
+ const hasDetail=(plain.details?.length||plain.sources?.length||plain.verify_url);
+ if(hasDetail){
+  body+='<details class="review-details"><summary>'+(english?'Details':'자세히')+'</summary>';
+  if(plain.details?.length)body+='<ul>'+li(plain.details)+'</ul>';
+  if(plain.sources?.length)body+='<p class="review-sources-label">'+(english?'Source figures':'원문 수치')+'</p><ul class="review-sources">'+li(plain.sources)+'</ul>';
+  if(plain.verify_url)body+='<a class="review-verify" href="'+esc(plain.verify_url)+'" target="_blank" rel="noopener">'+(english?'Check on Amazon ↗':'아마존에서 직접 보기 ↗')+'</a>';
+  body+='</details>';
+ }
+ return body;
+}
 function tfCleansingSummaryHtml(review, english) {
- const summary = review?.cleansing_summary;
- if (!review?.signals || summary?.status !== 'ready' || !summary.text) return '';
- return '<div class="evidence review-signals"><h4>Review Cleansing Summary</h4><div class="evidence-card">' + esc(summary.text) + '</div></div>';
+ const plain = review?.plain, summary = review?.cleansing_summary;
+ const footer = review?.signals && !plain?.reason && summary?.status === 'ready' && summary.text ? summary.text : '';
+ let body = tfReviewPlainBody(plain, english);
+ if (footer) body += '<p class="review-footer">' + esc(footer) + '</p>';
+ if (!body) return '';
+ return '<div class="evidence review-signals"><h4>Review Cleansing Summary</h4><div class="evidence-card review-plain">' + body + '</div></div>';
 }
 function tfShowCartReviewSlide(itemId){
  const item=tfFindItem(itemId);if(!item)return;
@@ -117,6 +138,8 @@ function tfShowCartReviewSlide(itemId){
  const slide=flow.querySelector('#tfCartReviewSlide'),scrim=flow.querySelector('[data-review-scrim]');if(!slide)return;
  const english=tfIsEnglish(),review=item.review;
  // TF-DEV: 실사용 평점·조작 의심 제외는 서버가 항상 null(결정 0001)이라 0%·"—"로만 보였다 → 없는 정보는 표시하지 않는다.
+ // 배치: 리뷰 한눈에 보기(막대) → Review Cleansing Summary(문장 카드 + 면책). 관측이 없으면 막대는 빠지고
+ // Summary 카드에 사유 한 줄만 남는다.
  const scoreHtml = tfReviewSignalsHtml(review, english) + tfCleansingSummaryHtml(review, english);
  const reasonText=tfLlmText(item.reason,english?'Generating the recommendation reason…':'추천 이유를 정리하는 중이에요…',english?'Could not generate the recommendation reason.':'추천 이유를 만들지 못했어요.');
  // TF-DEV: "구매 시점"은 유아용품처럼 월령에 맞춰 나중에 사도 되는 품목에만 의미가 있다.
