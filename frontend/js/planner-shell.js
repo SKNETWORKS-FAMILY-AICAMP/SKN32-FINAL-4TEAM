@@ -83,5 +83,12 @@ flow.addEventListener('click',e=>{
  const actionBtn=e.target.closest('[data-action]');if(actionBtn){const a=actionBtn.dataset.action;if(a==='print'){window.print();return}if(a==='download'){tfDownloadReport();return}go(a);return}
 });
 
-async function tfDeleteList(id){const list=(tfPlan.lists||[]).find(item=>item.list_id===id);if(!window.confirm('"'+(list?.name||'장바구니')+'" 장바구니를 삭제할까요?'))return;try{await TF_PLAN.deleteList(id);tfPlan.lists=(tfPlan.lists||[]).filter(item=>item.list_id!==id);tfClearResetMark(id);toast('장바구니를 삭제했습니다.');if(id===tfPlan.listId){tfSelectList(null);go('category')}else{const aside=flow.querySelector('.planner-sidebar');if(aside)aside.outerHTML=sidebar()}}catch(err){toast(tfAuthErrorMessage(err))}}
+function tfConfirmBasketDeletion(name){
+ const english=TF_LOCALE.isEnglish(),dialog=document.createElement('dialog');
+ dialog.style.cssText='max-width:420px;width:calc(100% - 48px);padding:28px;border:1px solid #c4ccc2;border-radius:16px';
+ dialog.setAttribute('aria-labelledby','tf-delete-basket-title');
+ dialog.innerHTML='<form method="dialog"><h2 id="tf-delete-basket-title">'+(english?'Delete basket?':'장바구니 삭제')+'</h2><p>'+esc(english?'Delete the basket "'+name+'"?':'"'+name+'" 장바구니를 삭제할까요?')+'</p><div class="row"><button class="btn strong" value="delete">'+(english?'Delete':'삭제')+'</button><button class="btn" value="cancel" autofocus>'+(english?'Cancel':'취소')+'</button></div></form>';
+ return new Promise(resolve=>{dialog.addEventListener('close',()=>{const confirmed=dialog.returnValue==='delete';dialog.remove();resolve(confirmed)},{once:true});document.body.appendChild(dialog);dialog.showModal()});
+}
+async function tfDeleteList(id){const list=(tfPlan.lists||[]).find(item=>item.list_id===id);if(!await tfConfirmBasketDeletion(list?.name||(TF_LOCALE.isEnglish()?'Basket':'장바구니')))return;try{await TF_PLAN.deleteList(id);tfPlan.lists=(tfPlan.lists||[]).filter(item=>item.list_id!==id);tfClearResetMark(id);toast(TF_LOCALE.isEnglish()?'Basket deleted.':'장바구니를 삭제했습니다.');if(id===tfPlan.listId){tfSelectList(null);go('category')}else{const aside=flow.querySelector('.planner-sidebar');if(aside)aside.outerHTML=sidebar()}}catch(err){toast(tfAuthErrorMessage(err))}}
 function tfDownloadReport(){if(!tfPlan.report)return;const blob=new Blob([JSON.stringify(tfPlan.report,null,2)],{type:'application/json'}),link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download='truefit-report.json';link.click();setTimeout(()=>URL.revokeObjectURL(link.href),1000)}

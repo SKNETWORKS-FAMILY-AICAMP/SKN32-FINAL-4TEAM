@@ -10,9 +10,9 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
+from src.i18n import Locale, normalize_locale
 from src.auth.deps import Principal
 from src.errors import Conflict, NotFound, ValidationFailed
-from src.i18n import Locale, normalize_locale
 from src.repo.engine_repo import EngineRepo
 from src.repo.notification_repo import NotificationRepo
 from src.repo.plan_repo import PlanRepo
@@ -21,36 +21,14 @@ from src.services import auth_service, feedback_service, recommendation_service
 from src.services.session_service import _owned, _token_hash
 
 _DEFAULT_NAME_BY_CATEGORY = {"computer": "컴퓨터 장바구니", "baby": "유아용품 장바구니"}
-_DEFAULT_NAME_EN_BY_CATEGORY = {"computer": "Computer basket", "baby": "Baby-product basket"}
-_SLOT_LABEL_EN = {
-    "메인보드": "Motherboard", "저장장치": "Storage", "파워": "Power supply",
-    "케이스": "Case", "쿨러": "Cooler", "수유": "Feeding", "수면": "Sleep",
-    "위생/기저귀": "Hygiene/diapers", "외출": "Outings",
-}
 _PLACEHOLDER_NAMES = {"새 추천", ""}
 _PRICE_WATCH_WINDOW_DAYS = 90
 
 
-def _display_name(name: str, category: str | None, locale: Locale = "ko-KR") -> str:
+def _display_name(name: str, category: str | None) -> str:
     if name not in _PLACEHOLDER_NAMES:
         return name
-    if normalize_locale(locale) == "en-US":
-        return _DEFAULT_NAME_EN_BY_CATEGORY.get(category or "", name)
     return _DEFAULT_NAME_BY_CATEGORY.get(category or "", name)
-
-
-def _report_slot_label(label: str | None, locale: Locale) -> str | None:
-    return _SLOT_LABEL_EN.get(label, label) if locale == "en-US" else label
-
-
-def _report_evidence(snapshot: dict, locale: Locale) -> str:
-    text = str(snapshot.get("evidence_text") or "")
-    if locale != "en-US" or not any("가" <= char <= "힣" for char in text):
-        return text
-    product = snapshot.get("product") or {}
-    name = product.get("name") or "This product"
-    slot = _report_slot_label(snapshot.get("slot_label") or snapshot.get("slot"), locale) or "selected"
-    return f"{name} was selected for the {slot} slot based on the recommendation conditions."
 
 
 def _stage(row: dict) -> str:
@@ -126,15 +104,14 @@ def _report_lang(prepo: PlanRepo, revision_id: UUID) -> str:
 
 
 def confirm(conn, list_id: UUID, principal: Principal, *, name: str, planned_purchase_at: str | None,
-            target_amount: int | None, memo: str, locale: Locale = "ko-KR",
-            if_match: int | None = None) -> dict:
+            target_amount: int | None, memo: str, if_match: int | None = None, locale: Locale = "ko-KR") -> dict:
     user_id = _require_login(conn, principal)
     prepo = PlanRepo(conn)
     revision = _owned(prepo, list_id, principal)
     if revision["owner_user_id"] != user_id:
         raise NotFound("목록을 찾을 수 없습니다.")
     if revision["state"] == "confirmed":
-        return get_report(conn, list_id, principal)
+        return get_report(conn, list_id, principal, locale=locale)
     if if_match is not None and if_match != revision["lock_version"]:
         raise Conflict("목록이 다른 곳에서 변경되었습니다.", code="stale_revision")
 
@@ -199,8 +176,7 @@ def confirm(conn, list_id: UUID, principal: Principal, *, name: str, planned_pur
     return get_report(conn, list_id, principal, locale=locale)
 
 
-def get_report(conn, list_id: UUID, principal: Principal, *,
-               locale: Locale = "ko-KR") -> dict:
+def get_report(conn, list_id: UUID, principal: Principal, *, locale: Locale = "ko-KR") -> dict:
     locale = normalize_locale(locale)
     user_id = _require_login(conn, principal)
     prepo = PlanRepo(conn)
@@ -214,8 +190,7 @@ def get_report(conn, list_id: UUID, principal: Principal, *,
     for line in prepo.list_purchase_lines(revision["id"]):
         snapshot = line["snapshot"] or {}
         items.append({
-            "slot": snapshot.get("slot"),
-            "slot_label": _report_slot_label(snapshot.get("slot_label"), locale),
+            "slot": snapshot.get("slot"), "slot_label": snapshot.get("slot_label"),
             "product": snapshot.get("product") or {},
             "price": int(line["line_amount"]), "qty": int(line["pack_count"]),
             "timing": snapshot.get("timing", "now"), "review": snapshot.get("review"),
@@ -234,7 +209,7 @@ def get_report(conn, list_id: UUID, principal: Principal, *,
         "list_id": str(list_id),
         # A confirmed report is a snapshot; later sidebar renames must not rewrite
         # the name shown on that historical purchase record.
-        "name": _display_name(revision["name_snapshot"], revision["category"], locale),
+        "name": _display_name(revision["name_snapshot"], revision["category"]),
         "category": revision["category"],
         "owner_display_name": owner["display_name"] if owner else "",
         "planned_purchase_at": revision["planned_purchase_at"].date().isoformat()
@@ -281,3 +256,13 @@ def set_alert(conn, list_id: UUID, principal: Principal, *, enabled: bool, targe
     ends_at = datetime.now(timezone.utc) + timedelta(days=_PRICE_WATCH_WINDOW_DAYS)
     watch = nrepo.upsert_active(revision["id"], target_amount=amount, ends_at=ends_at)
     return {"price_watch": _price_watch_out(watch, confirmed_target)}
+
+
+def _report_evidence(snapshot: dict, locale: Locale) -> str:
+    text = snapshot.get("evidence_text", "") or ""
+    if locale == "en-US":
+        if snapshot.get("evidence_text_en"):
+            return snapshot["evidence_text_en"]
+        if any("가" <= char <= "힣" for char in text):
+            return "The recommendation explanation was saved in Korean. An English translation is not available for this saved report."
+    return text

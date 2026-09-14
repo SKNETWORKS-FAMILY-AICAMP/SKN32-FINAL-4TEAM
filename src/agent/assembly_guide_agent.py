@@ -19,8 +19,6 @@ from src.rag.care_guides import search_care_guide
 
 # 일반적인 PC 조립 순서(케이스 준비 → 전원 → 메인보드 계열 → 확장 카드 → 정리). 의견이 아니라 관행이다.
 ASSEMBLY_ORDER = ["케이스", "파워", "메인보드", "CPU", "쿨러", "RAM", "저장장치", "GPU"]
-SLOT_LABELS_EN = {"케이스": "Case", "파워": "Power supply", "메인보드": "Motherboard",
-                  "쿨러": "Cooler", "저장장치": "Storage"}
 
 
 def available() -> bool:
@@ -40,12 +38,8 @@ def build_guide_fallback(ordered_items: list[dict], lang: str = "ko") -> str:
     for i, it in enumerate(ordered_items, start=1):
         name = it["product"]["name"]
         hits = search_care_guide(f"{it['slot']} {name} 조립 시 확인할 점", k=1)
-        if lang == "en":
-            note = (hits[0].get("text_en") if hits else None) or "No English guide is available for this component."
-            slot = SLOT_LABELS_EN.get(it["slot"], it["slot"])
-        else:
-            note = hits[0]["text"] if hits else "특별히 확인할 점은 없습니다."
-            slot = it["slot"]
+        note = ((hits[0].get("text_en") if hits else None) or "No English guide is available for this component.") if lang == "en" else (hits[0]["text"] if hits else "특별히 확인할 점은 없습니다.")
+        slot = _slot_label(it['slot'], lang)
         lines.append(f"{i}. {slot} — {name}\n   {note}")
     return "\n".join(lines)
 
@@ -74,8 +68,7 @@ def _model():
 
 
 def _system_prompt(ordered_items: list[dict], lang: str = "ko") -> str:
-    lines = [f"{i}. {SLOT_LABELS_EN.get(it['slot'], it['slot']) if lang == 'en' else it['slot']}: {it['product']['name']}"
-             for i, it in enumerate(ordered_items, start=1)]
+    lines = [f"{i}. {_slot_label(it['slot'], lang)}: {it['product']['name']}" for i, it in enumerate(ordered_items, start=1)]
     language_line = (
         "한국어 존댓말로 답합니다."
         if lang != "en"
@@ -106,7 +99,7 @@ def build_guide(items: list[dict], lang: str = "ko") -> dict:
     "문장 생성 실패가 결과 자체를 막지 않는다"는 원칙을 따른다. 검색(RAG)은 폴백에서도
     실제로 수행되므로, 사용자에게 보이는 조립 가이드는 항상 실제 데이터를 인용한다.
 
-    lang="en"이면 폴백에서도 근거 문서의 text_en과 영문 슬롯명을 사용한다.
+    영어 폴백은 근거 문서의 text_en을 사용한다.
     """
     ordered = _ordered_items(items)
     if not ordered:
@@ -126,3 +119,8 @@ def build_guide(items: list[dict], lang: str = "ko") -> dict:
         return {"status": "ready", "text": text}
     except Exception:  # noqa: BLE001 — 에이전트 실패는 가이드 자체를 막지 않는다, 폴백으로
         return {"status": "ready", "text": build_guide_fallback(ordered, lang)}
+
+
+def _slot_label(slot: str, lang: str) -> str:
+    labels = {"케이스": "Case", "파워": "Power supply", "메인보드": "Motherboard", "쿨러": "Cooler", "저장장치": "Storage"}
+    return labels.get(slot, slot) if lang == "en" else slot

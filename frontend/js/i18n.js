@@ -202,6 +202,12 @@
 
   /* landing: FAQ */
   "시작 전에 알아두세요.":"Before you start.",
+  "로그인해야 이용할 수 있나요?":"Do I need to sign in?",
+  "로그인 없이도 조건을 입력하고 추천 결과를 확인할 수 있습니다. 최종 리스트를 저장하고 리포트를 확인하려면 로그인이 필요합니다.":"You can enter your requirements and view recommendations without signing in. You need to sign in to save your final list and view your report.",
+  "추천받은 제품을 다른 제품으로 바꿀 수 있나요?":"Can I replace a recommended product?",
+  "네. 추천 결과에서 다른 후보를 확인하고 원하는 제품으로 교체할 수 있습니다. 예산이나 원하는 조건을 변경해 다시 추천받을 수도 있습니다.":"Yes. You can explore alternatives in the recommendation results and switch to a product you prefer. You can also change your budget or requirements to get new recommendations.",
+  "최종 리스트에 담은 제품은 어떻게 구매하나요?":"How do I buy the products in my final list?",
+  "각 제품의 상품 페이지 링크를 통해 판매 페이지로 이동할 수 있습니다. 최종 가격과 제품 정보를 확인한 뒤 해당 판매처에서 구매해 주세요.":"Follow each product's page link to visit the seller's website. Check the final price and product details before purchasing from that seller.",
   "지금 어떤 기능을 사용할 수 있나요?":"What can I use right now?",
   "이 페이지는 서비스 흐름을 체험하는 HTML 목업입니다. 조건 입력, 예시 추천, 후보 교체, 장바구니 구성, 리스트 저장과 리포트 인쇄를 사용할 수 있습니다.":"This page is an HTML mockup for experiencing the service flow. You can enter conditions, see sample recommendations, swap candidates, build a basket, save a list and print a report.",
   "상품 가격과 안전 검증 결과는 실제 정보인가요?":"Are the product prices and safety checks real?",
