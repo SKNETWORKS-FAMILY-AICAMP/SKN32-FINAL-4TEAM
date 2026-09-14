@@ -23,34 +23,68 @@ def create(response: Response, principal: Principal = Depends(optional_principal
     return schemas.SessionOut(list_id=result["list_id"])
 
 @router.get("/{list_id}", response_model=schemas.ConditionState)
-def get_session(list_id: UUID, principal: Principal = Depends(optional_principal)) -> schemas.ConditionState:
+def get_session(
+    list_id: UUID,
+    principal: Principal = Depends(optional_principal),
+    locale: Locale = Depends(resolve_locale),
+) -> schemas.ConditionState:
     with get_conn() as conn:
-        return schemas.ConditionState(**session_service.get_session_state(conn, list_id, principal))
+        return schemas.ConditionState(**session_service.get_session_state(conn, list_id, principal, locale))
 
 @router.post("/{list_id}/category", response_model=schemas.ConditionState)
-def choose_category(list_id: UUID, body: schemas.CategoryIn, principal: Principal = Depends(optional_principal)) -> schemas.ConditionState:
+def choose_category(
+    list_id: UUID,
+    body: schemas.CategoryIn,
+    principal: Principal = Depends(optional_principal),
+    locale: Locale = Depends(resolve_locale),
+) -> schemas.ConditionState:
     with get_conn() as conn:
-        return schemas.ConditionState(**session_service.choose_category(conn, list_id, body.category, body.mode, principal))
+        return schemas.ConditionState(**session_service.choose_category(
+            conn, list_id, body.category, body.mode, principal, locale,
+        ))
 
 @router.patch("/{list_id}/slot", response_model=schemas.ConditionState)
-def patch_slot(list_id: UUID, body: schemas.SlotPatchIn, principal: Principal = Depends(optional_principal)) -> schemas.ConditionState:
+def patch_slot(
+    list_id: UUID,
+    body: schemas.SlotPatchIn,
+    principal: Principal = Depends(optional_principal),
+    locale: Locale = Depends(resolve_locale),
+) -> schemas.ConditionState:
     with get_conn() as conn:
-        return schemas.ConditionState(**session_service.patch_slot(conn, list_id, body.field, body.value, principal))
+        return schemas.ConditionState(**session_service.patch_slot(
+            conn, list_id, body.field, body.value, principal, locale,
+        ))
 
 @router.post("/{list_id}/message", response_model=schemas.ConditionState)
-def message(list_id: UUID, body: schemas.MessageIn, principal: Principal = Depends(optional_principal)) -> schemas.ConditionState:
+def message(
+    list_id: UUID,
+    body: schemas.MessageIn,
+    principal: Principal = Depends(optional_principal),
+    locale: Locale = Depends(resolve_locale),
+) -> schemas.ConditionState:
     with get_conn() as conn:
-        return schemas.ConditionState(**session_service.handle_message(conn, list_id, body.text, principal))
+        return schemas.ConditionState(**session_service.handle_message(conn, list_id, body.text, principal, locale))
 
 @router.post("/{list_id}/answer", response_model=schemas.ConditionState)
-def answer(list_id: UUID, body: schemas.AnswerIn, principal: Principal = Depends(optional_principal)) -> schemas.ConditionState:
+def answer(
+    list_id: UUID,
+    body: schemas.AnswerIn,
+    principal: Principal = Depends(optional_principal),
+    locale: Locale = Depends(resolve_locale),
+) -> schemas.ConditionState:
     with get_conn() as conn:
-        return schemas.ConditionState(**session_service.handle_answer(conn, list_id, body.question_id, body.selected, principal))
+        return schemas.ConditionState(**session_service.handle_answer(
+            conn, list_id, body.question_id, body.selected, principal, locale,
+        ))
 
 @router.post("/{list_id}/reset", response_model=schemas.ConditionState)
-def reset(list_id: UUID, principal: Principal = Depends(optional_principal)) -> schemas.ConditionState:
+def reset(
+    list_id: UUID,
+    principal: Principal = Depends(optional_principal),
+    locale: Locale = Depends(resolve_locale),
+) -> schemas.ConditionState:
     with get_conn() as conn:
-        return schemas.ConditionState(**session_service.reset_conditions(conn, list_id, principal))
+        return schemas.ConditionState(**session_service.reset_conditions(conn, list_id, principal, locale))
 
 @router.post("/{list_id}/recommend", response_model=schemas.RecommendAcceptedOut, status_code=status.HTTP_202_ACCEPTED)
 def recommend(
@@ -88,10 +122,15 @@ def patch_item(list_id: UUID, item_id: UUID, body: schemas.ItemPatchIn, principa
     return schemas.RecommendResultOut(**stored)
 
 @router.get("/{list_id}/items/{item_id}/alternatives", response_model=schemas.AlternativesOut)
-def alternatives(list_id: UUID, item_id: UUID, principal: Principal = Depends(optional_principal)) -> schemas.AlternativesOut:
+def alternatives(
+    list_id: UUID,
+    item_id: UUID,
+    principal: Principal = Depends(optional_principal),
+    locale: Locale = Depends(resolve_locale),
+) -> schemas.AlternativesOut:
     with get_conn() as conn:
         revision = session_service._owned(PlanRepo(conn), list_id, principal)
-        stored = recommendation_service.list_alternatives(conn, revision["id"], item_id)
+        stored = recommendation_service.list_alternatives(conn, revision["id"], item_id, locale=locale)
     return schemas.AlternativesOut(**stored)
 
 @router.post("/{list_id}/items/{item_id}/swap", response_model=schemas.RecommendResultOut)
@@ -119,6 +158,13 @@ def result_message(
     return schemas.ResultMessageOut(**stored)
 
 @router.post("/{list_id}/spec-file", response_model=schemas.ConditionState)
-def spec_file(list_id: UUID, body: schemas.SpecFileIn, principal: Principal = Depends(optional_principal)) -> schemas.ConditionState:
+def spec_file(
+    list_id: UUID,
+    body: schemas.SpecFileIn,
+    principal: Principal = Depends(optional_principal),
+    locale: Locale = Depends(resolve_locale),
+) -> schemas.ConditionState:
     with get_conn() as conn:
-        return schemas.ConditionState(**session_service.attach_spec_file(conn, list_id, body.file_name, body.content, principal))
+        return schemas.ConditionState(**session_service.attach_spec_file(
+            conn, list_id, body.file_name, body.content, principal, locale,
+        ))

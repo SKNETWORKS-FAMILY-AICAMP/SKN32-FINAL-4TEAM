@@ -71,10 +71,10 @@ _PRIORITY = [
 # 영문 키워드는 소문자로 두고 lowered 텍스트에 매칭한다.
 _NEEDS_MAP: list[tuple[str, list[str]]] = [
     ("수유", ["수유", "젖병", "분유", "feeding", "bottle", "nursing", "formula"]),
-    ("이유식·식사", ["이유식", "식사", "weaning", "solid food", "baby food"]),
+    ("이유식·식사", ["이유식", "식사", "weaning", "solid food", "baby food", "meal"]),
     ("수면", ["수면", "잠", "재우", "sleep", "crib", "nap"]),
     ("외출", ["외출", "산책", "유모차", "카시트", "outing", "stroller", "car seat", "carrier", "travel"]),
-    ("목욕·위생", ["목욕", "위생", "샴푸", "bath", "hygiene", "wash"]),
+    ("목욕·위생", ["목욕", "위생", "샴푸", "bath", "hygiene", "wash", "shampoo"]),
     ("기저귀·배변", ["기저귀", "배변", "diaper", "potty"]),
     ("의류", ["의류", "옷", "clothes", "clothing"]),
     ("놀이", ["놀이", "장난감", "play", "toy"]),

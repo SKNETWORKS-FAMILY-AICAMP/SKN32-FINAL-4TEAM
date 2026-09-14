@@ -139,6 +139,10 @@
   "서비스 시작하기":"Get started",
   "컴퓨터":"Computer",
   "유아용품":"Baby care",
+  "컴퓨터 ↗":"Computer ↗",
+  "유아용품 ↗":"Baby care ↗",
+  "컴퓨터 장바구니 삭제":"Delete computer basket",
+  "유아용품 장바구니 삭제":"Delete baby-care basket",
   "내 리포트":"My report",
   "닫기":"Close",
 
@@ -231,6 +235,11 @@
   "장바구니 만들기 단계":"Basket-building steps",
   "카테고리":"Category",
   "조건 입력":"Conditions",
+  "01 카테고리":"01 Category",
+  "02 조건 입력":"02 Conditions",
+  "03 추천 결과":"03 Recommendations",
+  "04 리스트 확정":"04 Confirm list",
+  "05 리포트":"05 Report",
   "추천 결과":"Recommendations",
   "리스트 확정":"Confirm list",
   "리포트":"Report",
@@ -693,10 +702,10 @@
   /* dynamic planner copy */
   "다른 카테고리를 선택하면 새 장바구니를 만들어요. 지금 대화는 사이드바에 그대로 남아요. 계속할까요?":"Choosing another category creates a new basket. This conversation will remain in the sidebar. Continue?",
   "서버 응답이 올바르지 않아요.":"The server response is invalid.","로그아웃되었습니다.":"Signed out.",
-  "새 컴퓨터 조립":"Build a new computer","부품을 처음부터 골라 구성해요.":"Choose every part and build it from scratch.",
-  "기존 컴퓨터 업그레이드":"Upgrade an existing computer","지금 쓰는 부품 중 바꿀 것만 골라요.":"Choose only the parts you want to replace.",
+  "새 컴퓨터 조립":"Build a new computer","새 컴퓨터 조립 ↗":"Build a new computer ↗","부품을 처음부터 골라 구성해요.":"Choose every part and build it from scratch.",
+  "기존 컴퓨터 업그레이드":"Upgrade an existing computer","기존 컴퓨터 업그레이드 ↗":"Upgrade an existing computer ↗","지금 쓰는 부품 중 바꿀 것만 골라요.":"Choose only the parts you want to replace.",
   "새로 만들까요, 업그레이드할까요?":"Build new or upgrade?","컴퓨터 구성 방식을 골라주세요. 이후 질문이 이 선택에 맞춰 달라져요.":"Choose how you want to configure the computer. The following questions will adapt to your choice.",
-  "카테고리 다시 선택":"Choose category again","새 컴퓨터로 변경":"Switch to a new build","업그레이드로 변경":"Switch to an upgrade",
+  "카테고리 다시 선택":"Choose category again","← 카테고리 다시 선택":"← Choose category again","새 컴퓨터로 변경":"Switch to a new build","업그레이드로 변경":"Switch to an upgrade",
   "선택지":"Options","이전 대화 내용이 모두 사라지고 처음부터 다시 시작해요. 계속할까요?":"The previous conversation will be cleared and restarted. Continue?",
   "검증 문장을 만드는 중이에요…":"Writing verification details…","검증 문장을 만들지 못했어요.":"Couldn't write verification details.",
   "다시 계산하는 중…":"Recalculating…","추천을 준비하는 중이에요…":"Preparing recommendations…",
@@ -740,15 +749,7 @@
   [/^(.+?)개월$/, "$1 months"]
  ];
 
- var KEYS=Object.keys(DICT).filter(function(k){return k.length>=2;})
-   .sort(function(a,b){return b.length-a.length;});
  var HAN=/[가-힣]/;
-
- function subclean(x){
-  if(!HAN.test(x)) return x;
-  for(var j=0;j<KEYS.length;j++){ var k=KEYS[j]; if(x.indexOf(k)>=0) x=x.split(k).join(DICT[k]); }
-  return x;
- }
  function tstr(s){
   if(s==null) return s;
   var str=String(s);
@@ -759,7 +760,6 @@
   var body=key;
   if(Object.prototype.hasOwnProperty.call(DICT,key)) body=DICT[key];
   else { for(var i=0;i<RX.length;i++){ if(RX[i][0].test(key)){ body=key.replace(RX[i][0],RX[i][1]); break; } } }
-  body=subclean(body);
   if(body===key) return str;
   return str.replace(key,body);
  }

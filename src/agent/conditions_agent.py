@@ -22,6 +22,7 @@ from dataclasses import dataclass, field
 
 from src.config import CONDITIONS_AGENT, LLM_MODEL, LLM_PROVIDER, MOCK_MODE, OPENAI_API_KEY
 from src.engine.slot_rules import _parse_won
+from src.i18n import Locale, normalize_locale
 
 # 대화로 설정하지 않는 필드 — 사양 파일 첨부(/spec-file)가 채운다
 _NOT_CONVERSATIONAL = {"current_specs", "spec_file_name"}
@@ -289,7 +290,12 @@ def _reply_language(text: str, history: list[dict] = (), chip_codes: set[str] = 
     return "ko"
 
 
-def system_prompt(draft: ConditionDraft, user_text: str = "", history: list[dict] = ()) -> str:
+def system_prompt(
+    draft: ConditionDraft,
+    user_text: str = "",
+    history: list[dict] = (),
+    locale: Locale | None = None,
+) -> str:
     current = {k: draft.current(k) for k in draft.schema() if draft.current(k) not in (None, [], "")}
     nq = draft.next_question()
     ask = (f"지금 다음 질문은 \"{nq['text']}\" 입니다. " if nq else "")
@@ -314,7 +320,10 @@ def system_prompt(draft: ConditionDraft, user_text: str = "", history: list[dict
         "5. 값을 바꿀 때는 clear_condition 없이 set_condition 에 새 값만 넣습니다. clear 는 '취소'·'빼 주세요' 에만 씁니다.",
         "6. 제품 추천·가격·성능·호환성 판단을 하지 않습니다. 그건 다음 단계의 엔진이 합니다.",
         "",
-        ("답변 언어: 한국어 존댓말." if _reply_language(user_text, history, _chip_codes(draft.cat_def)) == "ko"
+        ("답변 언어: 한국어 존댓말." if (
+            normalize_locale(locale) == "ko-KR" if locale is not None
+            else _reply_language(user_text, history, _chip_codes(draft.cat_def)) == "ko"
+        )
          else "Reply language: English. Write the entire reply in English, including the closing question."),
     ])
 
@@ -354,7 +363,8 @@ def _model():
 
 
 def run_turn(category: str, cat_def: dict, values: dict, history: list[dict], text: str,
-             *, missing_fn: MissingFn, next_question_fn: NextQuestionFn) -> TurnResult:
+             *, missing_fn: MissingFn, next_question_fn: NextQuestionFn,
+             locale: Locale | None = None) -> TurnResult:
     """한 턴 실행. history 는 이번 사용자 메시지를 제외한 DB 대화 행.
 
     `missing_fn`·`next_question_fn` 은 규칙(`session_service`)이다 — 무엇이 필수이고 다음에 무엇을
@@ -366,7 +376,7 @@ def run_turn(category: str, cat_def: dict, values: dict, history: list[dict], te
                            missing_fn=missing_fn, next_question_fn=next_question_fn)
     agent = Agent(
         model=_model(),
-        system_prompt=system_prompt(draft, text, history),
+        system_prompt=system_prompt(draft, text, history, locale),
         tools=make_tools(draft),
         messages=_history(history),
         callback_handler=None,          # 기본 핸들러는 stdout 에 스트리밍한다
