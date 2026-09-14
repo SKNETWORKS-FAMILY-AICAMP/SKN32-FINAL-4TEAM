@@ -273,16 +273,28 @@ class ProductRiskStore:
                 out.append((k, float(v), float(m)))
         return out
 
-    def observations(self, product_key: str) -> list[str]:
-        """카드가 있으면 카드 문장, 없으면 특징 표에서 핵심 셋만 문장으로."""
+    def observations(self, product_key: str, lang: str = "ko") -> list[str]:
+        """카드가 있으면 카드 문장, 없으면 특징 표에서 핵심 셋만 문장으로.
+        영어는 카드 문장(배치가 한국어로 적어 둔 것)을 쓰지 않고 특징 표의 숫자로 다시 렌더한다."""
         asin = self.resolve(product_key)
         c = self.cards.get(asin)
-        if c:
+        if c and lang != "en":
             return list(c["observations"])
         f = self.products.get(asin)
         if not f:
             return []
         m = self.controls
+        if lang == "en":
+            burst = (f"{int(f['burst7_count'])} of {int(f['n'])} reviews ({100*f['burst7']:.1f}%) arrived within a 7-day window"
+                     f" — median across products {100*m['burst7']:.1f}%")
+            if self.is_launch_burst(f):
+                burst += " (launch week — likely the release, not manipulation; excluded from the ranking signal)"
+            return [
+                burst,
+                f"{int(f['shared_reviewers'])} reviewers also appear on other products ({int(f['deg'])} connected products)"
+                f" — median {m['shared_reviewers']:.0f} / {m['deg']:.0f}",
+                f"5-star share {100*f['p5']:.0f}% — median {100*m['p5']:.0f}%",
+            ]
         # 출시 첫 주 몰림이면 그렇다고 적는다. 적지 않으면 검토자가 "중앙값의 3배인데 왜
         # 검토 권장이 안 붙었나" 를 알 수 없고, 반박에 필요한 사실을 우리가 쥐고 안 주는 것이 된다.
         burst = (f"리뷰 {int(f['n'])}건 중 {int(f['burst7_count'])}건({100*f['burst7']:.1f}%)이 7일 안에 몰림"
@@ -296,13 +308,15 @@ class ProductRiskStore:
             f"5점 비율 {100*f['p5']:.0f}% — 중앙값 {100*m['p5']:.0f}%",
         ]
 
-    def get_review_authenticity(self, product_key: str) -> dict:
+    def get_review_authenticity(self, product_key: str, lang: str = "ko") -> dict:
         """[3-C] 계약 (기획서 §10-6) 과 같은 키. 채울 수 없는 값은 None 으로 두고 이유를 적는다."""
+        en = lang == "en"
         f = self.get(product_key)
         if not f:
             return {"orig_rating": None, "cleaned_rating": None, "cleanse_ratio": None,
                     "axis_scores": {}, "total_reviews": 0, "top_summaries": [],
-                    "confidence_note": "관측 없음 — 리뷰 수가 산출 문턱 미만이거나 데이터에 없는 상품",
+                    "confidence_note": ("No observation — below the review-count threshold or not in the data" if en
+                                        else "관측 없음 — 리뷰 수가 산출 문턱 미만이거나 데이터에 없는 상품"),
                     "product_manipulation_risk": {"score": None, "evidence": [], "reliable_range": None}}
         return {
             "orig_rating": round(f["mean_rating"], 2),
@@ -312,11 +326,13 @@ class ProductRiskStore:
             "total_reviews": int(f["n"]),
             "top_summaries": [],
             "confidence_note": (
+                ("No manipulation labels — no cleaned rating or exclusion ratio is computed. "
+                 "Below are product-level observations, not the authenticity of any single review.") if en else
                 "조작 라벨 없음 — 정제 평점·제외 비율은 산출하지 않는다. "
                 "아래는 상품 단위 관측 사실이며 개별 리뷰의 진위가 아니다."),
             "product_manipulation_risk": {
                 "score": None,                       # 점수는 두지 않는다 (근거 카드 원칙: 반박 가능한 것만)
-                "evidence": self.observations(product_key),
+                "evidence": self.observations(product_key, lang),
                 "reliable_range": bool(f["n"] >= self.meta.get("min_reviews", 30)),
                 "controls": self.controls,
                 "source": self.meta.get("source"),
@@ -457,7 +473,7 @@ class SuspectCountFile:
     def get(self, product_key: str) -> dict | None:
         return self.products.get(product_key)
 
-    def sentence(self, product_key: str) -> str | None:
+    def sentence(self, product_key: str, lang: str = "ko") -> str | None:
         """검토자가 읽을 한 줄. 없으면 None."""
         v = self.get(product_key)
         if not v or not v.get("n"):
@@ -465,6 +481,13 @@ class SuspectCountFile:
         n, k = int(v["n"]), int(v["ge2"])
         lo, hi = (v.get("ci2") or [0.0, 100.0])[:2]
         base = self.baseline.get("rate_pct")
+        if lang == "en":
+            verdict = ""
+            if base is not None:
+                verdict = " · above the baseline" if lo > base else " · not distinguishable from the baseline"
+            base_txt = f" (all demo products {base}%)" if base is not None else ""
+            return (f"{k} of {n} reviews ({100*k/n:.1f}%) trip 2+ suspicion indicators"
+                    f"{base_txt} — 95% CI [{lo}, {hi}]{verdict}")
         verdict = ""
         if base is not None:
             verdict = " · 기준선 초과" if lo > base else " · 기준선과 구별되지 않음"

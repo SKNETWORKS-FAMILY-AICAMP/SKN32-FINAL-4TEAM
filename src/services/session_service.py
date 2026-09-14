@@ -8,6 +8,7 @@ from src.agent import conditions_agent
 from src.auth.deps import Principal
 from src.categories import available_categories, load_category
 from src.engine import slot_rules
+from src.engine.lang import L, lang_of
 from src.errors import Conflict, FileTooLarge, NotFound, ValidationFailed
 from src.i18n import Locale, normalize_locale
 from src.repo.plan_repo import PlanRepo
@@ -45,6 +46,11 @@ def normalize_baby_conditions(values: dict) -> NormalizedConditions:
     raw_age = values.get("age_months")
     months = raw_age.get("value") if isinstance(raw_age, dict) else raw_age
     exact = bool(raw_age.get("exact", True)) if isinstance(raw_age, dict) else True
+    if isinstance(months, dict):
+        # 조건 로딩 경로에 따라 age_months 가 {"value": {"value":.., "exact":..}} 로 한 번 더
+        # 감긴 채 들어올 수 있다 — _field_value 와 같은 방어적 언랩(같은 파일, 위 참고).
+        exact = bool(months.get("exact", True))
+        months = months.get("value")
     return {
         "category": "baby", "mode": values.get("mode"),
         "age_stage": {"months": months, "label": _age_stage_label(months), "exact": exact}
@@ -107,7 +113,7 @@ def _owned(repo: PlanRepo, list_id: UUID, principal: Principal) -> dict:
     revision = repo.get_current_revision(list_id)
     if revision is None:
         raise NotFound("목록을 찾을 수 없습니다.")
-    user_ok = principal.user_id is not None and revision["user_id"] == principal.user_id
+    user_ok = principal.user_id is not None and revision["owner_user_id"] == principal.user_id
     guest_ok = principal.browser_token is not None and revision["guest_session_hash"] == _token_hash(principal.browser_token)
     if not (user_ok or guest_ok):
         raise NotFound("목록을 찾을 수 없습니다.")
@@ -173,7 +179,13 @@ def _field_value(meta: dict, values: dict, locale: Locale = "ko-KR"):
     if meta.get("computed"):
         raw = values.get(meta["computed"])
         months = raw.get("value") if isinstance(raw, dict) else raw
-        exact = bool(raw.get("exact", True)) if isinstance(raw, dict) else True
+        # Chip answers are persisted as {value: representative_month, exact:false}.
+        # Accept the older scalar form as well as that structured representation.
+        if isinstance(months, dict):
+            exact = bool(months.get("exact", True))
+            months = months.get("value")
+        else:
+            exact = bool(raw.get("exact", True)) if isinstance(raw, dict) else True
         return {"months": months, "label": _age_stage_label(months, locale), "exact": exact}
     return values.get(meta["key"])
 
@@ -202,7 +214,9 @@ def _display(
     value,
     locale: Locale = "ko-KR",
     option_labels: dict | None = None,
+    values: dict | None = None,
 ) -> str | None:
+    values = values or {}
     if value in (None, [], ""):
         return None
     if meta.get("computed"):
@@ -221,6 +235,9 @@ def _display(
             return "Yes" if value else "No"
         return "예" if value else "아니오"
     if meta["key"] == "budget_max" and isinstance(value, (int, float)):
+        if values.get("currency") == "USD":   # 달러로 말한 사용자 — 달러만 (고정 환율 src/config.USD_KRW_RATE)
+            from src.agent.conditions_agent import usd
+            return usd(int(value))
         return f"₩{int(value):,}" if locale == "en-US" else f"{int(value):,}원"
     return str(value)
 
@@ -236,9 +253,12 @@ def _build_fields(cat_def: dict, values: dict, locale: Locale = "ko-KR") -> list
         raw = values.get(meta["computed"]) if meta.get("computed") else value
         source_key = meta.get("computed") or meta["key"]
         status = "confirmed" if source_key in values and raw is not None else "missing"
+        age_answer = raw.get("value") if meta.get("computed") and isinstance(raw, dict) else raw
+        if meta.get("computed") and isinstance(age_answer, dict) and age_answer.get("exact") is False:
+            status = "assumed"
         out.append({
             "key": meta["key"], "label": _localized(meta, "label", locale), "value": value,
-            "display": _display(meta, value, locale, _option_label_map(cat_def, meta["key"], locale)),
+            "display": _display(meta, value, locale, _option_label_map(cat_def, meta["key"], locale), values),
             "status": status, "editable": True,
         })
     return out
@@ -259,6 +279,7 @@ def compute_missing(cat_def: dict, values: dict) -> list[str]:
 def _next_question(cat_def: dict, values: dict, locale: Locale = "ko-KR") -> dict | None:
     locale = normalize_locale(locale)
     mode = values.get("mode")
+    en = lang_of(values) == "en"      # 영어 사용자 — yaml 의 label_en/options_en (없으면 한국어 그대로)
     missing = set(compute_missing(cat_def, values))
     for q in cat_def.get("question_sets", []):
         if q.get("mode_only") and q["mode_only"] != mode:
@@ -266,12 +287,12 @@ def _next_question(cat_def: dict, values: dict, locale: Locale = "ko-KR") -> dic
         if q["maps_to"] not in missing:
             continue
         options = q.get("options") or []
-        option_labels = _localized(q, "options", locale) or options
         qvalues = q.get("values") or options
+        labels = (q.get("options_en") if en and q.get("options_en") else None) or options
         return {
-            "id": q["id"], "field": q["maps_to"], "text": _localized(q, "label", locale),
+            "id": q["id"], "field": q["maps_to"], "text": (q.get("label_en") if en else None) or q["label"],
             "select": q["select"],
-            "options": [{"value": v, "label": o} for o, v in zip(option_labels, qvalues)],
+            "options": [{"value": v, "label": o} for o, v in zip(labels, qvalues)],
         }
     return None
 
@@ -306,6 +327,8 @@ def _localized_assistant_message(text: str, cat_def: dict, locale: Locale) -> st
         return text
     if text == _ALL_SET:
         return _ALL_SET_EN
+    if text == "조건을 초기화했어요.":
+        return "Conditions have been reset."
     for question in cat_def.get("question_sets", []):
         if text == question.get("label"):
             return question.get("label_en", text)
@@ -318,7 +341,7 @@ def _messages_out(rows: list[dict], cat_def: dict | None = None, locale: Locale 
             "id": str(row["id"]),
             "role": row["role"],
             "text": _localized_assistant_message(row["content"], cat_def or {}, locale)
-            if row["role"] == "assistant" else row["content"],
+            if row["role"] in {"assistant", "system"} else row["content"],
             "created_at": row["created_at"].isoformat(),
         }
         for row in rows
@@ -366,7 +389,10 @@ def choose_category(
     mode: str | None,
     principal: Principal,
     locale: Locale = "ko-KR",
+    language: str | None = None,
 ) -> dict:
+    """language 는 프론트 언어 토글(X-TrueFit-Lang 헤더). 조건 대화 없이 칩만 눌러도 [3-C]·[5]·결과 문장이 그 언어로 나온다.
+    locale 은 이 요청(ConditionState) 응답 자체의 표시 언어 — Accept-Language 기반, 백그라운드 실행 시점엔 없다."""
     locale = normalize_locale(locale)
     repo = PlanRepo(conn)
     current = _owned(repo, list_id, principal)
@@ -376,9 +402,15 @@ def choose_category(
     mode = mode or cat_def["modes"][0]
     values, previous_category = _current_values(repo, current["id"])
     previous_mode = values.get("mode")
-    repo.bind_domain_version(current["id"], category)
+    # A draft pins its domain version on first category selection.  Re-selecting
+    # the same category (for example to change mode) must not silently adopt a
+    # version published after the conversation started.
+    if previous_category != category:
+        repo.bind_domain_version(current["id"], category)
     repo.upsert_condition(current["id"], "category", {"value": category}, "explicit")
     repo.upsert_condition(current["id"], "mode", {"value": mode}, "explicit")
+    if language in ("ko", "en") and "language" in (cat_def.get("slot_schema") or {}):
+        repo.upsert_condition(current["id"], "language", {"value": language}, "explicit")
     if previous_category is not None and previous_category != category:
         for key in values:
             if key not in {"category", "mode"}:
@@ -387,7 +419,7 @@ def choose_category(
         keys = ("due_date",) if mode == "born" else ("age_months", "weight_kg", "independent_sitting")
         for key in keys:
             repo.clear_condition(current["id"], key)
-    nq = _next_question(cat_def, {"mode": mode}, locale)
+    nq = _next_question(cat_def, {"mode": mode, "language": language}, locale)
     if nq:
         ConversationRepo(conn).add_message(current["conversation_id"], "assistant", nq["text"])
     return _state(conn, list_id, principal, locale)
@@ -472,15 +504,11 @@ def handle_message(
 
     nq = _next_question(cat_def, values, locale)
     if reply is None:
+        lang = lang_of(values)
         if nq:
-            if extracted:
-                reply = nq["text"]
-            elif locale == "en-US":
-                reply = "Sorry, I didn't understand that. " + nq["text"]
-            else:
-                reply = "죄송해요, 이해하지 못했어요. " + nq["text"]
+            reply = nq["text"] if extracted else L(lang, "죄송해요, 이해하지 못했어요. ", "Sorry, I didn't catch that. ") + nq["text"]
         else:
-            reply = _ALL_SET_EN if locale == "en-US" else _ALL_SET
+            reply = L(lang, _ALL_SET, _ALL_SET_EN)
     convo.add_message(current["conversation_id"], "assistant", reply)
     return _state(conn, list_id, principal, locale)
 
@@ -523,11 +551,15 @@ def handle_answer(
     msg_id = convo.add_message(current["conversation_id"], "user", user_text)
     if category == "baby":
         value = _validate_baby_value(cat_def, key, value, mode=values.get("mode"), none_token=none_opt)
+        # Question chips represent a range, not a user-entered exact age.  Preserve
+        # that distinction for eligibility and UI disclosure across reloads.
+        if key == "age_months":
+            value = {"value": value, "exact": False}
     repo.upsert_condition(current["id"], key, {"value": value}, "explicit", msg_id)
     values[key] = value
 
     nq = _next_question(cat_def, values, locale)
-    reply = nq["text"] if nq else (_ALL_SET_EN if locale == "en-US" else _ALL_SET)
+    reply = nq["text"] if nq else L(lang_of(values), _ALL_SET, _ALL_SET_EN)
     convo.add_message(current["conversation_id"], "assistant", reply)
     return _state(conn, list_id, principal, locale)
 
@@ -545,7 +577,8 @@ def reset_conditions(
     for row in full["conditions"]:
         if row["condition_key"] not in ("category", "mode"):
             repo.upsert_condition(current["id"], row["condition_key"], {"value": None}, "explicit")
-    ConversationRepo(conn).add_message(current["conversation_id"], "system", "조건을 초기화했어요.")
+    ConversationRepo(conn).add_message(current["conversation_id"], "system",
+                                       L(lang_of(_current_values(repo, current["id"])[0]), "조건을 초기화했어요.", "Conditions were reset."))
     return _state(conn, list_id, principal, locale)
 
 
@@ -576,6 +609,9 @@ def attach_spec_file(
     locale = normalize_locale(locale)
     repo = PlanRepo(conn)
     current = _owned(repo, list_id, principal)
+    values, category = _current_values(repo, current["id"])
+    if category != "computer" or values.get("mode") != "upgrade":
+        raise ValidationFailed("사양 파일은 PC 업그레이드에서만 첨부할 수 있습니다.", code="spec_file_not_accepted")
     ext = file_name.rsplit(".", 1)[-1].lower() if "." in file_name else ""
     if ext not in _ALLOWED_SPEC_EXTENSIONS:
         raise ValidationFailed("지원하지 않는 파일 형식입니다.", field="file_name", code="unsupported_file")

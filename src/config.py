@@ -35,6 +35,16 @@ EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "") # 텍스트 임베딩 �
 # 자유 텍스트를 LLM 도구 호출로 조건에 반영한다. 기본 "0" — 계약 §D-3([1]은 규칙 기반)이 아직 유효해서
 # 프론트 담당자 합의 전까지는 opt-in. MOCK_MODE=1 이거나 OPENAI_API_KEY·LLM_MODEL 이 비면 켜도 규칙 경로.
 CONDITIONS_AGENT: bool = os.getenv("CONDITIONS_AGENT", "0") == "1"
+# 결과 화면 대화 에이전트(src/agent/result_agent.py, Strands). "1" 이면 /session/{id}/result-message 의
+# 자유 텍스트를 LLM 도구 호출(후보 조회·교체·담기/빼기·수량·시점·근거 설명)로 처리한다. 기본 "0" — 규칙 경로.
+RESULT_AGENT: bool = os.getenv("RESULT_AGENT", "0") == "1"
+# 달러 입력("$1,500", "1500 dollars")을 원화 예산으로 바꾸는 고정 환율. 카탈로그·엔진은 전부 원화라 저장은 원화로 하고,
+# 사용자가 달러로 말했으면(currency=USD) 답변·표시에서 달러를 앞에 두고 원화를 병기한다. 실시간 환율이 아니다.
+USD_KRW_RATE: float = float(os.getenv("USD_KRW_RATE", "1400"))
+# 조립 가이드 에이전트(src/agent/assembly_guide_agent.py, Strands Agents SDK). "1"이면 결과 화면의
+# 확정된 부품 목록으로 조립 순서·주의사항 가이드를 만든다. 기본 "0" — opt-in. MOCK_MODE=1이거나
+# OPENAI_API_KEY·LLM_MODEL이 비면 켜도 규칙 기반 폴백(검색은 실제로 하되 문장은 템플릿)으로 간다.
+ASSEMBLY_GUIDE_AGENT: bool = os.getenv("ASSEMBLY_GUIDE_AGENT", "0") == "1"
 
 # --------------------------------------------------------------------------
 # DB / 인증

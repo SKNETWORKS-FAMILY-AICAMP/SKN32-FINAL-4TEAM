@@ -263,6 +263,8 @@ class RecommendResultOut(BaseModel):
     """저장된 추천 실행 결과의 공개 API 계약 (docs/frontend_외부수정요청.md §D-4-2)."""
 
     list_id: str
+    revision_id: str | None = None
+    lock_version: int | None = None
     run_id: str
     status: str                      # running | done | failed
     content_language: Literal["ko-KR", "en-US"] = "ko-KR"
@@ -274,8 +276,12 @@ class RecommendResultOut(BaseModel):
     totals: TotalsOut | None = None
     verification: VerificationOut = Field(default_factory=lambda: VerificationOut(status="pending"))
     explanation: ExplanationOut = Field(default_factory=lambda: ExplanationOut(status="pending"))
+    feasible: bool = True
+    missing_requirements: list[dict] = Field(default_factory=list)
     reasoning_log: list[dict] = Field(default_factory=list)
     data_notice: str = "상품·가격·리뷰는 합성 데이터입니다."
+    # 04 리스트 확정 "메모" 초기값 — 조건·구성·직접 바꾼 것·확인 필요 사항을 코드가 정리한 문장 (done 일 때만)
+    memo_suggestion: str = ""
     error: RecommendErrorOut | None = None
 
 
@@ -346,6 +352,7 @@ class ReportOut(BaseModel):
     confirmed_at: str
     items: list[ReportItemOut] = Field(default_factory=list)
     price_watch: PriceWatchOut
+    care_guide: TextStatusOut = Field(default_factory=lambda: TextStatusOut(status="pending"))
     data_notice: str = "상품·가격·리뷰는 합성 데이터입니다."
 
 

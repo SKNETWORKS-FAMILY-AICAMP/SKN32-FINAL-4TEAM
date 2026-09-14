@@ -17,7 +17,7 @@ import pytest
 
 from src.auth.deps import Principal
 from src.config import DATABASE_URL
-from src.errors import Conflict, NotFound, Unauthorized, ValidationFailed
+from src.errors import NotFound, Unauthorized, ValidationFailed
 from src.repo.plan_repo import PlanRepo
 from src.repo.user_repo import UserRepo
 from src.services import auth_service, list_service, recommendation_service, session_service
@@ -136,12 +136,12 @@ def test_confirm_then_report_round_trip(ctx):
         "latest_total": None, "observed_at": None,
     }
 
-    # 재확정 시도는 거부된다.
-    with pytest.raises(Conflict):
-        list_service.confirm(
-            ctx.conn, uuid.UUID(list_id), principal,
-            name="나의 첫 컴퓨터", planned_purchase_at=None, target_amount=1400000, memo="",
-        )
+    # 재확정 시도는 거부되지 않고 멱등하게 같은 리포트를 반환한다(이중 클릭 등 재시도 대비).
+    again = list_service.confirm(
+        ctx.conn, uuid.UUID(list_id), principal,
+        name="나의 첫 컴퓨터", planned_purchase_at=None, target_amount=1400000, memo="",
+    )
+    assert again["total"] == report["total"]
 
     fetched = list_service.get_report(ctx.conn, uuid.UUID(list_id), principal)
     assert fetched["total"] == report["total"]
