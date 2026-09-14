@@ -249,24 +249,11 @@ body:has(.flow:not([hidden]))>header{display:none}
 .result-chat-panel .conversation-bubble li{margin:3px 0}
 .result-chat-panel textarea{resize:none;max-height:168px;overflow-y:auto}
 
-/* One sidebar basket entry with an editable name. */
-.planner-saved-item{position:relative;display:grid;grid-template-columns:minmax(0,1fr) 34px 34px;gap:6px;align-items:stretch}
+/* One sidebar basket entry: name pill + delete button (2026-09-14: rename UI removed, delete-only). */
+.planner-saved-item{position:relative;display:grid;grid-template-columns:minmax(0,1fr) 30px;gap:4px;align-items:stretch}
 .planner-saved-item>a{min-width:0;display:flex!important;align-items:center}
-.planner-saved-item>a[hidden],.basket-rename-button[hidden],.basket-delete-button[hidden]{display:none!important}
-.basket-rename-button{border:1px solid var(--tf-border);background:var(--tf-surface);border-radius:10px;color:var(--tf-muted);font-size:14px;padding:0;display:grid;place-items:center}
-.basket-rename-button:hover{background:var(--tf-soft);border-color:var(--tf-border)}
-.basket-delete-button{border:1px solid var(--tf-danger);background:var(--tf-surface);border-radius:10px;color:var(--tf-danger);font-size:18px;padding:0;display:grid;place-items:center}
-.basket-delete-button:hover{background:var(--tf-danger-soft);border-color:var(--tf-danger)}
-.planner-saved-item:has(.basket-name-form:not([hidden])) .basket-delete-button{display:none}
-.basket-context-menu{position:fixed;z-index:1000;min-width:132px;padding:6px;background:var(--tf-surface);border:1px solid var(--tf-border);border-radius:10px;box-shadow:0 10px 30px var(--tf-shadow)}
-.basket-context-menu button{display:block;width:100%;border:0;background:transparent;border-radius:7px;padding:10px 12px;text-align:left;color:var(--tf-text);font-size:13px}
-.basket-context-menu button:hover,.basket-context-menu button:focus-visible{background:var(--tf-soft)}
-.basket-context-menu button[data-context-delete]{color:var(--tf-danger)}
-.basket-name-form{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:5px;margin-top:4px}
-.basket-name-form[hidden]{display:none}
-.basket-name-form input{width:100%;min-width:0;border:1px solid var(--tf-border);border-radius:8px;padding:8px 9px;font:inherit;font-size:12px}
-.basket-name-form button{border:0;border-radius:8px;padding:7px 9px;background:var(--tf-primary);color:var(--tf-on-primary);font-size:11px}
-.basket-name-form .basket-name-cancel{background:var(--tf-soft);color:var(--tf-text)}
+.basket-delete-button{border:0;background:transparent;border-radius:8px;color:var(--tf-muted);font-size:17px;line-height:1;padding:0;display:grid;place-items:center;opacity:.75;transition:opacity .15s,background-color .15s,color .15s}
+.basket-delete-button:hover,.basket-delete-button:focus-visible{opacity:1;color:var(--tf-danger);background:var(--tf-danger-soft)}
 .brand-logo{display:block;width:210px;height:auto;max-height:58px;object-fit:contain}
 .planner-home .planner-brand-full{display:block;width:176px;height:54px;font-size:0;background:url('../assets/truefit-logo.png') center/contain no-repeat}
 .planner-home .planner-brand-short{display:none;width:50px;height:50px;font-size:0;background:url('../assets/truefit-icon.png') center/contain no-repeat}

@@ -171,9 +171,7 @@
   "입력 내용은 현재 브라우저에만 저장됩니다.":"Your input is saved only in this browser.",
   "사이드바 열기":"Open sidebar",
   "사이드바 접기":"Collapse sidebar",
-  "장바구니 이름 변경":"Rename basket",
   "장바구니 삭제":"Delete basket",
-  "장바구니 이름":"Basket name",
   "저장":"Save",
   "취소":"Cancel",
   "대화 다시 시작":"Restart chat",
@@ -642,7 +640,6 @@
   [/^(.+) 구매 시점$/, "$1 purchase timing"],
   [/^(.+) 리뷰와 근거 상세 보기$/, "View reviews and evidence for $1"],
   [/^(.+) 상품 페이지 열기$/, "Open the $1 product page"],
-  [/^(.+) 이름 변경$/, "Rename $1"],
   [/^(.+) 삭제$/, "Delete $1"],
   [/^리뷰 (.+?)건 · 조작 의심 (.+?)% 제외 · 실사용 평점 (.+?) \/ 상세 리뷰: (.+)$/, "$1 reviews · $2% suspected-manipulation excluded · real-user rating $3 / detailed review: $4"],
   [/^(.+?)개월$/, "$1 months"]
