@@ -340,15 +340,37 @@ def _execute_baby_recommendation(conn, prepo, erepo, revision_id: UUID, run_id: 
         owned_items=[], budget_max=conditions.get("budget_max"), profile=profile,
     )
 
-    selected_candidate_ids = {it.candidate_id for it in decision.items if it.candidate_id and it.selected}
+    # `recommendation_candidate` stores every candidate considered for a requirement,
+    # while its `selected` column is the actual result-screen basket state.  The
+    # database default is true for backwards-compatible manual additions, so leaving
+    # non-winning candidates untouched makes every alternative appear in the cart.
+    # Persist the optimizer's complete decision, including explicit false values.
+    decision_by_candidate_id = {
+        item.candidate_id: item for item in decision.items if item.candidate_id
+    }
+    selected_candidate_ids = {
+        candidate_id for candidate_id, item in decision_by_candidate_id.items()
+        if item.selected
+    }
     for _o, db_cand in db_candidates:
-        result = "selected" if db_cand.candidate_id in selected_candidate_ids else "rejected"
+        item = decision_by_candidate_id.get(db_cand.candidate_id)
+        selected = bool(item and item.selected)
+        result = "selected" if selected else "rejected"
         score = next((s.score for s in ranked.by_requirement.get(db_cand.requirement_id, [])
                      if s.candidate_id == db_cand.candidate_id), None)
         erepo._exec(
             "UPDATE engine.recommendation_candidate "
             "SET result=%s, score=%s, score_method_version='baby-v1' WHERE id=%s",
             (result, score, UUID(db_cand.candidate_id)),
+        )
+        # Retain optimizer-provided quantity/timing for a proposed deferred item;
+        # candidates outside the decision keep harmless defaults but are explicitly
+        # excluded from the basket.
+        erepo.update_candidate_state(
+            UUID(db_cand.candidate_id),
+            selected=selected,
+            qty=int(item.qty) if item and item.qty >= 1 else None,
+            timing=item.timing if item else None,
         )
 
     headline = "예산 안에서 필요한 품목을 담았어요." if decision.feasible else "예산 안에서 채울 수 없는 필수 품목이 있어요."
