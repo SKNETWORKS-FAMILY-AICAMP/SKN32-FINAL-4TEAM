@@ -4,9 +4,10 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from scripts.generate_baby_manual import (
-    ManualError, build_manual, canonical, digest, read_json, select_product,
+    NOTICE, ManualError, build_manual, canonical, digest, generate_catalog_batch, main, read_json, select_product,
     validate_artifact, write_artifact,
 )
 
@@ -79,6 +80,29 @@ class ManualTests(unittest.TestCase):
         self.assertEqual(selected["product_id"], second["product_id"])
         self.assertEqual(refs, [])
 
+    def test_seed_catalog_record_is_accepted_without_offer_guidance(self):
+        catalog = read_json(ROOT / "data/baby/catalog_demo_v1.json")
+        product, refs = select_product(catalog, product_key="SYN-STROLLER-000001")
+        artifact = build_manual(product, refs)
+        self.assertEqual(product["dataset_meta"]["catalog_dataset_version"], "baby-demo-v1")
+        self.assertIn("좌석 최대 하중: 22 kg.", artifact["manual"])
+        self.assertNotIn("403000", artifact["manual"])
+        self.assertNotIn("available", artifact["manual"])
+
+    def test_supported_catalog_categories_render_from_seed_records(self):
+        catalog = read_json(ROOT / "data/baby/catalog_demo_v1.json")
+        for product_key in ("SYN-BOTTLE-000006", "SYN-DIAPER-000012", "SYN-CUP-000010"):
+            with self.subTest(product_key=product_key):
+                product, refs = select_product(catalog, product_key=product_key)
+                self.assertIn(NOTICE, build_manual(product, refs)["manual"])
+
+    def test_seed_catalog_requires_product_key_and_rejects_unsupported_category(self):
+        catalog = read_json(ROOT / "data/baby/catalog_demo_v1.json")
+        with self.assertRaises(ManualError):
+            select_product(catalog)
+        with self.assertRaises(ManualError):
+            select_product(catalog, product_key="SYN-CAR_SEAT-000011")
+
     def test_mapping_and_tamper_detection(self):
         a = build_manual(self.p)
         for block in a["mapping"]["blocks"]:
@@ -120,6 +144,28 @@ class ManualTests(unittest.TestCase):
                 self.assertEqual(hashlib.sha256((out / name).read_bytes()).hexdigest(), sha)
             with self.assertRaises(ManualError):
                 write_artifact(a, out)
+
+    def test_publish_option_generates_then_publishes_same_bundle(self):
+        with tempfile.TemporaryDirectory() as tmp, patch(
+            "scripts.generate_baby_manual.publish_bundle",
+            return_value={"material_id": "material-1", "chunk_count": 2},
+        ) as publish:
+            out = Path(tmp) / "bundle"
+            status = main([
+                "--input", str(ROOT / "data/synthetic_manuals/stroller_example.json"),
+                "--output", str(out), "--publish", "--reviewed",
+            ])
+            self.assertEqual(status, 0)
+            publish.assert_called_once_with(out, provider_name="local-file", reviewed=True)
+            self.assertTrue((out / "manual.md").is_file())
+
+    def test_all_seed_catalog_records_generate_a_partial_manual(self):
+        catalog = read_json(ROOT / "data/baby/catalog_demo_v1.json")
+        with tempfile.TemporaryDirectory() as tmp:
+            report = generate_catalog_batch(catalog, Path(tmp) / "all", publish=False,
+                                            provider_name="local-file", reviewed=False, revision="R1")
+            self.assertEqual(len(report), catalog["manifest"]["record_count"])
+            self.assertTrue(all((Path(row["bundle"]) / "manual.md").is_file() for row in report))
 
     def test_bottle_component_care_is_not_generalized(self):
         p = deepcopy(self.p)

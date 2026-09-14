@@ -98,18 +98,28 @@ def delete(conn, list_id: UUID, principal: Principal) -> None:
 
 
 def confirm(conn, list_id: UUID, principal: Principal, *, name: str, planned_purchase_at: str | None,
-            target_amount: int | None, memo: str) -> dict:
+            target_amount: int | None, memo: str, if_match: int | None = None) -> dict:
     user_id = _require_login(conn, principal)
     prepo = PlanRepo(conn)
     revision = _owned(prepo, list_id, principal)
     if revision["owner_user_id"] != user_id:
         raise NotFound("목록을 찾을 수 없습니다.")
+    if revision["state"] == "confirmed":
+        return get_report(conn, list_id, principal)
+    if if_match is not None and if_match != revision["lock_version"]:
+        raise Conflict("목록이 다른 곳에서 변경되었습니다.", code="stale_revision")
 
     stored = recommendation_service.get_stored_result(conn, revision["id"])
     if stored is None or stored["status"] != "done" or not stored["items"]:
         raise ValidationFailed("추천 결과가 아직 없습니다. 먼저 추천을 완료해 주세요.", code="no_items_selected")
     if stored["totals"]["over_budget"]:
         raise ValidationFailed("선택한 구성이 예산을 초과합니다.", code="over_budget")
+
+    run = EngineRepo(conn).get_run(UUID(stored["run_id"]))
+    full = prepo.load_full(revision["id"])
+    current_values = {row["condition_key"]: row["value"].get("value") for row in full["conditions"]}
+    if (run or {}).get("input_snapshot", {}).get("values", {}) != current_values:
+        raise Conflict("조건이 바뀌어 추천을 다시 받아야 합니다.", code="stale_recommendation")
 
     purchase_at = None
     if planned_purchase_at:
@@ -133,6 +143,8 @@ def confirm(conn, list_id: UUID, principal: Principal, *, name: str, planned_pur
     # 확정 성공(state가 draft→confirmed로 바뀐 요청)만 후보를 얼린다 — confirm_revision이
     # 이미 원자적 UPDATE라 동시 확정 요청 중 단 하나만 여기 도달한다.
     for row in EngineRepo(conn).get_candidates(UUID(stored["run_id"])):
+        if not row["selected"]:
+            continue
         if row["offer_id"] is None or row["offer_observation_id"] is None or row["price"] is None:
             continue  # 가격 관측이 없는 슬롯 — 구매 항목으로 얼릴 수 없다
         snapshot = {
@@ -177,7 +189,9 @@ def get_report(conn, list_id: UUID, principal: Principal) -> dict:
     watch = NotificationRepo(conn).get_for_revision(revision["id"])
     return {
         "list_id": str(list_id),
-        "name": _display_name(revision["plan_name"], revision["category"]),
+        # A confirmed report is a snapshot; later sidebar renames must not rewrite
+        # the name shown on that historical purchase record.
+        "name": _display_name(revision["name_snapshot"], revision["category"]),
         "category": revision["category"],
         "owner_display_name": owner["display_name"] if owner else "",
         "planned_purchase_at": revision["planned_purchase_at"].date().isoformat()

@@ -25,6 +25,7 @@ ENV/
 .pytest_cache/
 node_modules/
 .rag-files/
+.baby-search-index/
 .mypy_cache/
 .ruff_cache/
 .coverage
@@ -64,6 +65,8 @@ tmp/
 
 # ── (선택) 데이터 생성 부산물 ──
 # 큐레이션 원본(parts_list.csv, scenarios/*.json, categories/*.yaml)은 커밋.
+# 설명서·평가 등 스크립트 실행 산출물은 로컬에서 재생성한다.
+generated/
 # 아래는 스크립트가 다시 만들 수 있는 파생물이라 필요 시 주석 해제:
 # data/parts_specs_raw.csv
 # data/parts_specs_todo.csv

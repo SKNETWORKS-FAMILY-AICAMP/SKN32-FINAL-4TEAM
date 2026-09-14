@@ -451,7 +451,8 @@ def get_stored_result(conn, revision_id: UUID) -> dict | None:
               "failed": "failed", "stale": "failed"}.get(run["status"], run["status"])
 
     result: dict = {
-        "list_id": str(revision["plan_id"]), "run_id": str(run["id"]), "status": status,
+        "list_id": str(revision["plan_id"]), "revision_id": str(revision_id),
+        "lock_version": revision["lock_version"], "run_id": str(run["id"]), "status": status,
         "progress": [
             {"step": "conditions", "label": "조건 정리", "status": "done"},
             {"step": "candidates", "label": "후보 수집", "status": "done" if status != "running" else "running"},

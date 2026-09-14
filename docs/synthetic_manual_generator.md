@@ -18,6 +18,30 @@ python scripts/generate_baby_manual.py --input data/synthetic_manuals/stroller_e
 python scripts/generate_baby_manual.py --input catalog.json --product-id SYN-STROLLER-001 --output generated/synthetic_manuals/another_run --revision R2
 ```
 
+서비스에 적재하는 가상 유아 카탈로그(`data/baby/catalog_demo_v1.json`)는 이제 직접 입력할 수 있다. `records[]`가 188건이므로 `product_key`를 반드시 지정한다. 현재 카탈로그 기반 설명서는 유모차·젖병·기저귀·컵 템플릿만 지원한다.
+
+```powershell
+python scripts/generate_baby_manual.py --input data/baby/catalog_demo_v1.json --product-key SYN-STROLLER-000001 --output generated/synthetic_manuals/catalog_stroller
+```
+
+카탈로그의 `attributes.specs`, `eligibility`, `components`만 설명서 사실로 변환한다. 가격·재고·판매처·추천 점수와 `facts`의 인증/리콜 상태는 사용 지침으로 바꾸지 않는다. 설명서 템플릿에 없는 스펙은 `미확인` 또는 문서 범위 밖으로 남긴다.
+
+생성 직후 DB와 검색 제공자에 함께 발행하려면 `--publish`를 붙인다. 이 명령은 `DATABASE_URL`을 `.env`에서 읽고, `assets.file_object`, `assets.product_material`, `assets.material_revision`, `assets.material_applicability`에 메타데이터를 upsert한 뒤 검색 청크를 발행한다.
+
+```powershell
+python scripts/generate_baby_manual.py --input data/baby/catalog_demo_v1.json --product-key SYN-STROLLER-000001 --output generated/synthetic_manuals/catalog_stroller_r1 --publish --provider local-file
+```
+
+기본 발행 상태는 **미검수**다. 생성기의 일관성 검사는 안전성·사실 검수가 아니므로 자동으로 검수 완료가 되지 않는다. 본문을 사람이 검수한 경우에만 `--reviewed`를 추가한다. 같은 상품·개정판은 내용이 같으면 재발행 가능하지만, 출력 폴더는 덮어쓰지 않는다. DB 발행에 실패해도 생성된 묶음은 보존되므로 원인을 해결한 뒤 새 출력 경로에서 다시 발행한다.
+
+카탈로그의 모든 가상 상품에 부분 설명서를 만들고 DB·검색 제공자까지 발행하려면 다음을 사용한다.
+
+```powershell
+python scripts/generate_baby_manual.py --input data/baby/catalog_demo_v1.json --all-catalog-records --output generated/synthetic_manuals/catalog_demo_v1_r1 --publish --provider local-file
+```
+
+카탈로그에 있는 18개 품목 전체가 대상이다. 유모차·젖병·기저귀·컵은 전용 템플릿으로 조건과 일부 스펙을 표시하고, 나머지 품목은 등록된 구조화 스펙·사용 조건·구성품만 그대로 표시하는 부분 설명서를 만든다. 어느 경우에도 입력에 없는 조작법·안전 판단을 생성하지 않는다.
+
 `--profile profile.json`은 선택 사항이다. 입력 파일에서 한 제품만 읽는 경우 별도 참조를 받지 않으므로, 부품 참조가 있는 제품은 묶음 형태로 제공한다.
 
 ## 현재 지원 범위

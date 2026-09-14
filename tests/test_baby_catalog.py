@@ -17,6 +17,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from generate_baby_products import generate_dataset, load_dictionary  # noqa: E402
+from generate_and_seed_baby_catalog import generate_and_seed  # noqa: E402
+from build_baby_catalog_demo import CATEGORIES_FOR_DEMO, PER_CATEGORY, build  # noqa: E402
 from seed_baby_catalog import (  # noqa: E402
     DEFAULT_INPUT, SeedInputError, load_input, seed_catalog, validate_record,
 )
@@ -51,6 +53,25 @@ def test_generator_rejects_unknown_category_instead_of_silently_dropping_it():
     dictionary = load_dictionary()
     with pytest.raises(Exception):
         generate_dataset(count=5, seed=1, categories=["not_a_real_category"], dictionary=dictionary)
+
+
+def test_combined_generator_and_seeder_dry_run_builds_valid_seed_input_without_db():
+    catalog, report = generate_and_seed(dry_run=True)
+
+    assert catalog["manifest"]["is_synthetic"] is True
+    assert report.dry_run is True
+    assert report.products == catalog["manifest"]["record_count"] == len(catalog["records"])
+
+
+def test_demo_catalog_has_ten_generated_options_for_each_supported_category():
+    catalog = build()
+    generated = catalog["records"][:PER_CATEGORY * len(CATEGORIES_FOR_DEMO)]
+    counts = {category: 0 for category in CATEGORIES_FOR_DEMO}
+    for record in generated:
+        counts[record["category_code"]] += 1
+
+    assert counts == {category: PER_CATEGORY for category in CATEGORIES_FOR_DEMO}
+    assert catalog["manifest"]["record_count"] == len(generated) + 8  # curated diagnostic fixtures
 
 
 # ── default seed input (no DB) ──────────────────────────────────────────────
