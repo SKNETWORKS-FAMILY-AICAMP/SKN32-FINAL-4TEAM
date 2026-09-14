@@ -207,7 +207,7 @@ def get_report(conn, list_id: UUID, principal: Principal, *,
     revision = _owned(prepo, list_id, principal)
     if revision["owner_user_id"] != user_id or revision["state"] != "confirmed":
         raise NotFound("확정된 목록을 찾을 수 없습니다.")
-    lang = _report_lang(prepo, revision["id"])
+    lang = "en" if locale == "en-US" else "ko"
 
     owner = UserRepo(conn).get(revision["owner_user_id"])
     items = []

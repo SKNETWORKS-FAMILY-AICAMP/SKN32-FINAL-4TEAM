@@ -81,6 +81,7 @@
   "[필수]":"[Required]","[선택]":"[Optional]","이용약관 동의":"Agree to the Terms of Use",
   "개인정보 처리방침 동의":"Agree to the Privacy Policy","약관 전문 보기":"View full terms",
   "전문 보기":"View details","마케팅 정보 및 이벤트 수신 동의":"Agree to receive marketing and event updates",
+  "[선택] 마케팅 정보 및 이벤트 수신 동의":"[Optional] Agree to receive marketing and event updates",
   "이메일로 회원가입":"Sign up with email","이미 계정이 있으신가요?":"Already have an account?",
   "올바른 이메일 주소를 입력해 주세요.":"Please enter a valid email address.",
   "올바른 이메일 형식으로 입력해 주세요.":"Please enter a valid email format.",

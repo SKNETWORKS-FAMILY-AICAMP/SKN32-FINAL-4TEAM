@@ -69,7 +69,7 @@ def search_care_guide(query: str, k: int = 1) -> list[dict]:
         return []
     q = _embed([query])[0]
     scored = sorted(
-        ({"id": d["id"], "text": d["text"], "score": round(_cosine(q, e), 4)}
+        ({"id": d["id"], "text": d["text"], "text_en": d.get("text_en"), "score": round(_cosine(q, e), 4)}
          for d, e in zip(docs, embeddings)),
         key=lambda h: h["score"], reverse=True,
     )

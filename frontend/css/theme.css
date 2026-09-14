@@ -66,6 +66,7 @@ body>header,.service-dropdown{background:var(--tf-surface);border-color:var(--tf
 .flow .report-banner .muted,.flow .report-banner .flow-logo{color:var(--tf-on-primary)!important}
 .flow .line,.flow th,.flow td,.about-section,.about-faq details,.site-footer,.footer-menu-bar,.footer-bottom{border-color:var(--tf-border)}
 .site-footer{background:var(--tf-soft);color:var(--tf-muted)}
+body:not(.tf-home-page) .site-footer{display:none}
 .footer-menu-bar{background:var(--tf-surface)}
 .about-category,.about-cta{background:var(--tf-soft);border-color:var(--tf-border)}
 .about-category.baby-category{background:var(--tf-soft);border-color:var(--tf-border)}
