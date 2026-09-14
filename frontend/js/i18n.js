@@ -735,6 +735,9 @@
   "현재 후보 유지":"Keep current candidate","이 후보로 교체":"Switch to this candidate","현재 대비":"Compared with current",
   "가격과 규격을 비교해 하나를 선택하세요.":"Compare prices and specifications, then choose one.",
 
+  "통화":"Currency",
+  "몸무게(kg)":"Weight (kg)",
+  "혼자 앉기 가능":"Can sit independently",
   "나":"You"
  };
 
@@ -766,6 +769,11 @@
   if(s==null) return s;
   var str=String(s);
   if(!HAN.test(str)) return str;
+  // Localize only the known synthetic catalog brands attached to product IDs.
+  var demoBrands={"도담":"Dodam","새봄":"Saebom","모아":"Moa"};
+  str=str.replace(/가상브랜드_(도담|새봄|모아)(?=\s+SYN-[A-Z0-9-]+)/g,function(_,brand){
+   return "Demo Brand "+demoBrands[brand];
+  });
   str=str.replace(/(\d[\d,]*)\s*원/g,"₩$1").replace(/(\d+)\s*개월/g,"$1 months");
   var key=str.trim();
   if(!HAN.test(key)) return str;
