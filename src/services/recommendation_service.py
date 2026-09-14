@@ -83,7 +83,6 @@ def start_recommendation(
         raise Conflict("이미 추천을 실행하는 중입니다.", code="run_in_progress")
 
     locale = normalize_locale(locale)
-
     if category == "baby":
         from src.engine.stage2_requirement import build_baby_requirements, persist_baby_requirements
 

@@ -59,16 +59,22 @@ function tfShowCartReviewSlide(itemId){
  tfOpenReviewItemId=itemId;
  const slide=flow.querySelector('#tfCartReviewSlide'),scrim=flow.querySelector('[data-review-scrim]');if(!slide)return;
  const english=tfIsEnglish(),review=item.review;
- const scoreHtml=review?('<div class="score-row"><div class="score-tile"><div class="num">'+(review.rating_refined!=null?Number(review.rating_refined).toFixed(1):'—')+'</div><div class="lbl">'+(english?'Real-user rating':'실사용 평점')+'</div></div><div class="score-tile"><div class="num">'+Number(review.total_count||0).toLocaleString(english?'en-US':'ko-KR')+'</div><div class="lbl">'+(english?'All reviews':'전체 리뷰')+'</div></div><div class="score-tile"><div class="num">'+Math.round(Number(review.excluded_ratio||0)*100)+'%</div><div class="lbl">'+(english?'Suspected manipulation excluded':'조작 의심 제외')+'</div></div></div>'):'<p class="muted">'+(english?'No aggregated review data is available yet.':'아직 집계된 리뷰 데이터가 없어요.')+'</p>';
+ // TF-DEV: 실사용 평점·조작 의심 제외는 서버가 항상 null(결정 0001)이라 0%·"—"로만 보였다 → 없는 정보는 표시하지 않는다.
+ // 리뷰 수는 실제 값이 있을 때만 보인다. 리뷰 신호 막대·Review Cleansing Summary는 서버 필드 합의 후 추가
+ // (docs/개발요청_리뷰클렌징_요약_구조화.md).
+ const reviewCount = Number(review?.total_count) || 0;
+ const scoreHtml = reviewCount > 0
+  ? '<div class="score-row"><div class="score-tile"><div class="num">' + reviewCount.toLocaleString(english ? 'en-US' : 'ko-KR') + '</div>'
+   + '<div class="lbl">' + (english ? 'All reviews' : '전체 리뷰') + '</div></div></div>'
+  : '';
  const reasonText=tfLlmText(item.reason,english?'Generating the recommendation reason…':'추천 이유를 정리하는 중이에요…',english?'Could not generate the recommendation reason.':'추천 이유를 만들지 못했어요.');
- const checksText=tfLlmText(item.checks,english?'Generating checks…':'확인할 점을 정리하는 중이에요…',english?'Could not generate checks.':'확인할 점을 만들지 못했어요.');
  // TF-DEV: "구매 시점"은 유아용품처럼 월령에 맞춰 나중에 사도 되는 품목에만 의미가 있다.
  // 컴퓨터(PC)는 항상 바로 구매하는 조합이라 이 선택지가 불필요해 카테고리로 숨긴다.
  const isPc=tfUiCategory(tfPlan.result?.category)==='pc';
  const timingLabels=english?{now:'Now',soon:'Soon (1–3 months)',later:'Later'}:TF_TIMING_LABELS;
  const timingOptions=Object.entries(timingLabels).map(([value,label])=>'<option value="'+value+'" '+(item.timing===value?'selected':'')+'>'+label+'</option>').join('');
  const timingHtml=isPc?'':'<div class="review-timing"><label for="review-timing-select">'+(english?'Purchase timing':'구매 시점')+'</label><select id="review-timing-select" data-plan-timing="'+esc(item.item_id)+'">'+timingOptions+'</select></div>';
- slide.innerHTML='<div class="review-slide-head"><button type="button" class="review-slide-back" data-review-close aria-label="'+(english?'Return to basket':'장바구니로 돌아가기')+'">←</button><div><span class="condition-kicker">'+esc(tfSlotLabel(item.slot_label))+'</span><h3>'+esc(item.product?.name)+'</h3></div></div><div class="review-slide-body">'+scoreHtml+'<div class="evidence"><h4>'+(english?'Recommendation reason':'추천 이유')+'</h4><div class="evidence-card">'+esc(reasonText)+'</div><h4>'+(english?'Before purchasing':'구매 전 확인')+'</h4><div class="evidence-card">'+esc(checksText)+'</div></div>'+timingHtml+(item.alternatives_count?'<button class="btn wide" type="button" data-plan-alternatives="'+esc(item.item_id)+'">'+(english?'View alternatives →':'다른 후보 보기 →')+'</button>':'')+'</div><div class="review-slide-footer"><button type="button" class="review-buy-link" data-plan-product-url="'+esc(item.product?.purchase_url||'')+'">'+(english?'View on product page ↗':'상품 페이지에서 보기 ↗')+'</button></div>';
+ slide.innerHTML='<div class="review-slide-head"><button type="button" class="review-slide-back" data-review-close aria-label="'+(english?'Return to basket':'장바구니로 돌아가기')+'">←</button><div><span class="condition-kicker">'+esc(tfSlotLabel(item.slot_label))+'</span><h3>'+esc(item.product?.name)+'</h3></div></div><div class="review-slide-body">'+scoreHtml+'<div class="evidence"><h4>'+(english?'Recommendation reason':'추천 이유')+'</h4><div class="evidence-card">'+esc(reasonText)+'</div></div>'+timingHtml+(item.alternatives_count?'<button class="btn wide" type="button" data-plan-alternatives="'+esc(item.item_id)+'">'+(english?'View alternatives →':'다른 후보 보기 →')+'</button>':'')+'</div><div class="review-slide-footer"><button type="button" class="review-buy-link" data-plan-product-url="'+esc(item.product?.purchase_url||'')+'">'+(english?'View on product page ↗':'상품 페이지에서 보기 ↗')+'</button></div>';
  slide.classList.add('open');scrim?.classList.add('open');
 }
 function tfCloseCartReviewSlide(){tfOpenReviewItemId=null;flow.querySelector('#tfCartReviewSlide')?.classList.remove('open');flow.querySelector('[data-review-scrim]')?.classList.remove('open')}
