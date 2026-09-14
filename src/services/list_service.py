@@ -12,6 +12,7 @@ from uuid import UUID
 
 from src.auth.deps import Principal
 from src.errors import Conflict, NotFound, ValidationFailed
+from src.i18n import Locale, normalize_locale
 from src.repo.engine_repo import EngineRepo
 from src.repo.notification_repo import NotificationRepo
 from src.repo.plan_repo import PlanRepo
@@ -20,14 +21,36 @@ from src.services import auth_service, feedback_service, recommendation_service
 from src.services.session_service import _owned, _token_hash
 
 _DEFAULT_NAME_BY_CATEGORY = {"computer": "컴퓨터 장바구니", "baby": "유아용품 장바구니"}
+_DEFAULT_NAME_EN_BY_CATEGORY = {"computer": "Computer basket", "baby": "Baby-product basket"}
+_SLOT_LABEL_EN = {
+    "메인보드": "Motherboard", "저장장치": "Storage", "파워": "Power supply",
+    "케이스": "Case", "쿨러": "Cooler", "수유": "Feeding", "수면": "Sleep",
+    "위생/기저귀": "Hygiene/diapers", "외출": "Outings",
+}
 _PLACEHOLDER_NAMES = {"새 추천", ""}
 _PRICE_WATCH_WINDOW_DAYS = 90
 
 
-def _display_name(name: str, category: str | None) -> str:
+def _display_name(name: str, category: str | None, locale: Locale = "ko-KR") -> str:
     if name not in _PLACEHOLDER_NAMES:
         return name
+    if normalize_locale(locale) == "en-US":
+        return _DEFAULT_NAME_EN_BY_CATEGORY.get(category or "", name)
     return _DEFAULT_NAME_BY_CATEGORY.get(category or "", name)
+
+
+def _report_slot_label(label: str | None, locale: Locale) -> str | None:
+    return _SLOT_LABEL_EN.get(label, label) if locale == "en-US" else label
+
+
+def _report_evidence(snapshot: dict, locale: Locale) -> str:
+    text = str(snapshot.get("evidence_text") or "")
+    if locale != "en-US" or not any("가" <= char <= "힣" for char in text):
+        return text
+    product = snapshot.get("product") or {}
+    name = product.get("name") or "This product"
+    slot = _report_slot_label(snapshot.get("slot_label") or snapshot.get("slot"), locale) or "selected"
+    return f"{name} was selected for the {slot} slot based on the recommendation conditions."
 
 
 def _stage(row: dict) -> str:
@@ -98,7 +121,7 @@ def delete(conn, list_id: UUID, principal: Principal) -> None:
 
 
 def confirm(conn, list_id: UUID, principal: Principal, *, name: str, planned_purchase_at: str | None,
-            target_amount: int | None, memo: str) -> dict:
+            target_amount: int | None, memo: str, locale: Locale = "ko-KR") -> dict:
     user_id = _require_login(conn, principal)
     prepo = PlanRepo(conn)
     revision = _owned(prepo, list_id, principal)
@@ -153,10 +176,12 @@ def confirm(conn, list_id: UUID, principal: Principal, *, name: str, planned_pur
         conn, plan_id=revision["plan_id"], revision_id=revision["id"],
         run_id=UUID(stored["run_id"]), version=revision["lock_version"], user_id=user_id,
     )
-    return get_report(conn, list_id, principal)
+    return get_report(conn, list_id, principal, locale=locale)
 
 
-def get_report(conn, list_id: UUID, principal: Principal) -> dict:
+def get_report(conn, list_id: UUID, principal: Principal, *,
+               locale: Locale = "ko-KR") -> dict:
+    locale = normalize_locale(locale)
     user_id = _require_login(conn, principal)
     prepo = PlanRepo(conn)
     revision = _owned(prepo, list_id, principal)
@@ -168,16 +193,17 @@ def get_report(conn, list_id: UUID, principal: Principal) -> dict:
     for line in prepo.list_purchase_lines(revision["id"]):
         snapshot = line["snapshot"] or {}
         items.append({
-            "slot": snapshot.get("slot"), "slot_label": snapshot.get("slot_label"),
+            "slot": snapshot.get("slot"),
+            "slot_label": _report_slot_label(snapshot.get("slot_label"), locale),
             "product": snapshot.get("product") or {},
             "price": int(line["line_amount"]), "qty": int(line["pack_count"]),
             "timing": snapshot.get("timing", "now"), "review": snapshot.get("review"),
-            "evidence_text": snapshot.get("evidence_text", ""),
+            "evidence_text": _report_evidence(snapshot, locale),
         })
     watch = NotificationRepo(conn).get_for_revision(revision["id"])
     return {
         "list_id": str(list_id),
-        "name": _display_name(revision["plan_name"], revision["category"]),
+        "name": _display_name(revision["plan_name"], revision["category"], locale),
         "category": revision["category"],
         "owner_display_name": owner["display_name"] if owner else "",
         "planned_purchase_at": revision["planned_purchase_at"].date().isoformat()

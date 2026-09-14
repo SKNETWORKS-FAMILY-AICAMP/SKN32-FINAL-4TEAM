@@ -82,7 +82,7 @@ def call_llm(
     print(f"[MOCK] LLM 호출: {preview}...")
 
     sys_text = system or ""
-    if "검증 쟁점" in sys_text:
+    if "검증 쟁점" in sys_text or "verification issue" in sys_text:
         if "OUTPUT_LOCALE=en-US" in sys_text:
             return {
                 "text": (

@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends
 from src import schemas
 from src.auth.deps import Principal, optional_principal
 from src.db import get_conn
+from src.i18n import Locale, resolve_locale
 from src.services import list_service
 
 router = APIRouter(prefix="/lists", tags=["lists"])
@@ -38,22 +39,29 @@ def delete(list_id: UUID, principal: Principal = Depends(optional_principal)) ->
 
 @router.post("/{list_id}/confirm", response_model=schemas.ReportOut)
 def confirm(
-    list_id: UUID, body: schemas.ConfirmIn, principal: Principal = Depends(optional_principal)
+    list_id: UUID,
+    body: schemas.ConfirmIn,
+    principal: Principal = Depends(optional_principal),
+    locale: Locale = Depends(resolve_locale),
 ) -> schemas.ReportOut:
     """draft → confirmed. 비로그인이면 401 (프론트가 로그인 모달)."""
     with get_conn() as conn:
         report = list_service.confirm(
             conn, list_id, principal,
             name=body.name, planned_purchase_at=body.planned_purchase_at,
-            target_amount=body.target_amount, memo=body.memo,
+            target_amount=body.target_amount, memo=body.memo, locale=locale,
         )
     return schemas.ReportOut(**report)
 
 
 @router.get("/{list_id}/report", response_model=schemas.ReportOut)
-def report(list_id: UUID, principal: Principal = Depends(optional_principal)) -> schemas.ReportOut:
+def report(
+    list_id: UUID,
+    principal: Principal = Depends(optional_principal),
+    locale: Locale = Depends(resolve_locale),
+) -> schemas.ReportOut:
     with get_conn() as conn:
-        report = list_service.get_report(conn, list_id, principal)
+        report = list_service.get_report(conn, list_id, principal, locale=locale)
     return schemas.ReportOut(**report)
 
 
