@@ -275,10 +275,24 @@ def list_pending_for_user(user_id: UUID) -> dict:
 # 그래서 이미 자유 형식인 reasoning_log(추천 과정 기록)와 explanation_text 에 싣는다.
 
 REVIEW_TRACE_STEP = "리뷰 관측"
+_SLOT_LABEL_EN = {
+    "메인보드": "Motherboard", "저장장치": "Storage", "파워": "Power supply",
+    "케이스": "Case", "쿨러": "Cooler", "수유": "Feeding", "수면": "Sleep",
+    "위생/기저귀": "Hygiene/diapers", "외출": "Outings",
+}
+_OBS_LABEL_EN = {
+    "burst7": "7-day burst", "shared_reviewer": "shared reviewers",
+    "rating5": "5-star share",
+}
+
+
+def _slot_label(slot: str, locale: Locale) -> str:
+    return _SLOT_LABEL_EN.get(slot, slot) if locale == "en-US" else slot
 
 
 def review_trace_steps(review_line_by_slot: dict[str, str],
-                       evidence_by_slot: dict[str, list[dict]] | None = None) -> list[dict]:
+                       evidence_by_slot: dict[str, list[dict]] | None = None,
+                       locale: Locale = "ko-KR") -> list[dict]:
     """[5] 의 리뷰 관측을 reasoning_log 단계들로. 관측이 없으면 빈 목록.
 
     첫 단계는 요약(N/M 슬롯), 이어서 **관측 문장이 있는 슬롯마다 한 단계**다.
@@ -292,14 +306,19 @@ def review_trace_steps(review_line_by_slot: dict[str, str],
     관측이 하나도 없으면 단계를 만들지 않는다 — "리뷰를 봤지만 깨끗했다" 와
     "볼 리뷰가 없었다" 는 다른 말이고, 뒤쪽을 앞쪽으로 보이게 하면 안 된다.
     """
-    observed = {slot: line for slot, line in (review_line_by_slot or {}).items()
-                if line and not line.startswith("리뷰 관측 없음")}
+    observed = {
+        slot: line for slot, line in (review_line_by_slot or {}).items()
+        if line and not line.startswith(("리뷰 관측 없음", "No review observations"))
+    }
     if not observed:
         return []
+    english = locale == "en-US"
+    trace_step = "Review observations" if english else REVIEW_TRACE_STEP
+    slot_word = "slots" if english else "슬롯"
     steps = [{
-        "step": REVIEW_TRACE_STEP,
-        "title": f"{REVIEW_TRACE_STEP} {len(observed)}/{len(review_line_by_slot)} 슬롯",
-        "detail": " · ".join(f"{slot} {line}" for slot, line in observed.items()),
+        "step": trace_step,
+        "title": f"{trace_step} {len(observed)}/{len(review_line_by_slot)} {slot_word}",
+        "detail": " · ".join(f"{_slot_label(slot, locale)} {line}" for slot, line in observed.items()),
     }]
     for slot in observed:
         facts = [e for e in (evidence_by_slot or {}).get(slot, []) if e.get("text")]
@@ -308,16 +327,19 @@ def review_trace_steps(review_line_by_slot: dict[str, str],
         detail = " · ".join(e["text"] for e in facts)
         verify = next((e.get("verify_url") for e in facts if e.get("verify_url")), None)
         if verify:
-            detail += f" — 확인: {verify}"
+            detail += f" — {'Verify' if english else '확인'}: {verify}"
+        display_slot = _slot_label(slot, locale)
         steps.append({
-            "step": f"{REVIEW_TRACE_STEP} · {slot}",
-            "title": f"{slot} 관측 사실 {len(facts)}건 (점수 아님)",
+            "step": f"{trace_step} · {display_slot}",
+            "title": (f"{display_slot}: {len(facts)} observed facts (not a score)" if english
+                      else f"{slot} 관측 사실 {len(facts)}건 (점수 아님)"),
             "detail": detail,
         })
     return steps
 
 
-def review_demotion_step(demoted_by_slot: dict[str, list[dict]] | None) -> dict | None:
+def review_demotion_step(demoted_by_slot: dict[str, list[dict]] | None,
+                         locale: Locale = "ko-KR") -> dict | None:
     """리뷰축이 **순위를 낮춘 후보**를 reasoning_log 한 단계로. 없으면 None.
 
     추천된 8개는 대개 "특이 없음" 이다 — 걸린 후보가 감점을 받아 밀려나기 때문이다. 그래서
@@ -332,11 +354,24 @@ def review_demotion_step(demoted_by_slot: dict[str, list[dict]] | None) -> dict 
     rows = [(slot, d) for slot, ds in (demoted_by_slot or {}).items() for d in ds if d.get("over")]
     if not rows:
         return None
+    english = locale == "en-US"
     parts = []
     for slot, d in rows:
-        facts = " · ".join(f"{OBS_LABEL.get(k, k)} {100 * v:.1f}% (부류 중앙값 {100 * m:.1f}%)"
-                           for k, v, m in d["over"])
-        parts.append(f"{slot} {d.get('name', '?')} — {facts}")
+        if english:
+            facts = " · ".join(
+                f"{_OBS_LABEL_EN.get(k, k)} {100 * v:.1f}% (category median {100 * m:.1f}%)"
+                for k, v, m in d["over"]
+            )
+        else:
+            facts = " · ".join(f"{OBS_LABEL.get(k, k)} {100 * v:.1f}% (부류 중앙값 {100 * m:.1f}%)"
+                               for k, v, m in d["over"])
+        parts.append(f"{_slot_label(slot, locale)} {d.get('name', '?')} — {facts}")
+    if english:
+        return {
+            "step": "Review observations · Ranking adjustment",
+            "title": f"{len(rows)} candidates ranked lower due to observations (not excluded)",
+            "detail": " · ".join(parts) + " — These candidates remain available; only their ranking changed",
+        }
     return {
         "step": f"{REVIEW_TRACE_STEP} · 순위 조정",
         "title": f"관측 때문에 순위를 낮춘 후보 {len(rows)}개 (제외 아님)",

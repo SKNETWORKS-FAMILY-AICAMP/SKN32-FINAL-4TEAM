@@ -90,3 +90,10 @@ def test_all_page_titles_have_complete_english_translations() -> None:
         "회원가입 — TrueFit",
     ):
         assert f'"{title}":' in source
+
+
+def test_i18n_does_not_translate_arbitrary_sentence_fragments() -> None:
+    source = (FRONTEND / "js" / "i18n.js").read_text(encoding="utf-8")
+
+    assert "function subclean" not in source
+    assert ".split(k).join(DICT[k])" not in source

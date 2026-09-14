@@ -246,15 +246,27 @@ def execute_recommendation(revision_id: UUID, run_id: UUID) -> None:
 
             # [5] 의 리뷰 관측(review_line_by_slot)·확인 필요(caveats)를 저장 경로에 싣는다.
             # 여기서 안 실으면 [3-B] 감점은 되는데 "왜" 가 화면에 안 간다 (review_service 주석 참고).
-            trace = [{"step": s, "title": s, "detail": d} for s, d in [
-                ("조건 정리", f"카테고리 {category}, 예산 {values.get('budget_max'):,}원" if values.get("budget_max") else "조건 정리"),
-                ("후보 수집", f"세트 {len(build.items)}개 부품"),
-                ("설명 생성", explanation.headline),
-            ]]
+            if response_locale == "en-US":
+                category_label = {"computer": "Computer", "baby": "Baby care"}.get(category, category)
+                budget = values.get("budget_max")
+                trace_rows = [
+                    ("Organize conditions", f"Category: {category_label}, budget: ₩{budget:,}" if budget else "Conditions organized"),
+                    ("Collect candidates", f"{len(build.items)} parts in the set"),
+                    ("Generate explanation", explanation.headline),
+                ]
+            else:
+                trace_rows = [
+                    ("조건 정리", f"카테고리 {category}, 예산 {values.get('budget_max'):,}원" if values.get("budget_max") else "조건 정리"),
+                    ("후보 수집", f"세트 {len(build.items)}개 부품"),
+                    ("설명 생성", explanation.headline),
+                ]
+            trace = [{"step": s, "title": s, "detail": d} for s, d in trace_rows]
             # 관측 문장(7일 몰림 · 공유 리뷰어 · 5점 비율)은 슬롯별 evidence 에 있다.
             # 그것까지 실어야 검토자가 확인·반박할 수 있다 — 요약만으로는 못 한다.
             evidence_by_slot = {it.slot: it.evidence for it in explanation.items if it.evidence}
-            for step in review_service.review_trace_steps(explanation.review_line_by_slot, evidence_by_slot):
+            for step in review_service.review_trace_steps(
+                explanation.review_line_by_slot, evidence_by_slot, locale=response_locale
+            ):
                 trace.insert(-1, step)
 
             # 리뷰축이 순위를 낮춘 후보 — 추천된 것들은 대개 "특이 없음" 이라(걸린 것이 밀려나므로)
@@ -267,7 +279,7 @@ def execute_recommendation(revision_id: UUID, run_id: UUID) -> None:
                             if pair is not None]
                     if over:
                         demoted.setdefault(slot, []).append({"name": c.get("name", "?"), "over": over})
-            demotion = review_service.review_demotion_step(demoted)
+            demotion = review_service.review_demotion_step(demoted, locale=response_locale)
             if demotion is not None:
                 trace.insert(-1, demotion)
 
@@ -437,9 +449,9 @@ def verify_and_persist_baby_candidate(*, conn, rag_service, run_id, candidate: d
 
 
 
-def _conditions_summary(cat_def: dict, values: dict) -> str:
+def _conditions_summary(cat_def: dict, values: dict, locale: Locale = "ko-KR") -> str:
     from src.services import session_service
-    fields = session_service._build_fields(cat_def, values)
+    fields = session_service._build_fields(cat_def, values, locale)
     parts = [f["display"] for f in fields if f["status"] == "confirmed" and f["display"]]
     return " · ".join(parts)
 
@@ -475,10 +487,11 @@ def get_stored_result(conn, revision_id: UUID) -> dict | None:
         "list_id": str(revision["plan_id"]), "run_id": str(run["id"]), "status": status,
         "content_language": content_language,
         "progress": [
-            {"step": "conditions", "label": "조건 정리", "status": "done"},
-            {"step": "candidates", "label": "후보 수집", "status": "done" if status != "running" else "running"},
+            {"step": "conditions", "label": "Organize conditions" if content_language == "en-US" else "조건 정리", "status": "done"},
+            {"step": "candidates", "label": "Collect candidates" if content_language == "en-US" else "후보 수집", "status": "done" if status != "running" else "running"},
         ],
-        "category": category, "conditions_summary": _conditions_summary(cat_def, values) if cat_def else "",
+        "category": category,
+        "conditions_summary": _conditions_summary(cat_def, values, content_language) if cat_def else "",
         "budget_max": values.get("budget_max"),
         "items": [], "totals": None,
         "verification": {"status": "pending", "confidence": None, "issues": []},
@@ -496,7 +509,9 @@ def get_stored_result(conn, revision_id: UUID) -> dict | None:
     items = []
     for row in erepo.get_candidates(run["id"]):
         attrs = row.get("attributes") or {}
-        spec_summary = f"성능 티어 {attrs['perf_tier']}" if attrs.get("perf_tier") is not None else None
+        spec_summary = ((f"Performance tier {attrs['perf_tier']}" if content_language == "en-US"
+                         else f"성능 티어 {attrs['perf_tier']}")
+                        if attrs.get("perf_tier") is not None else None)
         price = int(row["price"]) if row["price"] is not None else 0
         slot_variants = candidates_by_slot.get(row["slot"], [])
         alternatives_count = sum(1 for c in slot_variants if c["variant_id"] != row["variant_id"])
@@ -584,31 +599,43 @@ def patch_item(conn, revision_id: UUID, item_id: UUID, *, selected: bool | None,
     return get_stored_result(conn, revision_id)
 
 
-def _alternative_out(row: dict, *, current: bool, current_price: int) -> dict:
+def _alternative_out(row: dict, *, current: bool, current_price: int,
+                     locale: Locale = "ko-KR") -> dict:
     price = int(row["price"]) if row.get("price") is not None else 0
     delta = price - current_price
-    label = "현재 선택" if current else ("절약형 후보" if delta < 0 else ("프리미엄 후보" if delta > 0 else "동급 후보"))
+    locale = normalize_locale(locale)
+    if locale == "en-US":
+        label = "Current selection" if current else (
+            "Value candidate" if delta < 0 else ("Premium candidate" if delta > 0 else "Equivalent candidate")
+        )
+    else:
+        label = "현재 선택" if current else (
+            "절약형 후보" if delta < 0 else ("프리미엄 후보" if delta > 0 else "동급 후보")
+        )
     attrs = row.get("attributes") or {}
     return {
         "candidate_id": str(row["variant_id"]), "label": label, "current": current,
         "product": {
             "product_key": row.get("product_key") or str(row["product_id"]),
             "variant_id": str(row["variant_id"]), "name": row["name"], "brand": row.get("brand") or "",
-            "spec_summary": f"성능 티어 {attrs['perf_tier']}" if attrs.get("perf_tier") is not None else None,
+            "spec_summary": ((f"Performance tier {attrs['perf_tier']}" if locale == "en-US"
+                              else f"성능 티어 {attrs['perf_tier']}")
+                             if attrs.get("perf_tier") is not None else None),
             "image_url": row.get("image_url"), "purchase_url": row.get("purchase_url"),
         },
         "price": price, "price_delta": delta, "review": None,
     }
 
 
-def list_alternatives(conn, revision_id: UUID, item_id: UUID) -> dict:
+def list_alternatives(conn, revision_id: UUID, item_id: UUID, *,
+                      locale: Locale = "ko-KR") -> dict:
     from src.repo.product_repo import ProductRepo
     erepo, run = _require_done_run(conn, revision_id)
     current = _find_candidate(erepo.get_candidates(run["id"]), item_id)
     current_price = int(current["price"]) if current["price"] is not None else 0
     slot_variants = ProductRepo(conn).candidates_by_slot().get(current["slot"], [])
     items = [
-        _alternative_out(row, current=False, current_price=current_price)
+        _alternative_out(row, current=False, current_price=current_price, locale=locale)
         for row in sorted(slot_variants, key=lambda r: r["price"] if r["price"] is not None else 0)
         if row["variant_id"] != current["variant_id"]
     ]

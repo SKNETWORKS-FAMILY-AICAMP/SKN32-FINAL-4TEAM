@@ -9,6 +9,7 @@
 """
 from __future__ import annotations
 
+import re
 from typing import TYPE_CHECKING
 
 from src.clients.llm_client import call_llm
@@ -78,6 +79,44 @@ def _risk_store_note_en(note: str) -> str:
     return note
 
 
+def _review_evidence_en(text: str) -> str:
+    """리뷰 분석 산출물의 고정 한국어 문장을 영어 결과용으로 변환한다."""
+    value = re.sub(
+        r"리뷰 ([\d,]+)건 중 ([\d,]+)건\(([\d.]+)%\)이 7일 안에 몰림"
+        r" — 전체 상품 중앙값 ([\d.]+)%",
+        r"\2 of \1 reviews (\3%) were posted within 7 days — all-product median: \4%",
+        text,
+    )
+    value = re.sub(
+        r"리뷰어 ([\d,]+)명이 다른 상품에서도 함께 나타남 \(연결 상품 ([\d,]+)개\)"
+        r" — 중앙값 ([\d,]+)명 / ([\d,]+)개",
+        r"\1 reviewers also appeared on other products (\2 linked products)"
+        r" — median: \3 reviewers / \4 products",
+        value,
+    )
+    value = re.sub(
+        r"5점 비율 ([\d.]+)% — 중앙값 ([\d.]+)%",
+        r"5-star share: \1% — median: \2%",
+        value,
+    )
+    value = re.sub(
+        r"리뷰 ([\d,]+)건 중 ([\d,]+)건\(([\d.]+)%\)이 의심 지표 2개 이상에 걸림"
+        r"(?: \(데모 상품 전체 ([\d.]+)%\))? — 95% 신뢰구간 \[([\d.]+), ([\d.]+)\]",
+        lambda match: (
+            f"{match.group(2)} of {match.group(1)} reviews ({match.group(3)}%) triggered at least "
+            f"two suspicion indicators"
+            + (f" (all demo products: {match.group(4)}%)" if match.group(4) else "")
+            + f" — 95% confidence interval [{match.group(5)}, {match.group(6)}]"
+        ),
+        value,
+    )
+    return (value
+            .replace("기준선과 구별되지 않음", "not distinguishable from baseline")
+            .replace("기준선 초과", "above baseline")
+            .replace("출시 첫 주 — 조작이 아니라 출시일 수 있어 랭킹 신호에서 뺐다",
+                     "launch week — excluded from ranking signals because the burst may reflect the launch"))
+
+
 def _review_line(
     product_key: str,
     flags: list[str],
@@ -98,13 +137,20 @@ def _review_line(
     evidence = []
     if store and facts:
         ref = store.resolve(product_key)
-        evidence = [{"kind": "review_observation", "text": t, "verify_url": f"https://www.amazon.com/dp/{ref}"}
-                    for t in store.observations(product_key)]
+        evidence = [{
+            "kind": "review_observation",
+            "text": _review_evidence_en(t) if locale == "en-US" else t,
+            "verify_url": f"https://www.amazon.com/dp/{ref}",
+        } for t in store.observations(product_key)]
         # 규칙 기반 의심 건수 — kind 를 달리 둬서 관측 사실과 구별한다(정밀도를 못 재는 값이다)
         sus = default_suspect_counts()
         line = sus.sentence(product_key) if sus else None
         if line:
-            evidence.append({"kind": "review_suspect_rule", "text": line, "verify_url": None})
+            evidence.append({
+                "kind": "review_suspect_rule",
+                "text": _review_evidence_en(line) if locale == "en-US" else line,
+                "verify_url": None,
+            })
     if not over:
         if locale == "en-US":
             return f"Observed {n} reviews — no values above the comparison-group median", evidence, None
@@ -199,19 +245,36 @@ def _llm_draft(build: BuildResult, verification: VerificationResult,
     부품을 끌어오거나 점수를 만들어내면 버린다 — 그 경우 호출자가 기존 규칙 문장을 쓴다.
     """
     tgt = verification.targets[0] if verification.targets else None
-    lines = [
-        f"예산 상한: {build.budget.get('max', 0)}원",
-        f"사용 금액: {build.totals.get('price', 0)}원",
-        f"검증 신뢰도: {tgt.confidence if tgt else '없음'} (통과: {tgt.passed if tgt else '없음'})",
-        f"근거가 확인되지 않은 축: {(tgt.gray_axes if tgt else []) or '없음'}",
-        "구성:",
-    ]
+    if locale == "en-US":
+        gray_axes = [_english_label(axis) for axis in (tgt.gray_axes if tgt else [])]
+        lines = [
+            f"Budget cap: ₩{build.budget.get('max', 0):,}",
+            f"Amount used: ₩{build.totals.get('price', 0):,}",
+            f"Verification confidence: {tgt.confidence if tgt else 'unavailable'}/100 "
+            f"(passed: {tgt.passed if tgt else 'unavailable'})",
+            f"Axes without verified evidence: {gray_axes or 'none'}",
+            "Configuration:",
+        ]
+    else:
+        lines = [
+            f"예산 상한: {build.budget.get('max', 0)}원",
+            f"사용 금액: {build.totals.get('price', 0)}원",
+            f"검증 신뢰도: {tgt.confidence if tgt else '없음'} (통과: {tgt.passed if tgt else '없음'})",
+            f"근거가 확인되지 않은 축: {(tgt.gray_axes if tgt else []) or '없음'}",
+            "구성:",
+        ]
     for it in build.items:
         axes = _top_axes(rank, it.slot, it.product_key)
-        lines.append(f"- {it.slot} | {it.name} | {it.price}원 | {it.rank_from_3b}순위"
-                     + (f" | 기여가 큰 축: {axes}" if axes else ""))
+        if locale == "en-US":
+            english_axes = ", ".join(_english_label(axis.strip()) for axis in axes.split(",") if axis.strip())
+            lines.append(f"- slot={it.slot} | display label={_english_label(it.slot)} | {it.name} | "
+                         f"₩{it.price:,} | rank #{it.rank_from_3b}"
+                         + (f" | top contributing axes: {english_axes}" if english_axes else ""))
+        else:
+            lines.append(f"- {it.slot} | {it.name} | {it.price}원 | {it.rank_from_3b}순위"
+                         + (f" | 기여가 큰 축: {axes}" if axes else ""))
     if tgt and tgt.issues:
-        lines.append("검증 쟁점:")
+        lines.append("Verification issues:" if locale == "en-US" else "검증 쟁점:")
         lines += [f"- {i.axis}: {i.text or i.tool_result}" for i in tgt.issues]
 
     want = {it.slot for it in build.items}
@@ -225,6 +288,9 @@ def _llm_draft(build: BuildResult, verification: VerificationResult,
             log(f"      [5] 문장 생성 실패 ({type(exc).__name__}) → 규칙 템플릿")
             return None
         if {i.slot for i in draft.items} != want:
+            continue
+        generated_text = "\n".join([draft.headline, *(item.reason for item in draft.items), *draft.caveats])
+        if locale == "en-US" and any("가" <= char <= "힣" for char in generated_text):
             continue
         draft_text = draft.model_dump_json().casefold()
         if any(w.casefold() in draft_text for w in _BANNED_IN_DRAFT):
@@ -309,7 +375,8 @@ def run(build: BuildResult, verification: VerificationResult, log: LogFn,
     log(f"      기여도: 가격 {contrib['가격']}% / 성능 {contrib['성능']}% / 호환성 {contrib['호환성']}%")
     log(f"      문장: {'LLM' if draft else '규칙 템플릿'}")
     log(f"      headline: {headline}")
-    n_obs = sum(1 for l in review_lines.values() if not l.startswith("리뷰 관측 없음"))
+    n_obs = sum(1 for l in review_lines.values()
+                if not l.startswith(("리뷰 관측 없음", "No review observations")))
     log(f"      리뷰 관측: {n_obs}/{len(review_lines)} 슬롯" + (f", 검토 권장 {len(review_caveats)}" if review_caveats else ""))
 
     return Explanation(

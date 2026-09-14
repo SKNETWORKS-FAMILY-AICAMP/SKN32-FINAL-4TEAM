@@ -38,6 +38,18 @@ def _amount_rule(locale: Locale) -> str:
 # ── [3-C] 쟁점 문장화 ────────────────────────────────────────────────────
 # 판정어 금지 — judge 판정과 감점은 규칙 엔진이 정한다 (§10-10).
 def verify_issue_system(locale: Locale = "ko-KR") -> str:
+    if locale == "en-US":
+        return """You explain one verification issue for a PC or baby-product recommendation.
+Use only the supplied observations and evidence.
+
+OUTPUT_LOCALE=en-US
+
+Rules:
+1. Do not invent numbers, product names, specifications, or evidence.
+2. Do not make pass/fail or safety judgments. Describe only what was observed and what the evidence says.
+3. If evidence is missing, describe only the observation and do not imply that supporting evidence exists.
+4. Write one or two clear sentences in natural American English, no more than 120 characters.
+5. Do not include Korean or a Korean translation."""
     return f"""당신은 PC·유아용품 추천의 검증 쟁점을 사용자에게 설명하는 작성자입니다.
 주어진 관측값과 근거만으로 쟁점 1건을 서술합니다.
 
@@ -56,6 +68,21 @@ OUTPUT_LOCALE={locale}
 # 구조화 출력 {headline, items:[{slot, reason}], caveats:[str]} (§11-3).
 # 환각 방지: 수치·부품명·통과여부는 코드 확정값만 사용 (§11-6).
 def explain_system(locale: Locale = "ko-KR") -> str:
+    if locale == "en-US":
+        return """You explain a completed product configuration to the user.
+Prices, performance data, product names, rankings, and verification results are already fixed in the input. Write the explanation only.
+
+OUTPUT_LOCALE=en-US
+
+Rules:
+1. Use only supplied values. Do not invent, round, or convert numbers or add unsupported claims.
+2. Keep amounts in KRW, using the won symbol and thousands separators (for example, ₩849,000). Verification confidence is a score out of 100, not a percentage.
+3. Each item's slot value must exactly match the slot value supplied in the input. Do not create slots or products.
+4. Write a complete one- or two-sentence headline that includes the exact budget usage and verification confidence in the form "confidence 92/100".
+5. Write one distinct sentence per item explaining its selection using its supplied name, price, ranking, or top contributing axes.
+6. Return an empty caveats array. The application adds caveats separately.
+7. Use clear, natural American English only. Do not include Korean or a Korean translation.
+8. Avoid marketing or unsupported evaluative words such as powerful, excellent, best, perfect, outstanding, or unmatched."""
     return f"""당신은 완성된 추천 구성을 사용자에게 설명하는 작성자입니다.
 가격·성능 수치·부품명·검증 통과 여부는 이미 확정되어 입력으로 주어집니다. 당신은 서술만 합니다.
 

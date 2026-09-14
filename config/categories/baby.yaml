@@ -25,38 +25,50 @@ defaults: {}
 # age_stage 는 저장 필드가 아니라 age_months(+mode)에서 계산되는 표시 전용 필드.
 # 칩으로 고른 age_months 는 대표값(구간)이라 "assumed"로, 자유입력 정확 개월수는 "confirmed"로 표시한다.
 fields:
-  - { key: age_stage, label: "아이 연령대", computed: age_months, mode_only: born }
-  - { key: due_date, label: "출산 예정일", mode_only: prenatal }
-  - { key: needs, label: "필요한 영역" }
-  - { key: health_skin, label: "건강·피부 특성" }
-  - { key: owned_items, label: "이미 보유한 물품" }
-  - { key: budget_max, label: "예산" }
-  - { key: weight_kg, label: "몸무게(kg)", mode_only: born }
-  - { key: independent_sitting, label: "혼자 앉기 가능", mode_only: born }
+  - { key: age_stage, label: "아이 연령대", label_en: "Child's age group", computed: age_months, mode_only: born }
+  - { key: due_date, label: "출산 예정일", label_en: "Due date", mode_only: prenatal }
+  - { key: needs, label: "필요한 영역", label_en: "Needed areas" }
+  - { key: health_skin, label: "건강·피부 특성", label_en: "Health and skin" }
+  - { key: owned_items, label: "이미 보유한 물품", label_en: "Items already owned" }
+  - { key: budget_max, label: "예산", label_en: "Budget" }
+  - { key: weight_kg, label: "몸무게(kg)", label_en: "Weight (kg)", mode_only: born }
+  - { key: independent_sitting, label: "혼자 앉기 가능", label_en: "Can sit independently", mode_only: born }
 
 question_sets:
   - { id: q_age, select: single, maps_to: age_months, mode_only: born, exact: false,
       label: "아이는 몇 개월인가요?",
+      label_en: "How many months old is your child?",
       options: ["0~3개월", "4~6개월", "7~12개월", "13~24개월", "25개월 이상"],
+      options_en: ["0–3 months", "4–6 months", "7–12 months", "13–24 months", "25 months or older"],
       values: [1, 5, 9, 18, 30] }
   - { id: q_due_date, select: free, maps_to: due_date, mode_only: prenatal,
-      label: "출산 예정일이 언제인가요? (예: 2026-12-01)" }
+      label: "출산 예정일이 언제인가요? (예: 2026-12-01)",
+      label_en: "What is your due date? (for example, 2026-12-01)" }
   - { id: q_needs, select: multi, maps_to: needs,
       label: "지금 필요한 영역을 골라주세요.",
-      options: ["수유", "이유식·식사", "수면", "외출", "목욕·위생", "기저귀·배변", "의류", "놀이", "안전·건강"] }
+      label_en: "Select the areas you need right now.",
+      options: ["수유", "이유식·식사", "수면", "외출", "목욕·위생", "기저귀·배변", "의류", "놀이", "안전·건강"],
+      options_en: ["Feeding", "Weaning and meals", "Sleep", "Outings", "Bath and hygiene", "Diapers and toilet training", "Clothing", "Play", "Safety and health"] }
   - { id: q_health_skin, select: multi, maps_to: health_skin,
       label: "피부·건강에 특이사항이 있나요?",
+      label_en: "Are there any skin or health considerations?",
       options: ["아토피", "민감성 피부", "특이사항 없음"],
+      options_en: ["Atopy", "Sensitive skin", "No special considerations"],
       none_option: "특이사항 없음" }
   - { id: q_owned, select: multi, maps_to: owned_items,
       label: "이미 갖고 있는 물품이 있나요?",
+      label_en: "Which items do you already own?",
       options: ["유모차", "카시트", "젖병", "아기침대", "기저귀", "없음"],
+      options_en: ["Stroller", "Car seat", "Baby bottle", "Crib", "Diapers", "None"],
       none_option: "없음" }
   - { id: q_budget_max, select: free, maps_to: budget_max,
-      label: "예산은 얼마까지 생각하시나요?" }
+      label: "예산은 얼마까지 생각하시나요?",
+      label_en: "What budget do you have in mind?" }
   # 안전 관련 선택 질문 — 외출·안전건강 need 가 확인된 뒤에만 물어본다(관련 없는 사용자에게 강요 안 함).
   - { id: q_weight, select: free, maps_to: weight_kg, mode_only: born, requires_need: [외출, 안전·건강],
-      label: "아이 몸무게가 어느 정도인가요? (kg)" }
+      label: "아이 몸무게가 어느 정도인가요? (kg)",
+      label_en: "What is your child's approximate weight? (kg)" }
   - { id: q_sitting, select: single, maps_to: independent_sitting, mode_only: born, requires_need: [외출, 안전·건강],
       label: "아이가 혼자 앉을 수 있나요?",
-      options: ["예", "아니오"], values: [true, false] }
+      label_en: "Can your child sit independently?",
+      options: ["예", "아니오"], options_en: ["Yes", "No"], values: [true, false] }
