@@ -31,6 +31,10 @@ LLM_MODEL: str = os.getenv("LLM_MODEL", "")             # 경량 대화 모델 �
 LLM_REGION: str = os.getenv("LLM_REGION", "")
 OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
 EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "") # 텍스트 임베딩 모델 식별자
+# 조건 대화 에이전트(src/agent/conditions_agent.py, Strands Agents SDK). "1" 이면 /session/{id}/message 의
+# 자유 텍스트를 LLM 도구 호출로 조건에 반영한다. 기본 "0" — 계약 §D-3([1]은 규칙 기반)이 아직 유효해서
+# 프론트 담당자 합의 전까지는 opt-in. MOCK_MODE=1 이거나 OPENAI_API_KEY·LLM_MODEL 이 비면 켜도 규칙 경로.
+CONDITIONS_AGENT: bool = os.getenv("CONDITIONS_AGENT", "0") == "1"
 
 # --------------------------------------------------------------------------
 # DB / 인증

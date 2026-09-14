@@ -1,13 +1,16 @@
 """세션 생성과 조건 대화 서비스 (계약: docs/frontend_외부수정요청.md §D-4-1)."""
 from __future__ import annotations
-import hashlib, re, secrets
+import hashlib, logging, re, secrets
 from uuid import UUID
+from src.agent import conditions_agent
 from src.auth.deps import Principal
 from src.categories import load_category
 from src.engine import slot_rules
 from src.errors import Conflict, FileTooLarge, NotFound, ValidationFailed
 from src.repo.plan_repo import PlanRepo
 from src.repo.user_repo import ConversationRepo
+
+log = logging.getLogger(__name__)
 
 
 def _token_hash(token: str) -> str:
@@ -192,7 +195,15 @@ def _current_values(repo: PlanRepo, revision_id: UUID) -> tuple[dict, str | None
     return values, values.get("category")
 
 
+_ALL_SET = "필요한 조건을 모두 확인했어요. 이 조건으로 추천을 받아보세요."
+
+
 def handle_message(conn, list_id: UUID, text: str, principal: Principal) -> dict:
+    """자유 텍스트 한 턴. 에이전트가 있으면 도구 호출로 조건을 뽑고 답변 문장까지 만든다.
+
+    에이전트가 없거나(MOCK_MODE·키 없음) 호출이 실패하면 규칙 추출(slot_rules)로 이번 턴을
+    처리한다. 실패는 로그에만 남는다 — 화면에서는 규칙 경로와 구분되지 않는다.
+    """
     repo = PlanRepo(conn)
     current = _owned(repo, list_id, principal)
     values, category = _current_values(repo, current["id"])
@@ -200,18 +211,34 @@ def handle_message(conn, list_id: UUID, text: str, principal: Principal) -> dict
         raise Conflict("카테고리를 먼저 선택하세요.", code="category_required")
     cat_def = _category(category)
     convo = ConversationRepo(conn)
+    history = convo.messages(current["conversation_id"])     # 이번 메시지를 넣기 전
     msg_id = convo.add_message(current["conversation_id"], "user", text)
 
-    extracted = slot_rules.extract(category, text)
+    reply: str | None = None
+    extracted: dict = {}
+    if conditions_agent.available():
+        try:
+            turn = conditions_agent.run_turn(
+                category, cat_def, values, history, text,
+                missing_fn=lambda v: compute_missing(cat_def, v),
+                next_question_fn=lambda v: _next_question(cat_def, v))
+            extracted, reply = turn.patches, turn.reply
+            log.info("conditions agent [%s]: %s", list_id, " | ".join(turn.trace) or "(도구 호출 없음)")
+        except Exception as exc:  # 모델·네트워크 오류 — 이번 턴만 규칙으로
+            log.warning("conditions agent failed, falling back to slot_rules: %s", exc)
+    if reply is None:
+        extracted = slot_rules.extract(category, text)
+
     for key, value in extracted.items():
         repo.upsert_condition(current["id"], key, {"value": value}, "extracted", msg_id)
     values.update(extracted)
 
     nq = _next_question(cat_def, values)
-    if nq:
-        reply = nq["text"] if extracted else "죄송해요, 이해하지 못했어요. " + nq["text"]
-    else:
-        reply = "필요한 조건을 모두 확인했어요. 이 조건으로 추천을 받아보세요."
+    if reply is None:
+        if nq:
+            reply = nq["text"] if extracted else "죄송해요, 이해하지 못했어요. " + nq["text"]
+        else:
+            reply = _ALL_SET
     convo.add_message(current["conversation_id"], "assistant", reply)
     return _state(conn, list_id, principal)
 
