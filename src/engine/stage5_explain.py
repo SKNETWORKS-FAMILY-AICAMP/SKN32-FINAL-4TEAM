@@ -134,6 +134,12 @@ def _llm_draft(build: BuildResult, verification: VerificationResult,
             continue
         if tgt and str(tgt.confidence) not in draft.headline:
             continue  # headline이 검증 신뢰도 숫자를 빠뜨렸다 — 규칙 4 위반
+        if len({i.reason for i in draft.items}) < len(draft.items):
+            # 지금 슬롯마다 후보를 1개만 저장해서 전부 "1순위" — 규칙 5의 첫 템플릿이
+            # 모든 품목에 똑같이 걸리기 쉽다. 서로 다른 품목인데 문장이 겹치면(토씨만
+            # 다른 것도 포함해 완전 동일한 경우만 여기서 걸러진다) 프롬프트 지시(규칙 5
+            # 구분 문구)를 안 지킨 것이므로 규칙 템플릿(품목별로 원래 다른 값)으로 내린다.
+            continue
         return draft
     log("      [5] 검사 불통과 → 규칙 템플릿")
     return None
