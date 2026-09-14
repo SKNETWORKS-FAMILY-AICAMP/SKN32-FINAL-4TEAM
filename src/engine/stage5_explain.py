@@ -57,10 +57,10 @@ def _review_line(product_key: str, flags: list[str], lang: str = "ko") -> tuple[
     if store and facts:
         ref = store.resolve(product_key)
         evidence = [{"kind": "review_observation", "text": t, "verify_url": f"https://www.amazon.com/dp/{ref}"}
-                    for t in store.observations(product_key)]
+                    for t in store.observations(product_key, lang)]
         # 규칙 기반 의심 건수 — kind 를 달리 둬서 관측 사실과 구별한다(정밀도를 못 재는 값이다)
         sus = default_suspect_counts()
-        line = sus.sentence(product_key) if sus else None
+        line = sus.sentence(product_key, lang) if sus else None
         if line:
             evidence.append({"kind": "review_suspect_rule", "text": line, "verify_url": None})
     if not over:

@@ -533,9 +533,9 @@ def _item_checks(item: dict, validations: list[dict], confidence: int | None, la
         parts.append(L(lang, "이 부품에 걸린 세트 검증 쟁점 없음", "No set-verification issue on this part")
                      + (L(lang, f" (세트 신뢰도 {confidence}점)", f" (set confidence {confidence})") if confidence is not None else ""))
     try:
-        summary = review_service.get_summary(item["product"]["product_key"])
+        summary = review_service.get_summary(item["product"]["product_key"], lang)
         obs = [x["text"] for x in summary.summaries]
-        parts.append((L(lang, "리뷰 관측: ", "Review observations (Korean, product-level): ") + " / ".join(obs)
+        parts.append((L(lang, "리뷰 관측: ", "Review observations (product-level): ") + " / ".join(obs)
                       + L(lang, " — 상품 단위 신호이며 개별 리뷰의 진위가 아닙니다", " — a product-level signal, not the authenticity of any single review"))
                      if obs else L(lang, "리뷰 관측 없음 — 리뷰 수 문턱 미만이거나 데이터 기간 밖",
                                    "No review observation — below the review-count threshold or outside the data period"))

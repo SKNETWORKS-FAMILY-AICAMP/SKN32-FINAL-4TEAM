@@ -32,7 +32,7 @@ def _item(slot, name="X", reason_text=None):
 def test_item_checks_maps_axes_to_slots_and_flags_swaps(monkeypatch):
     from src.errors import NotFound
     monkeypatch.setattr(rs, "_AXIS_SLOTS", {"power": ("파워", "GPU")})
-    def fake_summary(key):
+    def fake_summary(key, lang="ko"):
         raise NotFound("없음")
     monkeypatch.setattr("src.services.review_service.get_summary", fake_summary)
     validations = [{"rule_key": "power", "message": "상시부하 420W 관측"}]
@@ -47,7 +47,7 @@ def test_item_checks_maps_axes_to_slots_and_flags_swaps(monkeypatch):
 
 def test_item_checks_unknown_axis_applies_to_all_slots(monkeypatch):
     from src.errors import NotFound
-    monkeypatch.setattr("src.services.review_service.get_summary", lambda key: (_ for _ in ()).throw(NotFound("x")))
+    monkeypatch.setattr("src.services.review_service.get_summary", lambda key, lang="ko": (_ for _ in ()).throw(NotFound("x")))
     out = rs._item_checks(_item("케이스"), [{"rule_key": "예산", "message": "110% 초과"}], 80)
     assert "[예산] 110% 초과" in out["text"]
 

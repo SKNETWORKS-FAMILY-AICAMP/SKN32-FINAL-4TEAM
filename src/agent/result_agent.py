@@ -182,7 +182,7 @@ class ResultSession:
         if issues:
             lines.append("세트 검증 쟁점(전체 구성 기준): " + " | ".join(f"[{i['axis']}] {i['text']}" for i in issues))
         try:
-            s = review_service.get_summary(it["product"]["product_key"])
+            s = review_service.get_summary(it["product"]["product_key"], "en" if _CURRENCY.get("lang") == "en" else "ko")
             obs = [x["text"] for x in s.summaries] if s.summaries else []
             lines.append("리뷰 관측(상품 단위, 개별 리뷰 진위 아님): " + (" | ".join(obs) if obs else s.data_notice))
         except NotFound:
@@ -369,12 +369,12 @@ def _guarded_reply(session: ResultSession, prefetched: str) -> str:
             "바꾸고 싶은 부품과 방향(더 저렴한/더 좋은), 또는 궁금한 부품을 말씀해 주세요.")
 
 
-def _session_currency(conn, revision_id: UUID) -> str:
-    """02 에서 사용자가 달러로 말했으면 currency=USD 가 조건에 남아 있다."""
+def _session_currency(conn, revision_id: UUID) -> tuple[str, str]:
+    """02 에서 사용자가 달러로 말했으면 currency=USD, 영어면 language=en 이 조건에 남아 있다. (통화, 언어)"""
     from src.repo.plan_repo import PlanRepo
     full = PlanRepo(conn).load_full(revision_id)
     values = {r["condition_key"]: r["value"].get("value") for r in full.get("conditions", [])}
-    return "USD" if values.get("currency") == "USD" else "KRW"
+    return ("USD" if values.get("currency") == "USD" else "KRW"), ("en" if values.get("language") == "en" else "ko")
 
 
 # ── 실행 ───────────────────────────────────────────────────────────────────
@@ -393,7 +393,7 @@ def run_turn(conn, revision_id: UUID, result: dict, text: str) -> TurnResult:
 
     run_id = result["run_id"]
     hist_rows = [{"role": "user", "content": u} for u, _ in _HISTORY.get(run_id, ())]
-    _CURRENCY["code"] = _session_currency(conn, revision_id)
+    _CURRENCY["code"], _CURRENCY["lang"] = _session_currency(conn, revision_id)
     session = ResultSession(conn=conn, revision_id=revision_id, result=result)
     prefetched = _prefetch_explanations(session, text)
     prompt = system_prompt(result, text, hist_rows, prefetched)
