@@ -1,0 +1,624 @@
+{
+  "is_synthetic": true,
+  "embedding_provider": "local-test",
+  "profile_key": "local-test-lexical-hash-v1-1024-nfkc-ko-bigram-v1",
+  "manual_sha256": "d785521071908514f5924e68134e85d7bd767b98d7fedf680197e71815c7e76d",
+  "cases": 21,
+  "passed": 21,
+  "results": [
+    {
+      "id": "minimum-age",
+      "query": "좌석 모드 월령은 몇 개월 이상인가요?",
+      "passed": true,
+      "expected_status": "success",
+      "actual_status": "success",
+      "citation_valid": true,
+      "answer": "가상제품 테스트 설명서의 발췌입니다.\n\n## 사용 대상과 사용 조건\n\n\n좌석 모드 월령: 6 개월 이상.\n\n\n좌석 모드 체중: 22 kg 이하.\n\n\n좌석 모드 필수 조건: 혼자 앉을 수 있음.\n\n\n같은 모드에 적힌 사용 조건은 모두 충족해야 합니다.\n\n\n신생아 구성: 지원하지 않습니다.",
+      "evidence": [
+        {
+          "text": "## 사용 대상과 사용 조건\n\n<!-- S01-B001 -->\n좌석 모드 월령: 6 개월 이상.\n\n<!-- S01-B002 -->\n좌석 모드 체중: 22 kg 이하.\n\n<!-- S01-B003 -->\n좌석 모드 필수 조건: 혼자 앉을 수 있음.\n\n<!-- S01-B004 -->\n같은 모드에 적힌 사용 조건은 모두 충족해야 합니다.\n\n<!-- S01-B005 -->\n신생아 구성: 지원하지 않습니다.",
+          "locator": {
+            "section": "사용 대상과 사용 조건",
+            "char_end": 408,
+            "block_ids": [
+              "S01-B001",
+              "S01-B002",
+              "S01-B003",
+              "S01-B004",
+              "S01-B005"
+            ],
+            "char_start": 185,
+            "line_start": 9,
+            "section_code": "S01"
+          },
+          "file_sha256": "d785521071908514f5924e68134e85d7bd767b98d7fedf680197e71815c7e76d",
+          "revision_id": "1ee77e2b-3a34-5a6b-84e9-9a1b6a22b1fb",
+          "is_synthetic": true,
+          "coverage_status": "partial",
+          "chunk_id": "f0d663f2-8993-516c-970a-78420bbb3b93",
+          "evidence_id": "b29b5189-5d0e-4007-800e-635c60a30b90",
+          "retrieval_hit_id": "8426a2cb-f1a0-424e-8ed8-8d57ff218d3a",
+          "file_id": "a9ecfda0-3294-507e-bfdf-3c68733510e9",
+          "source_url": null,
+          "collected_at": "2026-09-13 02:13:22.869503+00:00",
+          "product_key": "SYN-STROLLER-001",
+          "variant_key": "SYN-STROLLER-001-GREY",
+          "review_status": "unreviewed",
+          "score": 0.01639344262295082,
+          "vector_score": 0.19655947973011378,
+          "keyword_score": 1.0
+        }
+      ]
+    },
+    {
+      "id": "weight-limit",
+      "query": "좌석 모드 체중 제한과 필수 조건",
+      "passed": true,
+      "expected_status": "success",
+      "actual_status": "success",
+      "citation_valid": true,
+      "answer": "가상제품 테스트 설명서의 발췌입니다.\n\n## 사용 대상과 사용 조건\n\n\n좌석 모드 월령: 6 개월 이상.\n\n\n좌석 모드 체중: 22 kg 이하.\n\n\n좌석 모드 필수 조건: 혼자 앉을 수 있음.\n\n\n같은 모드에 적힌 사용 조건은 모두 충족해야 합니다.\n\n\n신생아 구성: 지원하지 않습니다.",
+      "evidence": [
+        {
+          "text": "## 사용 대상과 사용 조건\n\n<!-- S01-B001 -->\n좌석 모드 월령: 6 개월 이상.\n\n<!-- S01-B002 -->\n좌석 모드 체중: 22 kg 이하.\n\n<!-- S01-B003 -->\n좌석 모드 필수 조건: 혼자 앉을 수 있음.\n\n<!-- S01-B004 -->\n같은 모드에 적힌 사용 조건은 모두 충족해야 합니다.\n\n<!-- S01-B005 -->\n신생아 구성: 지원하지 않습니다.",
+          "locator": {
+            "section": "사용 대상과 사용 조건",
+            "char_end": 408,
+            "block_ids": [
+              "S01-B001",
+              "S01-B002",
+              "S01-B003",
+              "S01-B004",
+              "S01-B005"
+            ],
+            "char_start": 185,
+            "line_start": 9,
+            "section_code": "S01"
+          },
+          "file_sha256": "d785521071908514f5924e68134e85d7bd767b98d7fedf680197e71815c7e76d",
+          "revision_id": "1ee77e2b-3a34-5a6b-84e9-9a1b6a22b1fb",
+          "is_synthetic": true,
+          "coverage_status": "partial",
+          "chunk_id": "f0d663f2-8993-516c-970a-78420bbb3b93",
+          "evidence_id": "8184bf5a-d0e9-4a48-b0b3-7621d5b068fb",
+          "retrieval_hit_id": "fc4071cc-d936-4554-a728-996129bdfa0f",
+          "file_id": "a9ecfda0-3294-507e-bfdf-3c68733510e9",
+          "source_url": null,
+          "collected_at": "2026-09-13 02:13:22.869503+00:00",
+          "product_key": "SYN-STROLLER-001",
+          "variant_key": "SYN-STROLLER-001-GREY",
+          "review_status": "unreviewed",
+          "score": 0.03278688524590164,
+          "vector_score": 0.33893807762492223,
+          "keyword_score": 1.2
+        }
+      ]
+    },
+    {
+      "id": "newborn",
+      "query": "신생아 구성 지원 여부",
+      "passed": true,
+      "expected_status": "success",
+      "actual_status": "success",
+      "citation_valid": true,
+      "answer": "가상제품 테스트 설명서의 발췌입니다.\n\n## 사용 대상과 사용 조건\n\n\n좌석 모드 월령: 6 개월 이상.\n\n\n좌석 모드 체중: 22 kg 이하.\n\n\n좌석 모드 필수 조건: 혼자 앉을 수 있음.\n\n\n같은 모드에 적힌 사용 조건은 모두 충족해야 합니다.\n\n\n신생아 구성: 지원하지 않습니다.",
+      "evidence": [
+        {
+          "text": "## 사용 대상과 사용 조건\n\n<!-- S01-B001 -->\n좌석 모드 월령: 6 개월 이상.\n\n<!-- S01-B002 -->\n좌석 모드 체중: 22 kg 이하.\n\n<!-- S01-B003 -->\n좌석 모드 필수 조건: 혼자 앉을 수 있음.\n\n<!-- S01-B004 -->\n같은 모드에 적힌 사용 조건은 모두 충족해야 합니다.\n\n<!-- S01-B005 -->\n신생아 구성: 지원하지 않습니다.",
+          "locator": {
+            "section": "사용 대상과 사용 조건",
+            "char_end": 408,
+            "block_ids": [
+              "S01-B001",
+              "S01-B002",
+              "S01-B003",
+              "S01-B004",
+              "S01-B005"
+            ],
+            "char_start": 185,
+            "line_start": 9,
+            "section_code": "S01"
+          },
+          "file_sha256": "d785521071908514f5924e68134e85d7bd767b98d7fedf680197e71815c7e76d",
+          "revision_id": "1ee77e2b-3a34-5a6b-84e9-9a1b6a22b1fb",
+          "is_synthetic": true,
+          "coverage_status": "partial",
+          "chunk_id": "f0d663f2-8993-516c-970a-78420bbb3b93",
+          "evidence_id": "cc49b80e-9eb5-48c4-971b-f8195fa4ac51",
+          "retrieval_hit_id": "2ec5f821-e8cb-469b-b9d6-beb318280952",
+          "file_id": "a9ecfda0-3294-507e-bfdf-3c68733510e9",
+          "source_url": null,
+          "collected_at": "2026-09-13 02:13:22.869503+00:00",
+          "product_key": "SYN-STROLLER-001",
+          "variant_key": "SYN-STROLLER-001-GREY",
+          "review_status": "unreviewed",
+          "score": 0.03278688524590164,
+          "vector_score": 0.30964934825897217,
+          "keyword_score": 0.5
+        }
+      ]
+    },
+    {
+      "id": "one-hand",
+      "query": "한 손 접기 기능을 지원하나요?",
+      "passed": true,
+      "expected_status": "success",
+      "actual_status": "success",
+      "citation_valid": true,
+      "answer": "가상제품 테스트 설명서의 발췌입니다.\n\n## 기능과 사용\n\n\n한 손 접기 기능: 지원합니다.\n\n\n접힌 상태 자립 기능: 지원하지 않습니다.",
+      "evidence": [
+        {
+          "text": "## 기능과 사용\n\n<!-- S05-B001 -->\n한 손 접기 기능: 지원합니다.\n\n<!-- S05-B002 -->\n접힌 상태 자립 기능: 지원하지 않습니다.",
+          "locator": {
+            "section": "기능과 사용",
+            "char_end": 573,
+            "block_ids": [
+              "S05-B001",
+              "S05-B002"
+            ],
+            "char_start": 484,
+            "line_start": 31,
+            "section_code": "S05"
+          },
+          "file_sha256": "d785521071908514f5924e68134e85d7bd767b98d7fedf680197e71815c7e76d",
+          "revision_id": "1ee77e2b-3a34-5a6b-84e9-9a1b6a22b1fb",
+          "is_synthetic": true,
+          "coverage_status": "partial",
+          "chunk_id": "a980b223-94f9-5675-9288-61004cdf76db",
+          "evidence_id": "4a7d1ef1-e171-40c0-86a8-c7ad8c8caf04",
+          "retrieval_hit_id": "0c2ee199-d1ed-471a-8df4-5095e140741a",
+          "file_id": "a9ecfda0-3294-507e-bfdf-3c68733510e9",
+          "source_url": null,
+          "collected_at": "2026-09-13 02:13:22.869503+00:00",
+          "product_key": "SYN-STROLLER-001",
+          "variant_key": "SYN-STROLLER-001-GREY",
+          "review_status": "unreviewed",
+          "score": 0.03278688524590164,
+          "vector_score": 0.4428892433643341,
+          "keyword_score": 0.90000004
+        }
+      ]
+    },
+    {
+      "id": "standing",
+      "query": "접힌 상태 자립 기능 지원 여부",
+      "passed": true,
+      "expected_status": "success",
+      "actual_status": "success",
+      "citation_valid": true,
+      "answer": "가상제품 테스트 설명서의 발췌입니다.\n\n## 기능과 사용\n\n\n한 손 접기 기능: 지원합니다.\n\n\n접힌 상태 자립 기능: 지원하지 않습니다.",
+      "evidence": [
+        {
+          "text": "## 기능과 사용\n\n<!-- S05-B001 -->\n한 손 접기 기능: 지원합니다.\n\n<!-- S05-B002 -->\n접힌 상태 자립 기능: 지원하지 않습니다.",
+          "locator": {
+            "section": "기능과 사용",
+            "char_end": 573,
+            "block_ids": [
+              "S05-B001",
+              "S05-B002"
+            ],
+            "char_start": 484,
+            "line_start": 31,
+            "section_code": "S05"
+          },
+          "file_sha256": "d785521071908514f5924e68134e85d7bd767b98d7fedf680197e71815c7e76d",
+          "revision_id": "1ee77e2b-3a34-5a6b-84e9-9a1b6a22b1fb",
+          "is_synthetic": true,
+          "coverage_status": "partial",
+          "chunk_id": "a980b223-94f9-5675-9288-61004cdf76db",
+          "evidence_id": "2251ccc1-5568-4346-8e8e-f615b2695ec0",
+          "retrieval_hit_id": "6864ed1b-5929-4393-a5a3-7fa47a1e3ab9",
+          "file_id": "a9ecfda0-3294-507e-bfdf-3c68733510e9",
+          "source_url": null,
+          "collected_at": "2026-09-13 02:13:22.869503+00:00",
+          "product_key": "SYN-STROLLER-001",
+          "variant_key": "SYN-STROLLER-001-GREY",
+          "review_status": "unreviewed",
+          "score": 0.03278688524590164,
+          "vector_score": 0.44574952125549316,
+          "keyword_score": 0.8
+        }
+      ]
+    },
+    {
+      "id": "basket",
+      "query": "바구니 최대 하중은?",
+      "passed": true,
+      "expected_status": "success",
+      "actual_status": "success",
+      "citation_valid": true,
+      "answer": "가상제품 테스트 설명서의 발췌입니다.\n\n## 제품 사양과 호환\n\n\n좌석 장착 제품 무게: 6.5 kg.\n\n\n좌석 최대 하중: 22 kg.\n\n\n바구니 최대 하중: 3 kg.\n\n\n접힌 크기(가로 × 깊이 × 높이): 45 × 25 × 55 cm.\n\n\n펼친 크기(가로 × 깊이 × 높이): 55 × 85 × 105 cm.\n\n\n등록된 호환 부품: 없음. 미등록 조합의 호환 여부는 미확인입니다.",
+      "evidence": [
+        {
+          "text": "## 제품 사양과 호환\n\n<!-- S07-B001 -->\n좌석 장착 제품 무게: 6.5 kg.\n\n<!-- S07-B002 -->\n좌석 최대 하중: 22 kg.\n\n<!-- S07-B003 -->\n바구니 최대 하중: 3 kg.\n\n<!-- S07-B004 -->\n접힌 크기(가로 × 깊이 × 높이): 45 × 25 × 55 cm.\n\n<!-- S07-B005 -->\n펼친 크기(가로 × 깊이 × 높이): 55 × 85 × 105 cm.\n\n<!-- S07-B006 -->\n등록된 호환 부품: 없음. 미등록 조합의 호환 여부는 미확인입니다.",
+          "locator": {
+            "section": "제품 사양과 호환",
+            "char_end": 941,
+            "block_ids": [
+              "S07-B001",
+              "S07-B002",
+              "S07-B003",
+              "S07-B004",
+              "S07-B005",
+              "S07-B006"
+            ],
+            "char_start": 645,
+            "line_start": 44,
+            "section_code": "S07"
+          },
+          "file_sha256": "d785521071908514f5924e68134e85d7bd767b98d7fedf680197e71815c7e76d",
+          "revision_id": "1ee77e2b-3a34-5a6b-84e9-9a1b6a22b1fb",
+          "is_synthetic": true,
+          "coverage_status": "partial",
+          "chunk_id": "3fe655be-39df-5dd9-a5a3-4ecbfbb8838d",
+          "evidence_id": "0bc6cda3-92fd-4d20-8857-0c4dabd46c39",
+          "retrieval_hit_id": "5989f4c5-cae1-4f69-bbda-164cf6f79b42",
+          "file_id": "a9ecfda0-3294-507e-bfdf-3c68733510e9",
+          "source_url": null,
+          "collected_at": "2026-09-13 02:13:22.869503+00:00",
+          "product_key": "SYN-STROLLER-001",
+          "variant_key": "SYN-STROLLER-001-GREY",
+          "review_status": "unreviewed",
+          "score": 0.03278688524590164,
+          "vector_score": 0.23279785313599877,
+          "keyword_score": 0.7
+        }
+      ]
+    },
+    {
+      "id": "assembled-weight",
+      "query": "좌석 장착 제품 무게",
+      "passed": true,
+      "expected_status": "success",
+      "actual_status": "success",
+      "citation_valid": true,
+      "answer": "가상제품 테스트 설명서의 발췌입니다.\n\n## 제품 사양과 호환\n\n\n좌석 장착 제품 무게: 6.5 kg.\n\n\n좌석 최대 하중: 22 kg.\n\n\n바구니 최대 하중: 3 kg.\n\n\n접힌 크기(가로 × 깊이 × 높이): 45 × 25 × 55 cm.\n\n\n펼친 크기(가로 × 깊이 × 높이): 55 × 85 × 105 cm.\n\n\n등록된 호환 부품: 없음. 미등록 조합의 호환 여부는 미확인입니다.",
+      "evidence": [
+        {
+          "text": "## 제품 사양과 호환\n\n<!-- S07-B001 -->\n좌석 장착 제품 무게: 6.5 kg.\n\n<!-- S07-B002 -->\n좌석 최대 하중: 22 kg.\n\n<!-- S07-B003 -->\n바구니 최대 하중: 3 kg.\n\n<!-- S07-B004 -->\n접힌 크기(가로 × 깊이 × 높이): 45 × 25 × 55 cm.\n\n<!-- S07-B005 -->\n펼친 크기(가로 × 깊이 × 높이): 55 × 85 × 105 cm.\n\n<!-- S07-B006 -->\n등록된 호환 부품: 없음. 미등록 조합의 호환 여부는 미확인입니다.",
+          "locator": {
+            "section": "제품 사양과 호환",
+            "char_end": 941,
+            "block_ids": [
+              "S07-B001",
+              "S07-B002",
+              "S07-B003",
+              "S07-B004",
+              "S07-B005",
+              "S07-B006"
+            ],
+            "char_start": 645,
+            "line_start": 44,
+            "section_code": "S07"
+          },
+          "file_sha256": "d785521071908514f5924e68134e85d7bd767b98d7fedf680197e71815c7e76d",
+          "revision_id": "1ee77e2b-3a34-5a6b-84e9-9a1b6a22b1fb",
+          "is_synthetic": true,
+          "coverage_status": "partial",
+          "chunk_id": "3fe655be-39df-5dd9-a5a3-4ecbfbb8838d",
+          "evidence_id": "e7c19136-4ba9-48f7-804e-29de6eb4bace",
+          "retrieval_hit_id": "eddf6c08-1d10-4448-ab4d-367c187db94f",
+          "file_id": "a9ecfda0-3294-507e-bfdf-3c68733510e9",
+          "source_url": null,
+          "collected_at": "2026-09-13 02:13:22.869503+00:00",
+          "product_key": "SYN-STROLLER-001",
+          "variant_key": "SYN-STROLLER-001-GREY",
+          "review_status": "unreviewed",
+          "score": 0.03278688524590164,
+          "vector_score": 0.24382256698079618,
+          "keyword_score": 0.4
+        }
+      ]
+    },
+    {
+      "id": "folded-size",
+      "query": "접힌 크기 가로 깊이 높이",
+      "passed": true,
+      "expected_status": "success",
+      "actual_status": "success",
+      "citation_valid": true,
+      "answer": "가상제품 테스트 설명서의 발췌입니다.\n\n## 제품 사양과 호환\n\n\n좌석 장착 제품 무게: 6.5 kg.\n\n\n좌석 최대 하중: 22 kg.\n\n\n바구니 최대 하중: 3 kg.\n\n\n접힌 크기(가로 × 깊이 × 높이): 45 × 25 × 55 cm.\n\n\n펼친 크기(가로 × 깊이 × 높이): 55 × 85 × 105 cm.\n\n\n등록된 호환 부품: 없음. 미등록 조합의 호환 여부는 미확인입니다.",
+      "evidence": [
+        {
+          "text": "## 제품 사양과 호환\n\n<!-- S07-B001 -->\n좌석 장착 제품 무게: 6.5 kg.\n\n<!-- S07-B002 -->\n좌석 최대 하중: 22 kg.\n\n<!-- S07-B003 -->\n바구니 최대 하중: 3 kg.\n\n<!-- S07-B004 -->\n접힌 크기(가로 × 깊이 × 높이): 45 × 25 × 55 cm.\n\n<!-- S07-B005 -->\n펼친 크기(가로 × 깊이 × 높이): 55 × 85 × 105 cm.\n\n<!-- S07-B006 -->\n등록된 호환 부품: 없음. 미등록 조합의 호환 여부는 미확인입니다.",
+          "locator": {
+            "section": "제품 사양과 호환",
+            "char_end": 941,
+            "block_ids": [
+              "S07-B001",
+              "S07-B002",
+              "S07-B003",
+              "S07-B004",
+              "S07-B005",
+              "S07-B006"
+            ],
+            "char_start": 645,
+            "line_start": 44,
+            "section_code": "S07"
+          },
+          "file_sha256": "d785521071908514f5924e68134e85d7bd767b98d7fedf680197e71815c7e76d",
+          "revision_id": "1ee77e2b-3a34-5a6b-84e9-9a1b6a22b1fb",
+          "is_synthetic": true,
+          "coverage_status": "partial",
+          "chunk_id": "3fe655be-39df-5dd9-a5a3-4ecbfbb8838d",
+          "evidence_id": "20ef7c0e-a89d-46a3-a85d-18a31f6ed0af",
+          "retrieval_hit_id": "87de79d1-688f-4c74-844e-9500f65d79a4",
+          "file_id": "a9ecfda0-3294-507e-bfdf-3c68733510e9",
+          "source_url": null,
+          "collected_at": "2026-09-13 02:13:22.869503+00:00",
+          "product_key": "SYN-STROLLER-001",
+          "variant_key": "SYN-STROLLER-001-GREY",
+          "review_status": "unreviewed",
+          "score": 0.03278688524590164,
+          "vector_score": 0.39748306266913025,
+          "keyword_score": 0.90000004
+        }
+      ]
+    },
+    {
+      "id": "unfolded-size",
+      "query": "펼친 크기 가로 깊이 높이",
+      "passed": true,
+      "expected_status": "success",
+      "actual_status": "success",
+      "citation_valid": true,
+      "answer": "가상제품 테스트 설명서의 발췌입니다.\n\n## 제품 사양과 호환\n\n\n좌석 장착 제품 무게: 6.5 kg.\n\n\n좌석 최대 하중: 22 kg.\n\n\n바구니 최대 하중: 3 kg.\n\n\n접힌 크기(가로 × 깊이 × 높이): 45 × 25 × 55 cm.\n\n\n펼친 크기(가로 × 깊이 × 높이): 55 × 85 × 105 cm.\n\n\n등록된 호환 부품: 없음. 미등록 조합의 호환 여부는 미확인입니다.",
+      "evidence": [
+        {
+          "text": "## 제품 사양과 호환\n\n<!-- S07-B001 -->\n좌석 장착 제품 무게: 6.5 kg.\n\n<!-- S07-B002 -->\n좌석 최대 하중: 22 kg.\n\n<!-- S07-B003 -->\n바구니 최대 하중: 3 kg.\n\n<!-- S07-B004 -->\n접힌 크기(가로 × 깊이 × 높이): 45 × 25 × 55 cm.\n\n<!-- S07-B005 -->\n펼친 크기(가로 × 깊이 × 높이): 55 × 85 × 105 cm.\n\n<!-- S07-B006 -->\n등록된 호환 부품: 없음. 미등록 조합의 호환 여부는 미확인입니다.",
+          "locator": {
+            "section": "제품 사양과 호환",
+            "char_end": 941,
+            "block_ids": [
+              "S07-B001",
+              "S07-B002",
+              "S07-B003",
+              "S07-B004",
+              "S07-B005",
+              "S07-B006"
+            ],
+            "char_start": 645,
+            "line_start": 44,
+            "section_code": "S07"
+          },
+          "file_sha256": "d785521071908514f5924e68134e85d7bd767b98d7fedf680197e71815c7e76d",
+          "revision_id": "1ee77e2b-3a34-5a6b-84e9-9a1b6a22b1fb",
+          "is_synthetic": true,
+          "coverage_status": "partial",
+          "chunk_id": "3fe655be-39df-5dd9-a5a3-4ecbfbb8838d",
+          "evidence_id": "7d9ac8e9-7a7f-4e80-a435-ba81c8833ee4",
+          "retrieval_hit_id": "b541fbbe-0ea2-41f0-941a-7250e586fc19",
+          "file_id": "a9ecfda0-3294-507e-bfdf-3c68733510e9",
+          "source_url": null,
+          "collected_at": "2026-09-13 02:13:22.869503+00:00",
+          "product_key": "SYN-STROLLER-001",
+          "variant_key": "SYN-STROLLER-001-GREY",
+          "review_status": "unreviewed",
+          "score": 0.03278688524590164,
+          "vector_score": 0.39748306266913025,
+          "keyword_score": 0.90000004
+        }
+      ]
+    },
+    {
+      "id": "compatibility",
+      "query": "등록된 호환 부품은?",
+      "passed": true,
+      "expected_status": "success",
+      "actual_status": "success",
+      "citation_valid": true,
+      "answer": "가상제품 테스트 설명서의 발췌입니다.\n\n## 제품 사양과 호환\n\n\n좌석 장착 제품 무게: 6.5 kg.\n\n\n좌석 최대 하중: 22 kg.\n\n\n바구니 최대 하중: 3 kg.\n\n\n접힌 크기(가로 × 깊이 × 높이): 45 × 25 × 55 cm.\n\n\n펼친 크기(가로 × 깊이 × 높이): 55 × 85 × 105 cm.\n\n\n등록된 호환 부품: 없음. 미등록 조합의 호환 여부는 미확인입니다.",
+      "evidence": [
+        {
+          "text": "## 제품 사양과 호환\n\n<!-- S07-B001 -->\n좌석 장착 제품 무게: 6.5 kg.\n\n<!-- S07-B002 -->\n좌석 최대 하중: 22 kg.\n\n<!-- S07-B003 -->\n바구니 최대 하중: 3 kg.\n\n<!-- S07-B004 -->\n접힌 크기(가로 × 깊이 × 높이): 45 × 25 × 55 cm.\n\n<!-- S07-B005 -->\n펼친 크기(가로 × 깊이 × 높이): 55 × 85 × 105 cm.\n\n<!-- S07-B006 -->\n등록된 호환 부품: 없음. 미등록 조합의 호환 여부는 미확인입니다.",
+          "locator": {
+            "section": "제품 사양과 호환",
+            "char_end": 941,
+            "block_ids": [
+              "S07-B001",
+              "S07-B002",
+              "S07-B003",
+              "S07-B004",
+              "S07-B005",
+              "S07-B006"
+            ],
+            "char_start": 645,
+            "line_start": 44,
+            "section_code": "S07"
+          },
+          "file_sha256": "d785521071908514f5924e68134e85d7bd767b98d7fedf680197e71815c7e76d",
+          "revision_id": "1ee77e2b-3a34-5a6b-84e9-9a1b6a22b1fb",
+          "is_synthetic": true,
+          "coverage_status": "partial",
+          "chunk_id": "3fe655be-39df-5dd9-a5a3-4ecbfbb8838d",
+          "evidence_id": "b6f7075c-93ee-4ed3-982d-f97312409fff",
+          "retrieval_hit_id": "6fb698f5-a323-400d-a483-a58915cce1bd",
+          "file_id": "a9ecfda0-3294-507e-bfdf-3c68733510e9",
+          "source_url": null,
+          "collected_at": "2026-09-13 02:13:22.869503+00:00",
+          "product_key": "SYN-STROLLER-001",
+          "variant_key": "SYN-STROLLER-001-GREY",
+          "review_status": "unreviewed",
+          "score": 0.03252247488101533,
+          "vector_score": 0.2935426322681498,
+          "keyword_score": 0.8
+        }
+      ]
+    },
+    {
+      "id": "components",
+      "query": "추가 구성품 목록",
+      "passed": true,
+      "expected_status": "success",
+      "actual_status": "success",
+      "citation_valid": true,
+      "answer": "가상제품 테스트 설명서의 발췌입니다.\n\n## 구성품\n\n\n추가 구성품으로 등록된 항목이 없습니다. 내장 부품의 전체 목록을 뜻하지 않습니다.",
+      "evidence": [
+        {
+          "text": "## 구성품\n\n<!-- S02-B001 -->\n추가 구성품으로 등록된 항목이 없습니다. 내장 부품의 전체 목록을 뜻하지 않습니다.",
+          "locator": {
+            "section": "구성품",
+            "char_end": 482,
+            "block_ids": [
+              "S02-B001"
+            ],
+            "char_start": 410,
+            "line_start": 26,
+            "section_code": "S02"
+          },
+          "file_sha256": "d785521071908514f5924e68134e85d7bd767b98d7fedf680197e71815c7e76d",
+          "revision_id": "1ee77e2b-3a34-5a6b-84e9-9a1b6a22b1fb",
+          "is_synthetic": true,
+          "coverage_status": "partial",
+          "chunk_id": "c2676f72-4533-5c0a-920a-e9b6ed4ea6c2",
+          "evidence_id": "fff90e4e-fcaf-4c66-9333-2152e4bd96e5",
+          "retrieval_hit_id": "c45af2a8-9717-4e76-827c-24e49e7a01a7",
+          "file_id": "a9ecfda0-3294-507e-bfdf-3c68733510e9",
+          "source_url": null,
+          "collected_at": "2026-09-13 02:13:22.869503+00:00",
+          "product_key": "SYN-STROLLER-001",
+          "variant_key": "SYN-STROLLER-001-GREY",
+          "review_status": "unreviewed",
+          "score": 0.03278688524590164,
+          "vector_score": 0.44896603968638327,
+          "keyword_score": 0.7
+        }
+      ]
+    },
+    {
+      "id": "stop",
+      "query": "사용 중단 체중 초과 조건",
+      "passed": true,
+      "expected_status": "success",
+      "actual_status": "success",
+      "citation_valid": true,
+      "answer": "가상제품 테스트 설명서의 발췌입니다.\n\n## 경고·사용 중단\n\n\n체중이 22 kg을 초과하면 좌석 모드 사용을 중단하는 조건입니다.",
+      "evidence": [
+        {
+          "text": "## 경고·사용 중단\n\n<!-- S06-B001 -->\n체중이 22 kg을 초과하면 좌석 모드 사용을 중단하는 조건입니다.",
+          "locator": {
+            "section": "경고·사용 중단",
+            "char_end": 643,
+            "block_ids": [
+              "S06-B001"
+            ],
+            "char_start": 575,
+            "line_start": 39,
+            "section_code": "S06"
+          },
+          "file_sha256": "d785521071908514f5924e68134e85d7bd767b98d7fedf680197e71815c7e76d",
+          "revision_id": "1ee77e2b-3a34-5a6b-84e9-9a1b6a22b1fb",
+          "is_synthetic": true,
+          "coverage_status": "partial",
+          "chunk_id": "60e50f2e-38b1-5b47-bc0e-76678bac0eb5",
+          "evidence_id": "6983aece-d0ba-4cf7-84f8-d14bd65fdd76",
+          "retrieval_hit_id": "eeecd2aa-eaf2-469c-8213-eff5bbd2b94b",
+          "file_id": "a9ecfda0-3294-507e-bfdf-3c68733510e9",
+          "source_url": null,
+          "collected_at": "2026-09-13 02:13:22.869503+00:00",
+          "product_key": "SYN-STROLLER-001",
+          "variant_key": "SYN-STROLLER-001-GREY",
+          "review_status": "unreviewed",
+          "score": 0.03278688524590164,
+          "vector_score": 0.5237703635555723,
+          "keyword_score": 0.7
+        }
+      ]
+    },
+    {
+      "id": "missing-folding-procedure",
+      "query": "한 손 접기 순서를 알려주세요",
+      "passed": true,
+      "expected_status": "no_evidence",
+      "actual_status": "no_evidence",
+      "citation_valid": true,
+      "answer": null,
+      "evidence": []
+    },
+    {
+      "id": "missing-washing",
+      "query": "이 유모차 세탁 방법은?",
+      "passed": true,
+      "expected_status": "no_evidence",
+      "actual_status": "no_evidence",
+      "citation_valid": true,
+      "answer": null,
+      "evidence": []
+    },
+    {
+      "id": "missing-sterilization",
+      "query": "소독 온도와 시간",
+      "passed": true,
+      "expected_status": "no_evidence",
+      "actual_status": "no_evidence",
+      "citation_valid": true,
+      "answer": null,
+      "evidence": []
+    },
+    {
+      "id": "missing-installation",
+      "query": "좌석 조립 설치 방법",
+      "passed": true,
+      "expected_status": "no_evidence",
+      "actual_status": "no_evidence",
+      "citation_valid": true,
+      "answer": null,
+      "evidence": []
+    },
+    {
+      "id": "missing-certification",
+      "query": "KC 인증번호",
+      "passed": true,
+      "expected_status": "no_evidence",
+      "actual_status": "no_evidence",
+      "citation_valid": true,
+      "answer": null,
+      "evidence": []
+    },
+    {
+      "id": "other-product",
+      "query": "바구니 최대 하중",
+      "passed": true,
+      "expected_status": "no_evidence",
+      "actual_status": "no_evidence",
+      "citation_valid": true,
+      "answer": null,
+      "evidence": []
+    },
+    {
+      "id": "other-variant",
+      "query": "바구니 최대 하중",
+      "passed": true,
+      "expected_status": "no_evidence",
+      "actual_status": "no_evidence",
+      "citation_valid": true,
+      "answer": null,
+      "evidence": []
+    },
+    {
+      "id": "other-market",
+      "query": "바구니 최대 하중",
+      "passed": true,
+      "expected_status": "no_evidence",
+      "actual_status": "no_evidence",
+      "citation_valid": true,
+      "answer": null,
+      "evidence": []
+    },
+    {
+      "id": "other-domain",
+      "query": "바구니 최대 하중",
+      "passed": true,
+      "expected_status": "no_evidence",
+      "actual_status": "no_evidence",
+      "citation_valid": true,
+      "answer": null,
+      "evidence": []
+    }
+  ],
+  "limitations": [
+    "One partial synthetic stroller manual; not real product safety validation.",
+    "Local-test embeddings are lexical hashing, not Titan semantic quality.",
+    "Evaluation queries and answer ledgers are not indexed."
+  ]
+}

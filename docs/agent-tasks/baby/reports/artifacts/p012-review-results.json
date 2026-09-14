@@ -1,0 +1,26 @@
+{
+  "normalized_to_requirements": "feeding_bottle_v1: mode=born 인데 age_months 없음",
+  "representative_age_after_current_values_unwrap": {
+    "months": 5,
+    "label": "영아 초기",
+    "exact": true
+  },
+  "orphan_item_accepted": true,
+  "nonexistent_fulfillment_accepted": true,
+  "actual_stored_age": {
+    "exact": false,
+    "value": 5
+  },
+  "actual_normalized_age": {
+    "months": 5,
+    "label": "영아 초기",
+    "exact": true
+  },
+  "owned_fulfillment_ids": [
+    "owned:유모차"
+  ],
+  "diaper_fixture_unit_qty": 40,
+  "diaper_candidate_unit_qty": [
+    1.0
+  ]
+}

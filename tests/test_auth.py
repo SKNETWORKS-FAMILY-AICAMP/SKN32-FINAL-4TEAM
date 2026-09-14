@@ -46,6 +46,16 @@ def ctx():
         connection = psycopg.connect(DATABASE_URL, prepare_threshold=None, autocommit=True)
     except psycopg.OperationalError:
         pytest.skip("로컬 PostgreSQL(DATABASE_URL)에 연결할 수 없습니다 — db/setup_all.py로 준비하세요.")
+    has_settings = connection.execute(
+        """SELECT EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_schema='identity' AND table_name='app_user'
+              AND column_name='notification_settings'
+        )"""
+    ).fetchone()[0]
+    if not has_settings:
+        connection.close()
+        pytest.skip("develop DB 스키마가 아닙니다 — db/setup_all.py로 준비하세요.")
     context = _Ctx(connection)
     try:
         yield context

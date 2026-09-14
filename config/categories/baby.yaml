@@ -2,33 +2,45 @@ category: baby
 label: "유아용품"
 status: stub                  # 유아 상품 카탈로그·추천 엔진(stage2~4)은 별도 구현 대기 — 조건 수집만 가능
 modes: [born, prenatal]
-required_inputs: [age_months, needs, health_skin, owned_items, budget_max]
+required_inputs: [needs, health_skin, owned_items, budget_max]
+required_inputs_by_mode:
+  born: [age_months]
+  prenatal: [due_date]
 slot_structure: ["수유", "수면", "위생/기저귀", "외출"]
 verify_branch: per_item      # [3-C] 품목별 검증 → [4] 예산 배분
 
 slot_schema:
-  age_months:   { type: int, nullable: true }   # null + mode=prenatal → "출산 예정"
-  needs:        { type: list }
-  health_skin:  { type: list }                  # ["none"] = 특이사항 없음
-  owned_items:  { type: list }                  # ["none"] = 보유 물품 없음
-  budget_max:   { type: int, nullable: true }
+  age_months:           { type: int, nullable: true, mode_only: born }     # 음수/소수 불가, mode=prenatal 에선 사용 안 함
+  due_date:              { type: date, nullable: true, mode_only: prenatal } # YYYY-MM-DD, mode=born 에선 사용 안 함
+  needs:                 { type: list, none_allowed: false }
+  health_skin:           { type: list, none_allowed: true }                # ["none"] = 특이사항 없음(응답함, 미응답과 다름)
+  owned_items:            { type: list, none_allowed: true }               # ["none"] = 보유 물품 없음(응답함, 미응답과 다름)
+  budget_max:             { type: money, nullable: true }
+  weight_kg:              { type: float, nullable: true, mode_only: born }  # 선택 — 관련 need 확인 후에만 질문
+  independent_sitting:    { type: bool, nullable: true, mode_only: born }   # 선택 — 관련 need 확인 후에만 질문
 
 defaults: {}
 
 # ConditionState.fields 순서·표시 라벨 (§D-4-1 "카테고리별 필드")
 # age_stage 는 저장 필드가 아니라 age_months(+mode)에서 계산되는 표시 전용 필드.
+# 칩으로 고른 age_months 는 대표값(구간)이라 "assumed"로, 자유입력 정확 개월수는 "confirmed"로 표시한다.
 fields:
-  - { key: age_stage, label: "아이 연령대", computed: age_months }
+  - { key: age_stage, label: "아이 연령대", computed: age_months, mode_only: born }
+  - { key: due_date, label: "출산 예정일", mode_only: prenatal }
   - { key: needs, label: "필요한 영역" }
   - { key: health_skin, label: "건강·피부 특성" }
   - { key: owned_items, label: "이미 보유한 물품" }
   - { key: budget_max, label: "예산" }
+  - { key: weight_kg, label: "몸무게(kg)", mode_only: born }
+  - { key: independent_sitting, label: "혼자 앉기 가능", mode_only: born }
 
 question_sets:
-  - { id: q_age, select: single, maps_to: age_months,
+  - { id: q_age, select: single, maps_to: age_months, mode_only: born, exact: false,
       label: "아이는 몇 개월인가요?",
-      options: ["출산 예정", "0~3개월", "4~6개월", "7~12개월", "13~24개월", "25개월 이상"],
-      values: [0, 1, 5, 9, 18, 30] }   # 0 = 출산 예정 (null 은 "모르겠어요"류 미확정 전용이라 실제값엔 안 씀)
+      options: ["0~3개월", "4~6개월", "7~12개월", "13~24개월", "25개월 이상"],
+      values: [1, 5, 9, 18, 30] }
+  - { id: q_due_date, select: free, maps_to: due_date, mode_only: prenatal,
+      label: "출산 예정일이 언제인가요? (예: 2026-12-01)" }
   - { id: q_needs, select: multi, maps_to: needs,
       label: "지금 필요한 영역을 골라주세요.",
       options: ["수유", "이유식·식사", "수면", "외출", "목욕·위생", "기저귀·배변", "의류", "놀이", "안전·건강"] }
@@ -42,3 +54,9 @@ question_sets:
       none_option: "없음" }
   - { id: q_budget_max, select: free, maps_to: budget_max,
       label: "예산은 얼마까지 생각하시나요?" }
+  # 안전 관련 선택 질문 — 외출·안전건강 need 가 확인된 뒤에만 물어본다(관련 없는 사용자에게 강요 안 함).
+  - { id: q_weight, select: free, maps_to: weight_kg, mode_only: born, requires_need: [외출, 안전·건강],
+      label: "아이 몸무게가 어느 정도인가요? (kg)" }
+  - { id: q_sitting, select: single, maps_to: independent_sitting, mode_only: born, requires_need: [외출, 안전·건강],
+      label: "아이가 혼자 앉을 수 있나요?",
+      options: ["예", "아니오"], values: [true, false] }

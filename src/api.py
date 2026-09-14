@@ -18,7 +18,8 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from src.config import APP_NAME, FRONTEND_DIR
+from src.auth.origin import OriginCheckMiddleware
+from src.config import APP_NAME, FRONTEND_DIR, assert_production_secret_safe
 from src.db import close_pool
 from src.errors import TruefitError
 from src.routers import auth, dev, lists, reviews, session
@@ -26,11 +27,13 @@ from src.routers import auth, dev, lists, reviews, session
 
 @asynccontextmanager
 async def _lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    assert_production_secret_safe()
     yield
     close_pool()
 
 
 app = FastAPI(title=f"{APP_NAME} API (skeleton)", lifespan=_lifespan)
+app.add_middleware(OriginCheckMiddleware)
 
 app.include_router(auth.router)
 app.include_router(session.router)

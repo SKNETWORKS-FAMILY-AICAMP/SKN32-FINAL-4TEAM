@@ -4,9 +4,9 @@ const TF_API_BASE=(()=>{const params=new URLSearchParams(location.search),queryO
 class TF_ApiError extends Error{constructor(status,code,message,field=null){super(message);this.name='TF_ApiError';this.status=status;this.code=code;this.field=field}}
 function tfApiText(value){return window.TF_I18N?.t?.(value)||value}
 const TF_API={
- async request(method,path,body){
+ async request(method,path,body,extraHeaders){
   const locale=window.TF_LOCALE?.get?.()||'ko-KR';
-  const headers={Accept:'application/json','Accept-Language':locale};if(body!==undefined)headers['Content-Type']='application/json';
+  const headers={Accept:'application/json','Accept-Language':locale,...extraHeaders};if(body!==undefined)headers['Content-Type']='application/json';
   let response;
   try{response=await fetch(TF_API_BASE+path,{method,credentials:'include',headers,body:body===undefined?undefined:JSON.stringify(body)})}catch{throw new TF_ApiError(0,'network_error','서버에 연결할 수 없어요. 잠시 후 다시 시도해 주세요.')}
   if(response.status===204)return null;
@@ -20,8 +20,8 @@ const TF_API={
   throw new TF_ApiError(response.status,'server_error','요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요.')
  },
  get(path){return this.request('GET',path)},
- post(path,body={}){return this.request('POST',path,body)},
- patch(path,body={}){return this.request('PATCH',path,body)},
+ post(path,body={},headers){return this.request('POST',path,body,headers)},
+ patch(path,body={},headers){return this.request('PATCH',path,body,headers)},
  del(path){return this.request('DELETE',path)}
 };
 // TF-DEV: 인증 어댑터 — 로그인 상태는 서버 httpOnly 쿠키로만 판단하고 화면은 TF_AUTH.user만 본다

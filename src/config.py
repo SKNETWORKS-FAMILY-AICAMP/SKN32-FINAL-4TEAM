@@ -31,6 +31,10 @@ LLM_MODEL: str = os.getenv("LLM_MODEL", "")             # 경량 대화 모델 �
 LLM_REGION: str = os.getenv("LLM_REGION", "")
 OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
 EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "") # 텍스트 임베딩 모델 식별자
+# 조건 대화 에이전트(src/agent/conditions_agent.py, Strands Agents SDK). "1" 이면 /session/{id}/message 의
+# 자유 텍스트를 LLM 도구 호출로 조건에 반영한다. 기본 "0" — 계약 §D-3([1]은 규칙 기반)이 아직 유효해서
+# 프론트 담당자 합의 전까지는 opt-in. MOCK_MODE=1 이거나 OPENAI_API_KEY·LLM_MODEL 이 비면 켜도 규칙 경로.
+CONDITIONS_AGENT: bool = os.getenv("CONDITIONS_AGENT", "0") == "1"
 
 # --------------------------------------------------------------------------
 # DB / 인증
@@ -40,16 +44,30 @@ DATABASE_URL: str = os.getenv(
 )
 JWT_SECRET: str = os.getenv("JWT_SECRET", "dev-only-change-me")
 JWT_TTL_DAYS: int = int(os.getenv("JWT_TTL_DAYS", "14"))
+# `src.auth.origin`과 앱 시작 훅은 기존 공개 API이므로, 새 쿠키 설정과 함께
+# 유지한다. 환경 변수가 없을 때는 로컬 개발 설정을 사용한다.
+APP_ENV: str = os.getenv("APP_ENV", "development")
+IS_PRODUCTION: bool = APP_ENV == "production"
+AUTH_COOKIE_SECURE: bool = IS_PRODUCTION or os.getenv("AUTH_COOKIE_SECURE", "0") == "1"
+ALLOWED_ORIGINS: list[str] = [
+    origin.strip() for origin in os.getenv("ALLOWED_ORIGINS", "").split(",") if origin.strip()
+]
 AUTH_CODE_TTL_MIN: int = 10
 AUTH_CODE_MAX_ATTEMPTS: int = 5
 
 # 이메일+비밀번호 로그인 (docs/frontend_외부수정요청.md §A)
 COOKIE_NAME: str = os.getenv("COOKIE_NAME", "truefit_session")
-COOKIE_SECURE: bool = os.getenv("COOKIE_SECURE", "0") == "1"
+COOKIE_SECURE: bool = AUTH_COOKIE_SECURE or os.getenv("COOKIE_SECURE", "0") == "1"
 SESSION_TTL_HOURS: int = int(os.getenv("SESSION_TTL_HOURS", "12"))
 LOGIN_MAX_FAILURES: int = int(os.getenv("LOGIN_MAX_FAILURES", "5"))
 LOGIN_LOCK_MINUTES: int = int(os.getenv("LOGIN_LOCK_MINUTES", "15"))
 TERMS_VERSION: str = os.getenv("TERMS_VERSION", "2026-09-11")
+
+
+def assert_production_secret_safe() -> None:
+    """운영 환경에서 개발용 기본 JWT secret으로 기동하지 않는다."""
+    if IS_PRODUCTION and JWT_SECRET == "dev-only-change-me":
+        raise RuntimeError("APP_ENV=production 에서는 JWT_SECRET 환경변수를 반드시 설정해야 합니다.")
 
 # --------------------------------------------------------------------------
 # 파이프라인 파라미터
