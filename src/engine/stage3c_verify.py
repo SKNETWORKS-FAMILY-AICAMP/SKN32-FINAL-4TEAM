@@ -159,15 +159,8 @@ def verify_baby_manual(service, request, *, age_months=None, weight_kg=None, ind
                        independent_sitting=independent_sitting)
 
 
-_ACTIVE_RECALL_VALUES = {"active_synthetic_recall", "active_recall", "active"}
-
-
-def _fact(candidate: dict, key: str) -> dict | None:
-    return (candidate.get("facts") or {}).get(key)
-
-
 def _issue(*, rule_key, status, severity, reason, candidate, requirement_id=None,
-          measured=None, threshold=None, evidence_ids=None):
+          measured=None, threshold=None, evidence_refs=None):
     return {
         "schema_version": 1, "rule_key": rule_key, "rule_version": "v1",
         "target": {
@@ -178,135 +171,169 @@ def _issue(*, rule_key, status, severity, reason, candidate, requirement_id=None
         "status": status, "severity": severity,
         "measured": measured or {}, "threshold": threshold or {},
         "reason": reason, "penalty": None,
-        "evidence_ids": list(evidence_ids or []),
+        "evidence_refs": list(evidence_refs or []),
     }
 
 
-def _recall_issue(candidate: dict):
-    """Recall check — 'exact active recall' RULE/POLICY row: hard fail, never overridable."""
-    fact = _fact(candidate, "recall_status")
-    if fact and fact.get("verification_status") == "verified" and fact.get("value") in _ACTIVE_RECALL_VALUES:
-        return _issue(rule_key="baby_recall_v1", status="fail", severity="critical",
-                      reason="active_recall", candidate=candidate,
-                      measured={"recall_status": fact.get("value")})
-    return None
-
-
-def _certification_issue(candidate: dict):
-    """Missing/unverified required certificate — RULE/POLICY row: unknown, no auto selection."""
-    fact = _fact(candidate, "kc_certification_number")
-    if (candidate.get("slot_key") == "car_seat" and not fact) or (fact is not None and (fact.get("verification_status") != "verified" or not fact.get("value"))):
-        return _issue(rule_key="baby_certification_v1", status="unknown", severity="critical",
-                      reason="missing_certificate", candidate=candidate,
-                      measured={"kc_certification_number": (fact or {}).get("value")})
-    return None
-
-
 def verify_baby_candidate(service, candidate: dict, conditions: dict, run_context: dict):
-    """[3-C baby] Per-candidate eligibility — CONTRACTS P3 boundary function.
+    """[3-C baby] Per-candidate eligibility — P3 full-catalog verification (2026-09-14).
 
     candidate: BabyCandidate-shaped dict (candidate_id, requirement_id, product_key,
-    variant_key, slot_key, market, language, corpus, facts). conditions: P1's
+    variant_key, slot_key, market, language, corpus). conditions: P1's
     normalize_baby_conditions() output. run_context: {"recommendation_run_id": ...}.
+    `service` is a src.rag.service.RagService — its `.material_repo.conn` is reused
+    to read catalog.product_fact/evidence.evidence (docs/agent-tasks/baby/
+    P3_full_catalog_verification_execution.md — replaces the old candidate["facts"]
+    embedded-JSON shortcut and the stroller-only MANUAL_RULE_INVENTORY special case
+    with one rule-registry-driven path for all 15 slots).
 
-    Combines fact-based rules (recall/certification, apply regardless of category)
-    with the manual-backed rule inventory (src.rag.verification.MANUAL_RULE_INVENTORY).
-    A category with no reviewed rule at all resolves to unknown, never a silent pass.
+    Order (matches the P3 doc's verify_baby_candidate() step list):
+      1. resolve a verification rule for (slot_key, scope) — scope is derived from
+         candidate.corpus (synthetic -> synthetic_demo, real -> production).
+      2. resolve product/variant identity and look up this candidate's verified
+         product_fact rows, scoped to that same scope.
+      3. re-check the manufacturer_document claim's publication status if it cites
+         a material_revision (a since-revoked/unpublished document no longer counts).
+      4. recall_status: any "active*" verified value is an unconditional fail.
+      5. required_claims completeness: any missing verified claim is unknown.
+      6. the condition layer (age/weight/independent_sitting) — implemented only for
+         CONDITION_CHECKED_SLOTS (stroller today), reusing verify_seat's real
+         manual-text retrieval; other slots have no condition claims to check.
+      7. all required checks passed -> eligibility=pass, selection_allowed=True.
     """
+    from uuid import UUID
+
     from src.dto import CandidateCheck
-    from src.rag.contracts import SearchRequest
-    from src.rag.verification import MANUAL_RULE_INVENTORY, REVIEWED_NOT_APPLICABLE
+    from src.rag.verification import CONDITION_CHECKED_SLOTS, find_verification_rule, load_baby_verification_rules
+    from src.repo.product_repo import ProductRepo
 
     candidate_id = candidate.get("candidate_id", "")
-    issues: list[dict] = []
-    manual_evidence: list[dict] = []
-    error_code: str | None = None
-    coverage = "none"
-    verification_status = "unknown"
-
-    recall = _recall_issue(candidate)
-    if recall:
-        issues.append(recall)
-    cert = _certification_issue(candidate)
-    if cert:
-        issues.append(cert)
-
+    requirement_id = candidate.get("requirement_id")
     slot_key = candidate.get("slot_key")
-    manual_eligibility: str | None = None
-    if slot_key in MANUAL_RULE_INVENTORY:
-        product_key, variant_key = candidate.get("product_key"), candidate.get("variant_key")
-        if not product_key or not variant_key:
-            manual_eligibility = "unknown"
-            issues.append(_issue(rule_key=MANUAL_RULE_INVENTORY[slot_key], status="unknown",
-                                 severity="critical", reason="missing_catalog_identifier",
-                                 candidate=candidate))
-        else:
-            age_stage = conditions.get("age_stage") or {}
-            context = {
-                "age_months": age_stage.get("months") if age_stage.get("exact") else None,
-                "weight_kg": conditions.get("weight_kg"),
-                "independent_sitting": conditions.get("independent_sitting"),
-            }
-            request = SearchRequest(
-                domain="baby", product_key=product_key, variant_key=variant_key,
-                query="유아 안전 조건 검증", market=candidate.get("market", "KR"),
-                language=candidate.get("language", "ko"), corpus=candidate.get("corpus", "real"),
-                purpose="validation", recommendation_run_id=run_context.get("recommendation_run_id"),
-                context={k: v for k, v in context.items() if v is not None},
+    corpus = candidate.get("corpus", "real")
+    scope = "synthetic_demo" if corpus == "synthetic" else "production"
+
+    def _unknown(reason, *, rule_key="baby_rule_inventory_v1", severity="critical",
+                measured=None, evidence_refs=None, error_code=None):
+        return CandidateCheck(
+            candidate_id=candidate_id, requirement_id=requirement_id, eligibility="unknown",
+            verification="unknown", coverage="none", selection_allowed=False,
+            issues=[_issue(rule_key=rule_key, status="unknown", severity=severity, reason=reason,
+                           candidate=candidate, measured=measured or {}, evidence_refs=evidence_refs or [])],
+            explanation_evidence=[], error_code=error_code,
+        )
+
+    def _fail(reason, rule_key, *, measured=None, evidence_refs=None):
+        return CandidateCheck(
+            candidate_id=candidate_id, requirement_id=requirement_id, eligibility="fail",
+            verification="partial", coverage="partial", selection_allowed=False,
+            issues=[_issue(rule_key=rule_key, status="fail", severity="critical", reason=reason,
+                           candidate=candidate, measured=measured or {}, evidence_refs=evidence_refs or [])],
+            explanation_evidence=[], error_code=None,
+        )
+
+    # step 1
+    rules = load_baby_verification_rules()
+    rule = find_verification_rule(rules, slot_key, scope)
+    if rule is None:
+        reason = "scope_mismatch" if slot_key in rules else "no_reviewed_rule_for_category"
+        return _unknown(reason, severity="warning", measured={"slot_key": slot_key, "scope": scope})
+
+    product_key, variant_key = candidate.get("product_key"), candidate.get("variant_key")
+    if not product_key or not variant_key:
+        return _unknown("missing_product_identity", rule_key=rule["rule_id"])
+
+    # step 2
+    product_repo = ProductRepo(service.material_repo.conn)
+    resolved = product_repo.resolve_ids(product_key, variant_key, corpus=corpus)
+    if resolved is None:
+        return _unknown("missing_product_identity", rule_key=rule["rule_id"])
+    product_id, variant_id = resolved
+    try:
+        facts = product_repo.verified_facts(product_id, variant_id, scope=scope)
+    except Exception:
+        return _unknown("evidence_provider_failed", rule_key=rule["rule_id"])
+
+    if "product_identity" not in facts:
+        return _unknown("missing_product_identity", rule_key=rule["rule_id"])
+
+    # step 3 — a manufacturer_document claim backed by a material_revision must
+    # still be published/active/available; treat a revoked/unpublished one as
+    # absent. Deliberately NOT MaterialRepo.is_currently_published() — that also
+    # requires access_scope='public' + use_policy.allow_rag, which are RAG
+    # chunk-search gates (only meaningful for CONDITION_CHECKED_SLOTS' full
+    # ingest_manual path); a plain document-exists re-check must not fail just
+    # because a slot was never chunk-indexed for search.
+    doc_fact = facts.get("manufacturer_document")
+    if doc_fact is not None:
+        revision_id = (doc_fact.get("citation_snapshot") or {}).get("material_revision_id")
+        if revision_id:
+            revision = service.material_repo.get_revision(UUID(revision_id))
+            still_valid = (
+                revision is not None and revision["revision_status"] == "published"
+                and revision["material_status"] == "active" and revision["storage_status"] == "available"
             )
-            verified = verify_baby_manual(service, request, **context)
-            if verified.get("search_status") == "error":
-                error_code = verified.get("error_code") or "retrieval_error"
-                manual_eligibility = "unknown"
-                coverage = "error"
-                issues.append(_issue(rule_key=MANUAL_RULE_INVENTORY[slot_key], status="unknown",
-                                     severity="critical", reason=error_code, candidate=candidate,
-                                     measured=context))
-            else:
-                manual_eligibility = verified.get("eligibility_status", "unknown")
-                verification_status = verified.get("verification_status", "unknown")
-                manual_evidence = verified.get("evidence", [])
-                coverage = "partial" if manual_evidence else "none"
-                if manual_eligibility != "pass":
-                    issues.append(_issue(
-                        rule_key=MANUAL_RULE_INVENTORY[slot_key], status=manual_eligibility,
-                        severity="critical", reason=verified.get("reason") or "manual_rule_not_satisfied",
-                        candidate=candidate, measured=context,
-                        evidence_ids=[h["evidence_id"] for h in manual_evidence],
-                    ))
-                else:
-                    issues.append(_issue(
-                        rule_key=MANUAL_RULE_INVENTORY[slot_key], status="pass", severity="info",
-                        reason="documented_conditions_met", candidate=candidate, measured=context,
-                        evidence_ids=[h["evidence_id"] for h in manual_evidence],
-                    ))
-    elif slot_key in REVIEWED_NOT_APPLICABLE:
-        manual_eligibility = "pass"
-        issues.append(_issue(rule_key="baby_rule_inventory_v1", status="pass", severity="info",
-                             reason=REVIEWED_NOT_APPLICABLE[slot_key], candidate=candidate))
-    else:
-        manual_eligibility = "unknown"
-        issues.append(_issue(rule_key="baby_rule_inventory_v1", status="unknown", severity="warning",
-                             reason="no_reviewed_rule_for_category", candidate=candidate,
-                             measured={"slot_key": slot_key}))
+            if not still_valid:
+                del facts["manufacturer_document"]
 
-    statuses = [recall["status"] if recall else None, cert["status"] if cert else None, manual_eligibility]
-    statuses = [s for s in statuses if s is not None]
-    eligibility = (
-        "fail" if "fail" in statuses else "unknown" if "unknown" in statuses else "pass"
-    )
-    selection_allowed = eligibility == "pass"
-    if verification_status == "unknown" and manual_evidence:
-        verification_status = "partial"
+    # step 4
+    recall_fact = facts.get("recall_status")
+    if recall_fact is not None:
+        recall_value = (recall_fact.get("value") or {}).get("status", "")
+        if str(recall_value).startswith("active"):
+            return _fail("active_recall", rule["rule_id"], measured={"recall_status": recall_value},
+                        evidence_refs=[str(recall_fact["evidence_id"])])
 
+    # step 5
+    missing_claims = [c for c in rule["required_claims"] if c not in facts]
+    if missing_claims:
+        return _unknown("missing_rule_evidence", rule_key=rule["rule_id"],
+                        measured={"missing_claims": missing_claims})
+
+    evidence_refs = [str(f["evidence_id"]) for f in facts.values()]
+
+    # step 6 — condition layer (stroller only; see CONDITION_CHECKED_SLOTS docstring)
+    manual_evidence: list[dict] = []
+    verification_status = "verified" if scope == "production" else "partial"
+    if rule["optional_condition_claims"] and slot_key in CONDITION_CHECKED_SLOTS:
+        from src.rag.contracts import SearchRequest
+
+        age_stage = conditions.get("age_stage") or {}
+        context = {
+            "age_months": age_stage.get("months") if age_stage.get("exact") else None,
+            "weight_kg": conditions.get("weight_kg"),
+            "independent_sitting": conditions.get("independent_sitting"),
+        }
+        if all(v is None for v in context.values()):
+            return _unknown("missing_verification_input", rule_key=rule["rule_id"])
+        request = SearchRequest(
+            domain="baby", product_key=product_key, variant_key=variant_key,
+            query="유아 안전 조건 검증", market=candidate.get("market", "KR"),
+            language=candidate.get("language", "ko"), corpus=corpus, purpose="validation",
+            recommendation_run_id=run_context.get("recommendation_run_id"),
+            context={k: v for k, v in context.items() if v is not None},
+        )
+        verified = verify_baby_manual(service, request, **context)
+        if verified.get("search_status") == "error":
+            return _unknown(verified.get("error_code") or "evidence_provider_unavailable",
+                            rule_key=rule["rule_id"], measured=context)
+        manual_evidence = verified.get("evidence", [])
+        evidence_refs += [h["evidence_id"] for h in manual_evidence]
+        condition_eligibility = verified.get("eligibility_status", "unknown")
+        if manual_evidence:
+            verification_status = "partial"
+        if condition_eligibility == "fail":
+            return _fail("condition_out_of_range", rule["rule_id"], measured=context, evidence_refs=evidence_refs)
+        if condition_eligibility != "pass":
+            return _unknown(verified.get("reason") or "missing_verification_input",
+                            rule_key=rule["rule_id"], measured=context, evidence_refs=evidence_refs)
+
+    # step 7
     return CandidateCheck(
-        candidate_id=candidate_id,
-        requirement_id=candidate.get("requirement_id"),
-        eligibility=eligibility,
-        verification=verification_status,
-        coverage=coverage,
-        selection_allowed=selection_allowed,
-        issues=issues,
-        explanation_evidence=manual_evidence,
-        error_code=error_code,
+        candidate_id=candidate_id, requirement_id=requirement_id, eligibility="pass",
+        verification=verification_status, coverage="full", selection_allowed=True,
+        issues=[_issue(rule_key=rule["rule_id"], status="pass", severity="info",
+                       reason="all_required_claims_verified", candidate=candidate,
+                       evidence_refs=evidence_refs)],
+        explanation_evidence=manual_evidence, error_code=None,
     )

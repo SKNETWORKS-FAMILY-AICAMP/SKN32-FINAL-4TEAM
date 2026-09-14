@@ -139,6 +139,52 @@ _BABY_BLOCKERS = {
         "현재 조건에서 검증 기준을 충족하지 않아 담을 수 없어요.",
         "조건을 확인하거나 다른 후보를 선택해 주세요.",
     ),
+    # P3 full-catalog verification (2026-09-14) — src.engine.stage3c_verify.verify_baby_candidate reason codes.
+    "missing_rule_evidence": (
+        "verification_evidence_missing",
+        "이 상품의 필수 증빙을 아직 다 확인하지 못해 담을 수 없어요.",
+        "증빙이 모두 확인된 다른 상품을 기다리거나 조건을 바꿔 주세요.",
+    ),
+    "missing_product_identity": (
+        "verification_identity_missing",
+        "이 상품의 제조사·모델 정보를 확인하지 못해 담을 수 없어요.",
+        "상품 식별 정보가 확인된 다른 후보를 선택해 주세요.",
+    ),
+    "scope_mismatch": (
+        "verification_scope_unavailable",
+        "이 상품 범위(합성/실제)에 맞는 검증 기준이 아직 없어 담을 수 없어요.",
+        "해당 범위의 검증 기준이 준비된 뒤 다시 추천받아 주세요.",
+    ),
+    "missing_verification_input": (
+        "verification_input_missing",
+        "월령·체중 등 필요한 조건 입력이 없어 검증을 완료하지 못했어요.",
+        "빠진 조건을 입력한 뒤 다시 추천받아 주세요.",
+    ),
+    "evidence_provider_unavailable": (
+        "provider_unavailable",
+        "검증 자료 검색 제공자가 설정되지 않아 담을 수 없어요.",
+        "검색 제공자 설정 후 다시 추천받아 주세요.",
+    ),
+    "evidence_provider_failed": (
+        "provider_failed",
+        "검증 자료를 조회하지 못해 담을 수 없어요.",
+        "잠시 후 다시 추천받아 주세요.",
+    ),
+    "condition_out_of_range": (
+        "eligibility_not_met",
+        "입력한 조건(월령·체중 등)이 이 상품의 사용 조건을 벗어나 담을 수 없어요.",
+        "조건을 확인하거나 다른 후보를 선택해 주세요.",
+    ),
+    "identity_mismatch": (
+        "verification_identity_mismatch",
+        "판매 정보와 증빙의 상품 식별이 일치하지 않아 담을 수 없어요.",
+        "다른 후보를 선택해 주세요.",
+    ),
+    "certificate_mismatch": (
+        "eligibility_not_met",
+        "인증 정보가 이 상품·옵션과 일치하지 않아 담을 수 없어요.",
+        "다른 후보를 선택해 주세요.",
+    ),
 }
 
 
@@ -481,12 +527,18 @@ def verify_and_persist_baby_candidate(*, conn, rag_service, run_id, candidate: d
 
     repo = EngineRepo(conn)
     for issue in check.issues:
-        validation_id = repo.add_validation(
+        # v3 dropped engine.validation_target — the candidate/requirement link lives
+        # only in issues[].target, so it must actually be persisted here (matches
+        # EngineRepo.persist_candidate_check's contract; this loop previously
+        # dropped `target` by omitting `issues=`, which silently broke every reader
+        # that JOINs on issue #>> '{target,...}' — e.g. _stored_baby_missing_requirements).
+        repo.add_validation(
             run_id,
             rule_key=issue["rule_key"], rule_version=issue.get("rule_version", "v1"),
             executor_version="baby-rag-v1", status=issue["status"], severity=issue["severity"],
             measured_values=issue.get("measured") or {}, threshold=issue.get("threshold") or {},
             message=issue.get("reason") or issue["rule_key"], checked_at=datetime.now(timezone.utc),
+            issues=[issue],
         )
     return {"check": check, "explanation": explanation}
 
@@ -638,26 +690,30 @@ def _stored_baby_missing_requirements(conn, run_id: UUID, revision_id: UUID) -> 
     This is deliberately read-only: GET /result must never rerun retrieval or
     recommendation just to explain an already completed run.
     """
-    rows = conn.execute(
+    from psycopg.rows import dict_row
+    rows = conn.cursor(row_factory=dict_row).execute(
         """SELECT r.id AS requirement_id, n.template_key AS slot_key,
                   r.quantity AS required_qty, r.match_spec,
-                  count(c.id) AS candidate_count,
-                  count(c.id) FILTER (WHERE c.selected) AS selected_count,
+                  count(DISTINCT c.id) AS candidate_count,
+                  bool_or(c.selected) AS selected,
                   array_agg(DISTINCT v.message) FILTER (WHERE v.status IN ('unknown','fail')) AS blockers
              FROM planning.requirement r
              JOIN planning.plan_node n ON n.id=r.node_id
              LEFT JOIN engine.recommendation_candidate c
                ON c.requirement_id=r.id AND c.run_id=%s
-             LEFT JOIN engine.validation_target vt ON vt.candidate_id=c.id
-             LEFT JOIN engine.validation_result v ON v.id=vt.validation_result_id AND v.run_id=%s
+             LEFT JOIN engine.validation_result v ON v.run_id=%s AND (
+                  EXISTS (SELECT 1 FROM jsonb_array_elements(v.issues) issue
+                           WHERE issue #>> '{target,requirement_id}' = r.id::text)
+                  -- Compatibility for runs persisted before issue payloads were added.
+                  OR v.measured_values->>'slot_key' = n.template_key)
             WHERE r.revision_id=%s AND r.required=true AND r.status='active'
-            GROUP BY r.id, n.template_key, r.quantity, r.match_spec
+            GROUP BY r.id, n.template_key, n.position, r.quantity, r.match_spec
             ORDER BY n.position""",
         (run_id, run_id, revision_id),
     ).fetchall()
     missing = []
     for row in rows:
-        if row["selected_count"]:
+        if row["selected"]:
             continue
         blockers = [reason for reason in (row["blockers"] or []) if reason]
         if not row["candidate_count"]:
@@ -783,6 +839,19 @@ def get_stored_result(conn, revision_id: UUID) -> dict | None:
             # Older rows may have the pre-fix generic explanation; the result
             # contract still exposes an accurate headline after a reload.
             result["explanation"]["headline"] = _baby_headline(missing, feasible=False)
+        # P3 full-catalog verification (2026-09-14): the only baby candidate path
+        # currently wired up (get_baby_candidates(..., corpus="synthetic") in
+        # execute_recommendation) verifies against synthetic_demo-scope evidence
+        # only — no production evidence has been collected yet (docs/agent-tasks/
+        # baby/P3_full_catalog_verification_execution.md "production_readiness:
+        # blocked"). Every baby result must say so explicitly rather than let a
+        # synthetic-only pass read as a real safety verdict.
+        result["verification"]["synthetic_verification_only"] = True
+        result["verification"]["synthetic_notice"] = L(
+            lang,
+            "이 결과는 합성(가상) 검증 범위에서만 통과했습니다 — 실제 제품 안전 인증이 아닙니다.",
+            "This result only passed within the synthetic (demo) verification scope — it is not a real product safety certification.",
+        )
     result["memo_suggestion"] = memo_suggestion(result, values)
     return result
 
@@ -817,12 +886,14 @@ def patch_item(conn, revision_id: UUID, item_id: UUID, *, selected: bool | None,
         values = {r["condition_key"]: r["value"].get("value")
                   for r in PlanRepo(conn).load_full(revision_id)["conditions"]}
         if values.get("category") == "baby":
-            validation = conn.execute(
+            from psycopg.rows import dict_row
+            validation = conn.cursor(row_factory=dict_row).execute(
                 """SELECT count(*) AS total,
                           count(*) FILTER (WHERE v.status = 'pass') AS passed
-                     FROM engine.validation_target vt
-                     JOIN engine.validation_result v ON v.id=vt.validation_result_id
-                    WHERE vt.candidate_id=%s AND v.run_id=%s""", (item_id, run["id"])).fetchone()
+                     FROM engine.validation_result v
+                    WHERE v.run_id=%s
+                      AND EXISTS (SELECT 1 FROM jsonb_array_elements(v.issues) issue
+                                  WHERE issue #>> '{target,candidate_id}' = %s)""", (run["id"], str(item_id))).fetchone()
             if not validation["total"] or validation["passed"] != validation["total"]:
                 raise ValidationFailed("검증 기준 또는 근거가 충족되지 않아 이 품목은 담을 수 없습니다.",
                                        code="selection_not_allowed")

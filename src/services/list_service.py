@@ -119,10 +119,32 @@ def confirm(conn, list_id: UUID, principal: Principal, *, name: str, planned_pur
         raise ValidationFailed("추천 결과가 아직 없습니다. 먼저 추천을 완료해 주세요.", code="no_items_selected")
     if stored["totals"]["over_budget"]:
         raise ValidationFailed("선택한 구성이 예산을 초과합니다.", code="over_budget")
+    # P7 review R1: confirm must recheck full requirement coverage, not just the
+    # selected/charged items — a baby list with an uncovered mandatory requirement
+    # (e.g. no selectable car_seat candidate) must never be confirmable even though
+    # it is within budget. `feasible` is absent (None) for non-baby categories, so
+    # `is False` — never a bare falsy check — leaves computer confirms untouched.
+    if stored.get("feasible") is False:
+        missing_slots = ", ".join(m["slot_key"] for m in stored.get("missing_requirements", []))
+        raise ValidationFailed(
+            f"필수 품목이 모두 채워지지 않아 확정할 수 없습니다: {missing_slots}" if missing_slots
+            else "필수 품목이 모두 채워지지 않아 확정할 수 없습니다.",
+            code="basket_infeasible",
+        )
 
     run = EngineRepo(conn).get_run(UUID(stored["run_id"]))
     full = prepo.load_full(revision["id"])
-    current_values = {row["condition_key"]: row["value"].get("value") for row in full["conditions"]}
+    # age_months is stored unwrapped one level less than every other condition
+    # (row["value"] is itself {"value": months, "exact": bool}, not {"value": <scalar>})
+    # — src.services.recommendation_service.start_recommendation's input_snapshot["values"]
+    # keeps it as that raw dict for exactly this reason (same special case at
+    # session_service.py:298/372). Without it here, this comparison held a bare int
+    # on one side and a {"value":..,"exact":..} dict on the other, so it was never
+    # equal and every baby confirm hit stale_recommendation even with no condition change.
+    current_values = {
+        row["condition_key"]: (row["value"] if row["condition_key"] == "age_months" else row["value"].get("value"))
+        for row in full["conditions"]
+    }
     if (run or {}).get("input_snapshot", {}).get("values", {}) != current_values:
         raise Conflict("조건이 바뀌어 추천을 다시 받아야 합니다.", code="stale_recommendation")
 

@@ -73,9 +73,23 @@ def test_partial_owned_survives_storage_and_recalculation(conn):
 
 
 @pytest.mark.parametrize('slot',['car_seat','high_chair','bottle','diaper'])
-def test_missing_reviewed_safety_rule_is_not_a_pass(slot):
-    check=verify_baby_candidate(None,{'candidate_id':'c','requirement_id':'r','slot_key':slot,'facts':{}}, {}, {})
-    assert check.eligibility=='unknown' and not check.selection_allowed
+def test_candidate_with_no_verified_evidence_is_not_a_pass(conn, slot):
+    # P3 full-catalog verification (2026-09-14): all 15 required slots now have a
+    # registry rule (config/baby_verification_rules.yaml), so "slot has no reviewed
+    # rule at all" no longer applies to these four — the invariant this regression
+    # actually guards is that a candidate with NO verified DB evidence (product
+    # never imported by scripts/import_baby_evidence.py / seed_baby_synthetic_evidence.py)
+    # is still never a pass, regardless of slot.
+    from src.rag.service import RagService
+    from src.repo.material_repo import MaterialRepo
+    rag_service = RagService(MaterialRepo(conn), provider=None)
+    check = verify_baby_candidate(
+        rag_service,
+        {'candidate_id': 'c', 'requirement_id': 'r', 'slot_key': slot, 'corpus': 'synthetic',
+         'product_key': 'SYN-NO-EVIDENCE-TEST-PRODUCT', 'variant_key': 'SYN-NO-EVIDENCE-TEST-PRODUCT-V1'},
+        {}, {},
+    )
+    assert check.eligibility == 'unknown' and not check.selection_allowed
 
 
 @pytest.mark.parametrize('change',[
