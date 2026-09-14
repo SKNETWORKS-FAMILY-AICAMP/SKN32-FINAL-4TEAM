@@ -1,0 +1,14 @@
+.git/
+.venv/
+.idea/
+.claude/
+.pytest_cache/
+.pytest_tmp/
+__pycache__/
+*.pyc
+tests/
+docs/
+.env
+.env.*
+!.env.example
+node_modules/

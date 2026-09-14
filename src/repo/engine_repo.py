@@ -30,6 +30,12 @@ class EngineRepo(Repo):
     def fail_candidate_reason(self, candidate_id: UUID) -> None:
         """[5] 실패 — reason은 NULL로 남기고(제약상 ready만 값을 가짐) 상태만 failed로."""
         self._exec("UPDATE engine.recommendation_candidate SET reason_status='failed' WHERE id=%s",(candidate_id,))
+    def update_candidate_checks(self, candidate_id: UUID, checks: str) -> None:
+        """부품 사용 가이드 RAG 검색 결과 — "구매 전 확인" 문장을 채운다."""
+        self._exec("UPDATE engine.recommendation_candidate SET checks=%s, checks_status='ready' WHERE id=%s",(checks,candidate_id))
+    def fail_candidate_checks(self, candidate_id: UUID) -> None:
+        """가이드 검색/임베딩 실패 — checks는 NULL로 남기고 상태만 failed로."""
+        self._exec("UPDATE engine.recommendation_candidate SET checks_status='failed' WHERE id=%s",(candidate_id,))
     def add_validation(self, run_id: UUID, *, rule_key: str, rule_version: str, executor_version: str, status: str, severity: str, measured_values: dict, threshold: dict, message: str, checked_at) -> UUID:
         row=self._one("""INSERT INTO engine.validation_result (run_id,rule_key,rule_version,executor_version,status,severity,measured_values,threshold,message,checked_at)
         VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id""",(run_id,rule_key,rule_version,executor_version,status,severity,Jsonb(measured_values),Jsonb(threshold),message,checked_at)); return row["id"]

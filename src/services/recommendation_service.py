@@ -116,6 +116,7 @@ def execute_recommendation(revision_id: UUID, run_id: UUID) -> None:
     from src.repo.plan_repo import PlanRepo
     from src.repo.product_repo import ProductRepo
     from src.repo.review_repo import is_obs_flag, parse_obs_flag
+    from src.rag.care_guides import search_care_guide
     from src.services import review_service
 
     noop = lambda _m: None  # noqa: E731
@@ -212,6 +213,16 @@ def execute_recommendation(revision_id: UUID, run_id: UUID) -> None:
                 if candidate_id is not None and it.reason is not None:
                     erepo.update_candidate_reason(candidate_id, it.reason)
 
+            # "구매 전 확인"(checks) — 부품 사용 가이드 RAG 검색. 슬롯 고정 매핑이 아니라
+            # 품목명까지 넣은 질의로 임베딩 유사도 검색을 실제로 돌린다(src/rag/care_guides.py).
+            for it in build.items:
+                candidate_id = candidate_id_by_slot.get(it.slot)
+                if candidate_id is None:
+                    continue
+                hits = search_care_guide(f"{it.slot} {it.name} 사용 시 확인할 점", k=1)
+                if hits:
+                    erepo.update_candidate_checks(candidate_id, hits[0]["text"])
+
             # [5] 의 리뷰 관측(review_line_by_slot)·확인 필요(caveats)를 저장 경로에 싣는다.
             # 여기서 안 실으면 [3-B] 감점은 되는데 "왜" 가 화면에 안 간다 (review_service 주석 참고).
             tl = lang_of(values)
@@ -255,6 +266,7 @@ def execute_recommendation(revision_id: UUID, run_id: UUID) -> None:
             fail_erepo = EngineRepo(fail_conn)
             for candidate_id in candidate_id_by_slot.values():
                 fail_erepo.fail_candidate_reason(candidate_id)
+                fail_erepo.fail_candidate_checks(candidate_id)
             fail_erepo.fail_explanation(run_id)
 
 
@@ -614,7 +626,7 @@ def get_stored_result(conn, revision_id: UUID) -> dict | None:
             "qty": row["qty"], "selected": row["selected"], "timing": row["timing"], "budget_share": None,
             "review": review_service.review_brief(row["product_key"]),
             "reason": {"status": row["reason_status"], "text": row["reason"]},
-            "checks": {"status": "pending", "text": None},
+            "checks": {"status": row["checks_status"], "text": row["checks"]},
             "alternatives_count": alternatives_count,
         })
     selected_price = sum(i["price"] * i["qty"] for i in items if i["selected"])
