@@ -351,6 +351,7 @@ class ReportOut(BaseModel):
     confirmed_at: str
     items: list[ReportItemOut] = Field(default_factory=list)
     price_watch: PriceWatchOut
+    care_guide: TextStatusOut = Field(default_factory=lambda: TextStatusOut(status="pending"))
     data_notice: str = "상품·가격·리뷰는 합성 데이터입니다."
 
 
