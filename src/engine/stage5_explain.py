@@ -13,7 +13,7 @@ from src.clients.llm_client import call_llm
 from src.dto import (BuildResult, Explanation, ExplanationDraft, ExplanationItem, RankResult,
                      VerificationResult)
 from src.engine import LogFn
-from src.engine.lang import L, lang_of, localize_system
+from src.engine.lang import L, currency_of, fmt_money, lang_of, localize_system
 from src.engine.prompts import EXPLAIN_SYSTEM
 from src.repo.review_repo import (OBS_LABEL, default_risk_store, default_suspect_counts,
                                  is_obs_flag, parse_obs_flag, risk_store_note)
@@ -160,16 +160,17 @@ def _llm_draft(build: BuildResult, verification: VerificationResult,
     부품을 끌어오거나 점수를 만들어내면 버린다 — 그 경우 호출자가 기존 규칙 문장을 쓴다.
     """
     tgt = verification.targets[0] if verification.targets else None
+    cur = currency_of(conditions)
     lines = _conditions_lines(conditions) + [
-        f"예산 상한: {build.budget.get('max', 0)}원",
-        f"사용 금액: {build.totals.get('price', 0)}원",
+        f"예산 상한: {fmt_money(build.budget.get('max', 0), cur)}",
+        f"사용 금액: {fmt_money(build.totals.get('price', 0), cur)}",
         f"검증 신뢰도: {tgt.confidence if tgt else '없음'} (통과: {tgt.passed if tgt else '없음'})",
         f"근거가 확인되지 않은 축: {(tgt.gray_axes if tgt else []) or '없음'}",
         "구성:",
     ]
     for it in build.items:
         axes = _top_axes(rank, it.slot, it.product_key)
-        lines.append(f"- {it.slot} | {it.name} | {it.price}원 | {it.rank_from_3b}순위"
+        lines.append(f"- {it.slot} | {it.name} | {fmt_money(it.price, cur)} | {it.rank_from_3b}순위"
                      + (f" | 기여가 큰 축: {axes}" if axes else ""))
     if tgt and tgt.issues:
         lines.append("검증 쟁점:")
@@ -224,6 +225,8 @@ def run(build: BuildResult, verification: VerificationResult, log: LogFn,
     reason_by_slot = {i.slot: i.reason for i in draft.items} if draft else {}
 
     lang = lang_of(conditions)
+    cur = currency_of(conditions)
+    m = lambda n: fmt_money(n, cur)  # noqa: E731
     items, review_lines, review_caveats = [], {}, []
     for it in build.items:
         line, evidence, caveat = _review_line(it.product_key, _ranked_flags(rank, it.slot, it.product_key))
@@ -233,8 +236,8 @@ def run(build: BuildResult, verification: VerificationResult, log: LogFn,
         items.append(ExplanationItem(
             slot=it.slot,
             reason=(reason_by_slot.get(it.slot)
-                    or L(lang, f"{it.name} — 조건 충족, {it.rank_from_3b}순위, {it.price:,}원",
-                         f"{it.name} — meets the requirements, rank {it.rank_from_3b}, {it.price:,}원")),
+                    or L(lang, f"{it.name} — 조건 충족, {it.rank_from_3b}순위, {m(it.price)}",
+                         f"{it.name} — meets the requirements, rank {it.rank_from_3b}, {m(it.price)}")),
             basis=[f"rank{it.rank_from_3b}"],
             evidence=evidence,
         ))
@@ -242,19 +245,19 @@ def run(build: BuildResult, verification: VerificationResult, log: LogFn,
     # LLM 이 같은 내용을 다른 표현으로 또 쓰면 화면에 중복으로 나간다.
     caveats = [L(lang, f"{a} 근거는 확인되지 않았습니다", f"{a}: not verified") for a in gray] + review_caveats
     headline = (draft.headline if draft and draft.headline else L(lang,
-        f"예산 {build.budget.get('max', 0):,}원 중 {build.totals.get('price', 0):,}원 사용, "
+        f"예산 {m(build.budget.get('max', 0))} 중 {m(build.totals.get('price', 0))} 사용, "
         f"세트 검증 신뢰도 {conf}점" + ("." if not gray else f" (회색축 {len(gray)}개)."),
-        f"{build.totals.get('price', 0):,}원 of the {build.budget.get('max', 0):,}원 budget used, "
+        f"{m(build.totals.get('price', 0))} of the {m(build.budget.get('max', 0))} budget used, "
         f"set verification confidence {conf}" + ("." if not gray else f" ({len(gray)} unverified axes)."),
     ))
     # summary 폴백 — 코드가 아는 사실만. 슬롯별 이유는 items 에 있으니 여기서 반복하지 않는다.
     biggest = max(build.items, key=lambda i: i.price, default=None)
     summary = (draft.summary if draft and draft.summary else L(lang,
-        f"{len(build.items)}개 부품, 예산 {build.budget.get('max', 0):,}원 중 {build.totals.get('price', 0):,}원을 썼습니다."
-        + (f" 비중이 가장 큰 슬롯은 {biggest.slot}({biggest.price:,}원)입니다." if biggest else "")
+        f"{len(build.items)}개 부품, 예산 {m(build.budget.get('max', 0))} 중 {m(build.totals.get('price', 0))}을 썼습니다."
+        + (f" 비중이 가장 큰 슬롯은 {biggest.slot}({m(biggest.price)})입니다." if biggest else "")
         + f" 세트 검증 신뢰도는 {conf}점이며, 부품별 선택 이유는 각 항목에서 볼 수 있습니다.",
-        f"{len(build.items)} parts, {build.totals.get('price', 0):,}원 of the {build.budget.get('max', 0):,}원 budget."
-        + (f" The largest share is {biggest.slot} ({biggest.price:,}원)." if biggest else "")
+        f"{len(build.items)} parts, {m(build.totals.get('price', 0))} of the {m(build.budget.get('max', 0))} budget."
+        + (f" The largest share is {biggest.slot} ({m(biggest.price)})." if biggest else "")
         + f" Set verification confidence is {conf}; per-part reasons are on each item.",
     ))
     summary += _extra_note(conditions)

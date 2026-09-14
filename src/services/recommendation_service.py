@@ -15,7 +15,7 @@ from uuid import UUID
 
 from src.categories import load_category
 from src.dto import PipelineResult, Slots
-from src.engine.lang import L, lang_of
+from src.engine.lang import L, currency_of, fmt_money, lang_of
 from src.errors import Conflict, NotFound, ValidationFailed
 from src.pipeline import run_pipeline as _run_scenario
 
@@ -432,8 +432,8 @@ def _conditions_summary(cat_def: dict, values: dict) -> str:
     return " · ".join(parts)
 
 
-_SWAP_RE = re.compile(r"자동 추천은 '(.+?)'\(([\d,]+)원\)였고 이 후보는 ([+-][\d,]+)원")
-_SWAP_RE_EN = re.compile(r"automatic pick was '(.+?)' \(([\d,]+)원\); this one is ([+-][\d,]+)원")
+_SWAP_RE = re.compile(r"자동 추천은 '(.+?)'\((\$?[\d,]+원?)\)였고 이 후보는 ([+-]\$?[\d,]+원?)")
+_SWAP_RE_EN = re.compile(r"automatic pick was '(.+?)' \((\$?[\d,]+원?)\); this one is ([+-]\$?[\d,]+원?)")
 
 
 def memo_suggestion(result: dict, values: dict) -> str:
@@ -442,10 +442,12 @@ def memo_suggestion(result: dict, values: dict) -> str:
     items = result.get("items") or []
     totals = result.get("totals") or {}
     lang = lang_of(values)
+    cur = currency_of(values)
+    m = lambda n, signed=False: fmt_money(n, cur, signed)  # noqa: E731
     lines: list[str] = []
     cond = result.get("conditions_summary") or ""
-    if result.get("budget_max") and f"{result['budget_max']:,}원" not in cond:   # 조건 요약에 이미 예산이 있으면 반복 안 함
-        cond += (" · " if cond else "") + L(lang, f"예산 {result['budget_max']:,}원", f"budget {result['budget_max']:,}원")
+    if result.get("budget_max") and m(result["budget_max"]) not in cond:   # 조건 요약에 이미 예산이 있으면 반복 안 함
+        cond += (" · " if cond else "") + L(lang, f"예산 {m(result['budget_max'])}", f"budget {m(result['budget_max'])}")
     if cond:
         lines.append(L(lang, "[조건] ", "[Conditions] ") + cond)
     chosen = [it for it in items if it["selected"]]
@@ -455,18 +457,19 @@ def memo_suggestion(result: dict, values: dict) -> str:
                  for it in chosen]
         tail = ""
         if totals.get("budget_remaining") is not None:
-            tail = (L(lang, f", 예산 초과 {-totals['budget_remaining']:,}원", f", over budget by {-totals['budget_remaining']:,}원") if totals.get("over_budget")
-                    else L(lang, f", 예산 잔여 {totals['budget_remaining']:,}원", f", {totals['budget_remaining']:,}원 left"))
-        lines.append(L(lang, f"[구성] {len(chosen)}개 부품 {totals.get('selected_price', 0):,}원{tail} — ",
-                       f"[Build] {len(chosen)} parts, {totals.get('selected_price', 0):,}원{tail} — ") + ", ".join(parts))
+            tail = (L(lang, f", 예산 초과 {m(-totals['budget_remaining'])}", f", over budget by {m(-totals['budget_remaining'])}") if totals.get("over_budget")
+                    else L(lang, f", 예산 잔여 {m(totals['budget_remaining'])}", f", {m(totals['budget_remaining'])} left"))
+        lines.append(L(lang, f"[구성] {len(chosen)}개 부품 {m(totals.get('selected_price', 0))}{tail} — ",
+                       f"[Build] {len(chosen)} parts, {m(totals.get('selected_price', 0))}{tail} — ") + ", ".join(parts))
     removed = [it["slot"] for it in items if not it["selected"]]
     if removed:
         lines.append(L(lang, "[뺀 것] ", "[Removed] ") + ", ".join(removed))
     swapped = []
     for it in items:
-        m = _SWAP_RE.search(((it.get("reason") or {}).get("text") or "")) or _SWAP_RE_EN.search(((it.get("reason") or {}).get("text") or ""))
-        if m:
-            swapped.append(f"{it['slot']} {m.group(1)} → {it['product']['name']} ({m.group(3)}원)")
+        rt = (it.get("reason") or {}).get("text") or ""
+        sw = _SWAP_RE.search(rt) or _SWAP_RE_EN.search(rt)
+        if sw:
+            swapped.append(f"{it['slot']} {sw.group(1)} → {it['product']['name']} ({sw.group(3)})")
     if swapped:
         lines.append(L(lang, "[직접 바꾼 것] ", "[Swapped by you] ") + "; ".join(swapped)
                      + L(lang, " — 호환·검증은 교체 전 구성 기준", " — compatibility/verification refer to the build before the swap"))
@@ -723,17 +726,19 @@ def swap_item(conn, revision_id: UUID, item_id: UUID, candidate_id: UUID) -> dic
     # 있었다) 코드가 아는 사실만으로 한 줄 적는다 — 판단이 아니라 교체 기록이다.
     old_price = int(current["price"]) if current["price"] is not None else 0
     new_price = int(target["price"]) if target.get("price") is not None else 0
-    lang = lang_of({r["condition_key"]: r["value"].get("value") for r in PlanRepo(conn).load_full(revision_id)["conditions"]})
+    cvals = {r["condition_key"]: r["value"].get("value") for r in PlanRepo(conn).load_full(revision_id)["conditions"]}
+    lang, cur = lang_of(cvals), currency_of(cvals)
+    delta = fmt_money(new_price - old_price, cur, signed=True)
     erepo.update_candidate_reason(item_id, L(lang,
-        f"사용자 요청으로 교체한 부품입니다 — 자동 추천은 '{current['product_name']}'({old_price:,}원)였고 "
-        f"이 후보는 {new_price - old_price:+,}원입니다. 순위·검증 점수는 교체 전 구성 기준입니다.",
-        f"Swapped at your request — the automatic pick was '{current['product_name']}' ({old_price:,}원); "
-        f"this one is {new_price - old_price:+,}원. Ranking and verification scores refer to the build before the swap."))
+        f"사용자 요청으로 교체한 부품입니다 — 자동 추천은 '{current['product_name']}'({fmt_money(old_price, cur)})였고 "
+        f"이 후보는 {delta}입니다. 순위·검증 점수는 교체 전 구성 기준입니다.",
+        f"Swapped at your request — the automatic pick was '{current['product_name']}' ({fmt_money(old_price, cur)}); "
+        f"this one is {delta}. Ranking and verification scores refer to the build before the swap."))
     # 요약(explanation)도 교체 전 구성 기준이다. [5] 를 다시 돌릴 수 없으니 그 사실을 본문 끝에 적는다.
     if run.get("explanation_status") == "ready" and run.get("explanation_text"):
         note = L(lang,
-                 f"※ 이후 {current['slot']}를 '{target['name']}'(으)로 교체했습니다({new_price - old_price:+,}원). 이 요약은 교체 전 구성 기준입니다.",
-                 f"※ {current['slot']} was later swapped to '{target['name']}' ({new_price - old_price:+,}원). This summary describes the build before the swap.")
+                 f"※ 이후 {current['slot']}를 '{target['name']}'(으)로 교체했습니다({delta}). 이 요약은 교체 전 구성 기준입니다.",
+                 f"※ {current['slot']} was later swapped to '{target['name']}' ({delta}). This summary describes the build before the swap.")
         erepo.set_explanation(run["id"], headline=run.get("explanation_headline") or "",
                               text=run["explanation_text"].rstrip() + "\n\n" + note,
                               reasoning_log=run.get("reasoning_log") or [])

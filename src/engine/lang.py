@@ -8,7 +8,8 @@ from __future__ import annotations
 _LLM_LANGUAGE_LINE = {
     "en": "\n\nOutput language: English. Write plain sentences (no labels, headings or bullet prefixes). "
           "Keep numbers, units and slot/part names exactly as given — do not translate slot names such as 메인보드 or 저장장치, "
-          "do not convert amounts; '원' stays as '원'. Say 'confidence 94' exactly as given — never the word 'score'. "
+          "do not convert amounts — copy every amount exactly as written in the input (its currency symbol included). "
+          "Say 'confidence 94' exactly as given — never the word 'score'. "
           "No evaluative words (excellent, powerful, best, perfect, outstanding, strong); state facts only.",
 }
 
@@ -30,6 +31,24 @@ def localize_system(system: str, lang: str) -> str:
 
 def lang_of(values: dict | None) -> str:
     return "en" if (values or {}).get("language") == "en" else "ko"
+
+
+def currency_of(values: dict | None) -> str:
+    return "USD" if (values or {}).get("currency") == "USD" else "KRW"
+
+
+def fmt_money(krw: int | float | None, currency: str = "KRW", signed: bool = False) -> str:
+    """저장 금액(원)을 사용자 통화로. 달러로 말한 사용자에겐 달러만 — 원화를 병기하지 않는다(2026-09-14 결정).
+    원화를 명시한 사용자(currency=KRW)는 원화 그대로."""
+    if krw is None:
+        return "-"
+    if currency == "USD":
+        from src.config import USD_KRW_RATE
+        d = krw / USD_KRW_RATE
+        sign = ("+" if d >= 0 else "-") if signed else ("-" if d < 0 else "")
+        return f"{sign}${abs(d):,.0f}"
+    n = int(krw)
+    return f"{n:+,}원" if signed else f"{n:,}원"
 
 
 def L(lang: str, ko: str, en: str) -> str:

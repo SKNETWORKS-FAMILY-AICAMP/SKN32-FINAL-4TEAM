@@ -27,7 +27,7 @@ from dataclasses import dataclass, field
 from uuid import UUID
 
 from src.agent.conditions_agent import _model, _reply_language, usd
-from src.config import LLM_MODEL, LLM_PROVIDER, MOCK_MODE, OPENAI_API_KEY, RESULT_AGENT, USD_KRW_RATE
+from src.config import LLM_MODEL, LLM_PROVIDER, MOCK_MODE, OPENAI_API_KEY, RESULT_AGENT
 from src.errors import NotFound
 
 log = logging.getLogger(__name__)
@@ -48,7 +48,7 @@ def _won(n: int | None) -> str:
     if n is None:
         return "-"
     if _CURRENCY["code"] == "USD":
-        return f"{usd(n)} ({n:,}원)"
+        return usd(n)                  # 달러로 말한 사용자에겐 달러만 — 원화 병기 안 함
     return f"{n:,}원"
 
 
@@ -317,7 +317,7 @@ def system_prompt(result: dict, user_text: str, history: list[dict], prefetched:
         "호환·검증에 대해 '문제 없다'고 단정하지 않습니다 — 재실행 여부만 말합니다.",
         "6. 전체를 다시 짜 달라는 요청('처음부터', '다른 구성')은 도구가 없습니다 — 화면의 '다른 구성 보기' 버튼을 안내합니다.",
         "7. 구성표에 없는 슬롯이나 상품을 만들지 않습니다. '죄송'·'확인할 수 없다' 로 시작하지 않습니다 — 아는 사실부터 말합니다.",
-        *([f"8. 금액은 달러를 앞에, 원화를 괄호로 — 구성표·도구 결과에 적힌 그대로 (고정 환율 1 USD = {USD_KRW_RATE:,.0f}원). 새로 환산하지 않습니다."]
+        *(["8. 금액은 구성표·도구 결과에 적힌 달러 금액 그대로 씁니다. 원화(₩·KRW·원)로 바꾸거나 병기하지 않습니다."]
           if _CURRENCY["code"] == "USD" else []),
         *(["", "사용자 질문에 대해 미리 조회한 근거 (이걸로 답합니다. 더 필요하면 explain):", prefetched] if prefetched else []),
         "",

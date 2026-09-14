@@ -94,3 +94,20 @@ def test_rule_path_treats_questions_as_questions():
     assert rs._parse_swap_request("그래픽카드 더 저렴한 걸로 바꿔줘", slots) == ("GPU", "cheaper", False)
     assert rs._parse_swap_request("저렴하고 좋은 GPU로", slots) == ("GPU", None, True)           # 양방향 → 되묻기
     assert rs._parse_swap_request("케이스 흰색으로", slots) == (None, None, False)
+
+
+def test_fmt_money_usd_only_and_signed():
+    from src.engine.lang import fmt_money
+    import src.config as cfg
+    rate = cfg.USD_KRW_RATE
+    assert fmt_money(1_680_000, "USD") == f"${1_680_000 / rate:,.0f}"
+    assert "원" not in fmt_money(1_680_000, "USD")
+    assert fmt_money(84_000, "USD", signed=True).startswith("+$")
+    assert fmt_money(-84_000, "USD", signed=True).startswith("-$")
+    assert fmt_money(84_000, "KRW", signed=True) == "+84,000원" and fmt_money(1_500_000) == "1,500,000원"
+
+
+def test_memo_and_swap_regex_accept_dollar_amounts():
+    rt = "Swapped at your request — the automatic pick was 'RX 7600' ($375); this one is +$60. Ranking …"
+    sw = rs._SWAP_RE_EN.search(rt)
+    assert sw and sw.group(1) == "RX 7600" and sw.group(2) == "$375" and sw.group(3) == "+$60"

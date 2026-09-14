@@ -119,9 +119,9 @@ def test_guarded_reply_prefers_changes_then_prefetched_then_template():
 def test_amounts_are_dollar_first_when_session_currency_is_usd(monkeypatch):
     monkeypatch.setattr("src.agent.conditions_agent.USD_KRW_RATE", 1400.0)
     monkeypatch.setitem(ra._CURRENCY, "code", "USD")
-    assert ra._won(1_457_000) == "$1,041 (1,457,000원)"
+    assert ra._won(1_457_000) == "$1,041"                       # 달러만
     p = ra.system_prompt(_result(), "am I within budget?", [])
-    assert "총액: $557 (780,000원)" in p and "8. 금액은 달러를 앞에" in p
+    assert "총액: $557 ·" in p and "원화(₩·KRW·원)로 바꾸거나 병기하지 않습니다" in p
     monkeypatch.setitem(ra._CURRENCY, "code", "KRW")
     assert ra._won(1_457_000) == "1,457,000원"
-    assert "달러를 앞에" not in ra.system_prompt(_result(), "예산 안이야?", [])
+    assert "병기하지 않습니다" not in ra.system_prompt(_result(), "예산 안이야?", [])

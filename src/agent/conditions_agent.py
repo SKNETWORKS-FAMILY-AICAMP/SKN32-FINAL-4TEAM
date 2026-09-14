@@ -99,7 +99,7 @@ class ConditionDraft:
             self.patches["budget_max"] = int(round(self._bare_budget * USD_KRW_RATE)) if cur == "USD" else int(self._bare_budget)
             self.patches["currency"] = cur
             b = self.patches["budget_max"]
-            shown = f"{usd(b)} (= {b:,}원)" if cur == "USD" else f"{b:,}원"
+            shown = usd(b) if cur == "USD" else f"{b:,}원"
             return self._record(call, f"currency = {cur} 반영 · budget_max 를 {shown} 로 다시 해석" + self._status())
         else:
             try:
@@ -117,7 +117,7 @@ class ConditionDraft:
             if budget_currency == "USD":
                 # 달러로 말했다(또는 영어 대화의 단위 없는 숫자) — 저장은 원화, 통화는 따로 기록해 답변·표시가 달러를 앞에 두게
                 self.patches["currency"] = "USD"
-                shown = f"{usd(value)} (= {value:,}원, 고정 환율 1 USD = {USD_KRW_RATE:,.0f}원)"   # 달러 먼저 — 모델이 이 순서를 베낀다
+                shown = usd(value)     # 달러만 — 원화 병기 안 함 (사용자가 원화를 명시한 경우만 원화)
             elif isinstance(raw, str) and _KRW_RE.search(raw) and self.current("currency") == "USD":
                 self.patches["currency"] = "KRW"       # 달러로 말하던 사용자가 명시적으로 원화를 말했다
         return self._record(call, f"{key} = {shown} 반영" + self._status())
@@ -362,7 +362,7 @@ def _reply_language(text: str, history: list[dict] = (), chip_codes: set[str] = 
 def system_prompt(draft: ConditionDraft, user_text: str = "", history: list[dict] = ()) -> str:
     current = {k: draft.current(k) for k in draft.schema() if draft.current(k) not in (None, [], "")}
     if current.get("currency") == "USD" and isinstance(current.get("budget_max"), int):
-        current["budget_max"] = f"{usd(current['budget_max'])} ({current['budget_max']:,}원)"
+        current["budget_max"] = usd(current["budget_max"])
     # 턴 시작 시점의 '다음 질문' 을 여기 박으면 모델이 도구로 채운 뒤에도 그 질문을 또 붙인다(실측 2회).
     # 도구 결과에 다시 계산한 '다음 질문' 이 실리니 그것만 따르게 한다.
     ask = ("도구를 부른 뒤에는 **마지막 도구 결과의 '다음 질문'** 을 그대로 물어 답변을 맺습니다 (화면이 그 항목의 "
@@ -387,8 +387,8 @@ def system_prompt(draft: ConditionDraft, user_text: str = "", history: list[dict
         "4. 필수 항목이 모두 채워졌으면 '이 조건으로 추천을 받아볼 수 있다'고 안내하고 추가 조건이 있으면 말해 달라고 합니다.",
         "5. 값을 바꿀 때는 clear_condition 없이 set_condition 에 새 값만 넣습니다. clear 는 '취소'·'빼 주세요' 에만 씁니다.",
         "6. 제품 추천·가격·성능·호환성 판단을 하지 않습니다. 그건 다음 단계의 엔진이 합니다.",
-        "7. 금액: 사용자가 달러로 말했거나 currency 가 USD 면 달러를 앞에 쓰고 원화를 괄호로 병기합니다 (도구 결과의 환산값 그대로, "
-        f"고정 환율 1 USD = {USD_KRW_RATE:,.0f}원). 달러 얘기가 없었으면 원화만 씁니다. 금액을 새로 계산하지 않습니다.",
+        "7. 금액: 사용자가 달러로 말했거나 currency 가 USD 면 도구 결과의 달러 금액만 씁니다 — 원화(₩·KRW·원)로 바꾸거나 병기하지 않습니다. "
+        "달러 얘기가 없었으면 원화만 씁니다. 금액을 새로 계산하지 않습니다.",
         "",
         ("답변 언어: 한국어 존댓말." if _reply_language(user_text, history, _chip_codes(draft.cat_def)) == "ko"
          else "Reply language: English. Write the entire reply in English, including the closing question."),

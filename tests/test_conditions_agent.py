@@ -157,9 +157,9 @@ def test_budget_in_dollars_sets_currency_and_shows_both(monkeypatch):
     d = _draft("computer", {"category": "computer", "mode": "build"})
     out = d.set("budget_max", "$1,200")
     assert d.patches["budget_max"] == 1_680_000 and d.patches["currency"] == "USD"
-    assert "$1,200 (= 1,680,000원, 고정 환율 1 USD = 1,400원)" in out
+    assert "budget_max = $1,200 반영" in out and "원" not in out.split("반영")[0]   # 달러만, 원화 병기 없음
     p = ca.system_prompt(d, "budget is $1,200")
-    assert '"budget_max": "$1,200 (1,680,000원)"' in p and "달러를 앞에" in p
+    assert '"budget_max": "$1,200"' in p and "원화(₩·KRW·원)로 바꾸거나 병기하지 않습니다" in p
     d2 = _draft("computer")
     d2.set("budget_max", "150만원")
     assert "currency" not in d2.patches

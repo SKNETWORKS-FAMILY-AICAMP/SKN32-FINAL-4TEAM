@@ -183,9 +183,9 @@ def _display(meta: dict, value, values: dict | None = None) -> str | None:
     if isinstance(value, bool):
         return "예" if value else "아니오"
     if meta["key"] == "budget_max" and isinstance(value, (int, float)):
-        if values.get("currency") == "USD":   # 달러로 말한 사용자 — 달러 앞, 원화 병기 (고정 환율 src/config.USD_KRW_RATE)
+        if values.get("currency") == "USD":   # 달러로 말한 사용자 — 달러만 (고정 환율 src/config.USD_KRW_RATE)
             from src.agent.conditions_agent import usd
-            return f"{usd(int(value))} ({int(value):,}원)"
+            return usd(int(value))
         return f"{int(value):,}원"
     return str(value)
 
