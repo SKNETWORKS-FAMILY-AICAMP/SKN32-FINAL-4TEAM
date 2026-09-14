@@ -157,7 +157,8 @@ def publish_manual(document: ManualDocument, material_repo, provider, *, reviewe
             ON CONFLICT (id) DO UPDATE SET title=EXCLUDED.title""",
             (material_id, source_id, document.manual_id),
         )
-        if material_repo._one("SELECT id FROM assets.file_object WHERE id=%s", (file_id,)) is None:
+        existing_file = material_repo._one("SELECT id FROM assets.file_object WHERE id=%s", (file_id,))
+        if existing_file is None:
             material_repo._exec(
                 """INSERT INTO assets.file_object
                   (id, bucket, object_key, storage_version, original_filename, mime_type, byte_size,
@@ -165,6 +166,13 @@ def publish_manual(document: ManualDocument, material_repo, provider, *, reviewe
                 VALUES (%s,'local',%s,'v1','manual.md','text/markdown',%s,%s,'public',%s,'clean','available')""",
                 (file_id, str(object_path), len(data), document.sha256,
                  Jsonb({"allow_rag": True, "allow_excerpt": True, "allow_original": True})),
+            )
+        else:
+            # The content-addressed row can outlive an ephemeral test/provider
+            # directory. Re-ingestion must point it at the freshly verified object.
+            material_repo._exec(
+                "UPDATE assets.file_object SET object_key=%s, byte_size=%s, updated_at=now() WHERE id=%s",
+                (str(object_path), len(data), file_id),
             )
         if material_repo._one("SELECT id FROM assets.material_revision WHERE id=%s", (revision_id,)) is None:
             material_repo._exec(
