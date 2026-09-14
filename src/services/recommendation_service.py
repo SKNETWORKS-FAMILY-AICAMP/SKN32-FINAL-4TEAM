@@ -10,6 +10,7 @@ import hashlib
 import json
 import logging
 import re
+from pathlib import Path
 from datetime import datetime, timezone
 from uuid import UUID
 
@@ -531,12 +532,31 @@ _SWAP_REASON_PREFIX = "사용자 요청으로 교체한 부품입니다"
 _SWAP_REASON_PREFIX_EN = "Swapped at your request"
 
 
-def _item_checks(item: dict, validations: list[dict], confidence: int | None, lang: str = "ko") -> dict:
-    """"구매 전 확인" — 코드가 아는 사실만: 이 슬롯에 걸린 세트 검증 쟁점, 리뷰 관측(상품 단위), 교체 여부.
-    LLM 없음. 전에는 `pending` 하드코딩이라 화면이 영원히 "정리하는 중…"이었다."""
+def _care_guide_en(text: str | None) -> str | None:
+    """저장된 사용 가이드 문장(한국어) → 같은 가이드의 영어 문장. data/pc_care_guides.json 의 text_en."""
+    if not text:
+        return None
+    try:
+        from src.config import CARE_GUIDES_JSON
+        for g in json.loads(Path(CARE_GUIDES_JSON).read_text(encoding="utf-8")):
+            if g.get("text") == text:
+                return g.get("text_en") or None
+    except (OSError, ValueError):
+        return None
+    return None
+
+
+def _item_checks(item: dict, validations: list[dict], confidence: int | None, lang: str = "ko",
+                 guide: dict | None = None) -> dict:
+    """"구매 전 확인" — 사용 가이드(RAG, develop 이 저장한 것)를 앞에 두고, 코드가 아는 사실을 잇는다:
+    이 슬롯에 걸린 세트 검증 쟁점, 리뷰 관측(상품 단위), 교체 여부. 전에는 `pending` 하드코딩이었다."""
     from src.services import review_service
     slot = item["slot"]
     parts: list[str] = []
+    if guide and guide.get("status") == "ready" and guide.get("text"):
+        g = _care_guide_en(guide["text"]) if lang == "en" else guide["text"]
+        if g:
+            parts.append(L(lang, "사용 가이드: ", "Guide: ") + g)
     hit = [v for v in validations
            if slot in _AXIS_SLOTS.get(v["rule_key"], ()) or v["rule_key"] not in _AXIS_SLOTS]
     if hit:
@@ -645,7 +665,7 @@ def get_stored_result(conn, revision_id: UUID) -> dict | None:
     penalty = sum((v["measured_values"] or {}).get("penalty", 0) for v in validations)
     confidence = max(0, 100 - penalty)
     for item in items:
-        item["checks"] = _item_checks(item, validations, confidence, lang_of(values))
+        item["checks"] = _item_checks(item, validations, confidence, lang_of(values), guide=item.get("checks"))
     result["verification"] = {
         "status": "ready", "confidence": confidence,
         "issues": [
