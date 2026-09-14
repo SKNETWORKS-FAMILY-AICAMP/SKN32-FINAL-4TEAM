@@ -176,19 +176,8 @@ def get_summary(product_key: str, lang: str = "ko") -> ReviewSummaryOut:
         product_manipulation_risk=risk_out, synthetic_demo=synthetic)
 
 
-_FALLBACK_REVIEW_MIN, _FALLBACK_REVIEW_SPAN = 7, 7  # 관측 없는 상품에 붙일 소량 표시값 (7~13건)
-
-
-def _fallback_review_count(product_key: str) -> int:
-    """관계·행동 축 산출물에 없는 상품에 붙일 소량 표시용 건수(7~13, 데모 전용).
-
-    catalog_repo._mock_price와 같은 해시 시드 방식 — product_key마다 항상 같은 값이 나와서
-    새로고침할 때마다 숫자가 바뀌는 것처럼 보이지 않는다. 실측이 아니므로 일부러 작은 값만
-    준다 — 큰 수를 주면 관측값(수백~수천 건)과 구분이 안 돼 진짜처럼 보인다.
-    """
-    import hashlib
-    seed = int(hashlib.sha256((product_key + "review_count").encode("utf-8")).hexdigest()[:8], 16)
-    return _FALLBACK_REVIEW_MIN + seed % _FALLBACK_REVIEW_SPAN
+# 관측 산출물에 없는 상품의 리뷰 수는 모른다 — 전에는 해시 시드로 7~13 을 붙였는데(데모용 표시값) 응답에
+# 실측/표시용 구분이 없어 프론트가 못 걸렀다. 모르면 None (docs/decisions/0003).
 
 
 def _review_signals(product_key: str) -> dict | None:
@@ -262,9 +251,8 @@ def review_brief(product_key: str, lang: str = "ko") -> dict | None:
     """추천 결과/리포트 화면의 미니 리뷰 배지 — total_count + 구조화된 신호(signals) + 클렌징 요약 + 유저용 문장(plain).
 
     excluded_ratio·rating_refined(정제 전/후 비교)는 판정기가 없어 못 낸다(docs/decisions/0001).
-    관계·행동 축 산출물(실측)에 상품이 없으면, 화면이 전부 "정보 없음"으로 비어 보이지 않게
-    소량(7~13건)의 표시용 건수를 붙인다 — docs/decisions/0001과 달리 이건 진위 판정이 아니라
-    단순 노출용 개수라 실측과 섞이는 문제가 없다. 아예 카탈로그에 없는 product_key만 None.
+    total_count 도 관측 산출물에 상품이 없으면 모르는 값이라 None — 프론트가 "리뷰 정보 없음" 으로 그린다.
+    plain 은 그 경우에도 사유 한 줄(reason)을 낸다.
 
     lang은 추천을 만든 언어(lang_of(values))를 그대로 받는다 — 다른 결과 문장과 같은 규칙
     (docs/개발요청_리뷰클렌징_안내문_언어.md). 그 언어의 안내문이 없으면 다른 언어로 대신
@@ -274,10 +262,9 @@ def review_brief(product_key: str, lang: str = "ko") -> dict | None:
     try:
         summary = get_summary(product_key)
     except NotFound:
-        return {"total_count": _fallback_review_count(product_key), "excluded_ratio": None,
-                "rating_refined": None, "signals": None, "cleansing_summary": _cleansing_summary(lang), "plain": plain}
-    total = summary.total_count or _fallback_review_count(product_key)
-    return {"total_count": total, "excluded_ratio": None, "rating_refined": None,
+        return {"total_count": None, "excluded_ratio": None, "rating_refined": None,
+                "signals": None, "cleansing_summary": _cleansing_summary(lang), "plain": plain}
+    return {"total_count": summary.total_count or None, "excluded_ratio": None, "rating_refined": None,
             "signals": _review_signals(product_key), "cleansing_summary": _cleansing_summary(lang), "plain": plain}
 
 

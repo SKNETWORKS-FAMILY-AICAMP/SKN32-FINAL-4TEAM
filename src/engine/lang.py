@@ -10,7 +10,7 @@ _LLM_LANGUAGE_LINE = {
     "en": "\n\nOutput language: English. Write plain sentences (no labels, headings or bullet prefixes). "
           "Keep numbers, units and slot/part names exactly as given — do not translate slot names such as 메인보드 or 저장장치, "
           "do not convert amounts — copy every amount exactly as written in the input (its currency symbol included). "
-          "Say 'confidence 94' exactly as given — never the word 'score'. "
+          "Never use the word 'score' and do not mention any verification score or confidence. "
           "No evaluative words (excellent, powerful, best, perfect, outstanding, strong); state facts only.",
 }
 

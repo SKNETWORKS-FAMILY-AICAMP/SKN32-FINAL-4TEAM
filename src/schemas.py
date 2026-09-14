@@ -230,7 +230,7 @@ class ReviewPlainOut(BaseModel):
 
 
 class ReviewBriefOut(BaseModel):
-    total_count: int
+    total_count: int | None = None       # 관측 산출물에 없는 상품은 모르는 값 — None (표시용 추정값을 넣지 않는다)
     # 정제 전/후 비교는 판정기가 없어 못 낸다(docs/decisions/0001) — 항상 null.
     excluded_ratio: float | None = None
     rating_refined: float | None = None

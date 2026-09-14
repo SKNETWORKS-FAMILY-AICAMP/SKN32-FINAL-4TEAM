@@ -162,3 +162,5 @@ def test_review_brief_carries_plain_medians_and_footer(stores):
     assert "판단하지 않아요" in review_service.review_brief("flag-part", "ko")["cleansing_summary"]["text"]
     thin = review_service.review_brief("thin-part", "ko")
     assert thin["signals"] is None and thin["plain"]["reason"] == "below_threshold"
+    assert thin["total_count"] is None          # 모르는 리뷰 수에 표시용 7~13 을 넣지 않는다(docs/decisions/0003)
+    assert b["total_count"] == 37
