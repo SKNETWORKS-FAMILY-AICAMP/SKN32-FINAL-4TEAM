@@ -230,6 +230,28 @@ def _next_question(cat_def: dict, values: dict) -> dict | None:
     return None
 
 
+def _canonicalize_answer_values(question: dict, selected: list) -> list:
+    """질문 선택지를 API에 정의된 원래 타입으로 되돌린다.
+
+    HTML의 ``data-*`` 속성은 숫자와 불리언도 문자열로 만든다. ``values``가 있는
+    선택지는 표시 라벨이나 문자열화된 값을 받아도 YAML의 원래 값으로 정규화한다.
+    """
+    options = question.get("options") or []
+    values = question.get("values") or []
+    if not values:
+        return list(selected)
+
+    normalized = []
+    for item in selected:
+        canonical = next(
+            (value for option, value in zip(options, values)
+             if item == option or item == value or str(item).casefold() == str(value).casefold()),
+            item,
+        )
+        normalized.append(canonical)
+    return normalized
+
+
 def _messages_out(rows: list[dict]) -> list[dict]:
     return [{"id": str(r["id"]), "role": r["role"], "text": r["content"], "created_at": r["created_at"].isoformat()} for r in rows]
 
@@ -367,6 +389,8 @@ def handle_answer(conn, list_id: UUID, question_id: str, selected: list, princip
     if q is None:
         raise ValidationFailed("알 수 없는 질문입니다.", field="question_id")
 
+    raw_selected = list(selected)
+    selected = _canonicalize_answer_values(q, raw_selected)
     key = q["maps_to"]
     none_opt = q.get("none_option")
     if none_opt and list(selected) == [none_opt]:
@@ -377,7 +401,7 @@ def handle_answer(conn, list_id: UUID, question_id: str, selected: list, princip
         value = selected[0] if selected else None
 
     convo = ConversationRepo(conn)
-    user_text = ", ".join(str(s) for s in selected) if selected else "(선택 없음)"
+    user_text = ", ".join(str(s) for s in raw_selected) if raw_selected else "(선택 없음)"
     msg_id = convo.add_message(current["conversation_id"], "user", user_text)
     if category == "baby":
         value = _validate_baby_value(cat_def, key, value, mode=values.get("mode"), none_token=none_opt)
