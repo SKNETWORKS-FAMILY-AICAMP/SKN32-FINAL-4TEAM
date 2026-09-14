@@ -94,6 +94,32 @@ def test_op02_infeasible_reports_shortfall_not_removal_or_deferral():
     assert decision.items == []
 
 
+def test_op02_unresolved_sibling_keeps_safe_affordable_recommendation():
+    """A missing safety-approved candidate blocks confirmation, not all results.
+
+    The result screen must retain a valid sibling item so users can see what was
+    found and why the basket is incomplete; only a full candidate set that cannot
+    fit the budget should produce an empty auto-selected cart (the test above).
+    """
+    requirements = [req("r-stroller", "stroller"), req("r-seat", "car_seat")]
+    candidates = [
+        cand("stroller", "r-stroller", "stroller", 90),
+        cand("seat-unknown", "r-seat", "car_seat", 80),
+    ]
+    checks = [check("stroller"), check("seat-unknown", eligibility="unknown", selection_allowed=False)]
+
+    _, decision = _optimize(requirements, candidates, checks, budget_max=100)
+
+    assert decision.feasible is False
+    assert {item.candidate_id for item in decision.items if item.selected} == {"stroller"}
+    assert decision.totals["selected_price"] == 90
+    assert decision.missing_requirements == [{
+        "requirement_id": "r-seat", "slot_key": "car_seat", "required_qty": 1,
+        "cheapest_feasible_subtotal": None, "shortfall": None,
+        "reason": "no_selectable_candidate",
+    }]
+
+
 # ── OP03 — owned/purchased items excluded from the charged total ──────────────
 def test_op03_owned_and_purchased_excluded_from_charge():
     requirements = [req("r-stroller", "stroller", qty=1), req("r-bottle", "bottle", qty=1)]

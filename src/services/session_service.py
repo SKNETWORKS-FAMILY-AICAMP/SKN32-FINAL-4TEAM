@@ -107,7 +107,7 @@ def _owned(repo: PlanRepo, list_id: UUID, principal: Principal) -> dict:
     revision = repo.get_current_revision(list_id)
     if revision is None:
         raise NotFound("목록을 찾을 수 없습니다.")
-    user_ok = principal.user_id is not None and revision["user_id"] == principal.user_id
+    user_ok = principal.user_id is not None and revision["owner_user_id"] == principal.user_id
     guest_ok = principal.browser_token is not None and revision["guest_session_hash"] == _token_hash(principal.browser_token)
     if not (user_ok or guest_ok):
         raise NotFound("목록을 찾을 수 없습니다.")
@@ -173,7 +173,13 @@ def _field_value(meta: dict, values: dict, locale: Locale = "ko-KR"):
     if meta.get("computed"):
         raw = values.get(meta["computed"])
         months = raw.get("value") if isinstance(raw, dict) else raw
-        exact = bool(raw.get("exact", True)) if isinstance(raw, dict) else True
+        # Chip answers are persisted as {value: representative_month, exact:false}.
+        # Accept the older scalar form as well as that structured representation.
+        if isinstance(months, dict):
+            exact = bool(months.get("exact", True))
+            months = months.get("value")
+        else:
+            exact = bool(raw.get("exact", True)) if isinstance(raw, dict) else True
         return {"months": months, "label": _age_stage_label(months, locale), "exact": exact}
     return values.get(meta["key"])
 
@@ -236,6 +242,9 @@ def _build_fields(cat_def: dict, values: dict, locale: Locale = "ko-KR") -> list
         raw = values.get(meta["computed"]) if meta.get("computed") else value
         source_key = meta.get("computed") or meta["key"]
         status = "confirmed" if source_key in values and raw is not None else "missing"
+        age_answer = raw.get("value") if meta.get("computed") and isinstance(raw, dict) else raw
+        if meta.get("computed") and isinstance(age_answer, dict) and age_answer.get("exact") is False:
+            status = "assumed"
         out.append({
             "key": meta["key"], "label": _localized(meta, "label", locale), "value": value,
             "display": _display(meta, value, locale, _option_label_map(cat_def, meta["key"], locale)),
@@ -376,7 +385,11 @@ def choose_category(
     mode = mode or cat_def["modes"][0]
     values, previous_category = _current_values(repo, current["id"])
     previous_mode = values.get("mode")
-    repo.bind_domain_version(current["id"], category)
+    # A draft pins its domain version on first category selection.  Re-selecting
+    # the same category (for example to change mode) must not silently adopt a
+    # version published after the conversation started.
+    if previous_category != category:
+        repo.bind_domain_version(current["id"], category)
     repo.upsert_condition(current["id"], "category", {"value": category}, "explicit")
     repo.upsert_condition(current["id"], "mode", {"value": mode}, "explicit")
     if previous_category is not None and previous_category != category:
@@ -523,6 +536,10 @@ def handle_answer(
     msg_id = convo.add_message(current["conversation_id"], "user", user_text)
     if category == "baby":
         value = _validate_baby_value(cat_def, key, value, mode=values.get("mode"), none_token=none_opt)
+        # Question chips represent a range, not a user-entered exact age.  Preserve
+        # that distinction for eligibility and UI disclosure across reloads.
+        if key == "age_months":
+            value = {"value": value, "exact": False}
     repo.upsert_condition(current["id"], key, {"value": value}, "explicit", msg_id)
     values[key] = value
 
@@ -576,6 +593,9 @@ def attach_spec_file(
     locale = normalize_locale(locale)
     repo = PlanRepo(conn)
     current = _owned(repo, list_id, principal)
+    values, category = _current_values(repo, current["id"])
+    if category != "computer" or values.get("mode") != "upgrade":
+        raise ValidationFailed("사양 파일은 PC 업그레이드에서만 첨부할 수 있습니다.", code="spec_file_not_accepted")
     ext = file_name.rsplit(".", 1)[-1].lower() if "." in file_name else ""
     if ext not in _ALLOWED_SPEC_EXTENSIONS:
         raise ValidationFailed("지원하지 않는 파일 형식입니다.", field="file_name", code="unsupported_file")

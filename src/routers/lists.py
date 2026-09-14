@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Header
 
 from src import schemas
 from src.auth.deps import Principal, optional_principal
@@ -38,14 +38,15 @@ def delete(list_id: UUID, principal: Principal = Depends(optional_principal)) ->
 
 @router.post("/{list_id}/confirm", response_model=schemas.ReportOut)
 def confirm(
-    list_id: UUID, body: schemas.ConfirmIn, principal: Principal = Depends(optional_principal)
+    list_id: UUID, body: schemas.ConfirmIn, if_match: int | None = Header(default=None, alias="If-Match"),
+    principal: Principal = Depends(optional_principal)
 ) -> schemas.ReportOut:
     """draft → confirmed. 비로그인이면 401 (프론트가 로그인 모달)."""
     with get_conn() as conn:
         report = list_service.confirm(
             conn, list_id, principal,
             name=body.name, planned_purchase_at=body.planned_purchase_at,
-            target_amount=body.target_amount, memo=body.memo,
+            target_amount=body.target_amount, memo=body.memo, if_match=if_match,
         )
     return schemas.ReportOut(**report)
 

@@ -19,6 +19,16 @@ class EngineRepo(Repo):
         self._exec("UPDATE engine.recommendation_run SET status=%s, completed_at=now(), updated_at=now() WHERE id=%s", (terminal, run_id))
         if terminal == "stale": raise Conflict("추천 도중 조건이 변경되었습니다.")
     def add_candidate(self, run_id: UUID, requirement_id: UUID, variant_id: UUID, *, result: str, score=None, score_method_version: str | None = None, reason: str | None = None, offer_observation_id: UUID | None = None) -> UUID:
+        # PostgreSQL has individual FKs for run and requirement, but cannot express
+        # that they belong to the same revision with those columns alone.
+        scope = self._one(
+            """SELECT 1 FROM engine.recommendation_run run
+               JOIN planning.requirement req ON req.id=%s
+               WHERE run.id=%s AND req.revision_id=run.revision_id""",
+            (requirement_id, run_id),
+        )
+        if scope is None:
+            raise ValueError("cross_revision_candidate_rejected")
         reason_status = "ready" if reason is not None else "pending"
         row=self._one("""INSERT INTO engine.recommendation_candidate (run_id,requirement_id,variant_id,offer_observation_id,result,score,score_method_version,reason,reason_status)
         VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id""",(run_id,requirement_id,variant_id,offer_observation_id,result,score,score_method_version,reason,reason_status)); return row["id"]
@@ -30,9 +40,20 @@ class EngineRepo(Repo):
     def fail_candidate_reason(self, candidate_id: UUID) -> None:
         """[5] 실패 — reason은 NULL로 남기고(제약상 ready만 값을 가짐) 상태만 failed로."""
         self._exec("UPDATE engine.recommendation_candidate SET reason_status='failed' WHERE id=%s",(candidate_id,))
+    def update_candidate_checks(self, candidate_id: UUID, checks: str) -> None:
+        """부품 사용 가이드 RAG 검색 결과 — "구매 전 확인" 문장을 채운다."""
+        self._exec("UPDATE engine.recommendation_candidate SET checks=%s, checks_status='ready' WHERE id=%s",(checks,candidate_id))
+    def fail_candidate_checks(self, candidate_id: UUID) -> None:
+        """가이드 검색/임베딩 실패 — checks는 NULL로 남기고 상태만 failed로."""
+        self._exec("UPDATE engine.recommendation_candidate SET checks_status='failed' WHERE id=%s",(candidate_id,))
     def add_validation(self, run_id: UUID, *, rule_key: str, rule_version: str, executor_version: str, status: str, severity: str, measured_values: dict, threshold: dict, message: str, checked_at) -> UUID:
         row=self._one("""INSERT INTO engine.validation_result (run_id,rule_key,rule_version,executor_version,status,severity,measured_values,threshold,message,checked_at)
         VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id""",(run_id,rule_key,rule_version,executor_version,status,severity,Jsonb(measured_values),Jsonb(threshold),message,checked_at)); return row["id"]
+    def set_candidate_result(self, candidate_id: UUID, *, result: str, score=None) -> None:
+        if result not in {"pending", "passed", "rejected", "selected"}:
+            raise ValueError("invalid_candidate_result")
+        self._exec("UPDATE engine.recommendation_candidate SET result=%s, score=%s, score_method_version=%s WHERE id=%s",
+                   (result, score, "baby-v1" if score is not None else None, candidate_id))
     def link_validation_target(self, validation_result_id: UUID, *, requirement_id: UUID | None = None, purchase_line_id: UUID | None = None, candidate_id: UUID | None = None) -> UUID:
         row=self._one("INSERT INTO engine.validation_target (validation_result_id,requirement_id,purchase_line_id,candidate_id) VALUES (%s,%s,%s,%s) RETURNING id",(validation_result_id,requirement_id,purchase_line_id,candidate_id)); return row["id"]
     def link_validation_evidence(self, validation_result_id: UUID, evidence_id: UUID) -> None:
@@ -98,3 +119,14 @@ class EngineRepo(Repo):
             "score=NULL, score_method_version=NULL, reason=NULL, reason_status='pending' WHERE id=%s",
             (variant_id, offer_observation_id, candidate_id),
         )
+
+
+def persist_candidate_check(conn, run_id: UUID, candidate_id: UUID, check, _context) -> None:
+    """Persist P3 checks for a real candidate row (shared by pipeline and tests)."""
+    from datetime import datetime, timezone
+    repo = EngineRepo(conn)
+    for issue in check.issues:
+        repo.add_validation(run_id, rule_key=issue["rule_key"], rule_version=issue.get("rule_version", "v1"),
+                            executor_version="baby-v1", status=issue["status"], severity=issue["severity"],
+                            measured_values=issue.get("measured") or {}, threshold=issue.get("threshold") or {},
+                            message=issue.get("reason") or issue["rule_key"], checked_at=datetime.now(timezone.utc))

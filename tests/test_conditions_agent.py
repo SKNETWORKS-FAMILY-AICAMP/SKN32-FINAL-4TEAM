@@ -27,6 +27,8 @@ def _draft(category: str, values: dict | None = None) -> ca.ConditionDraft:
     ("1500000", 1_500_000), ("1,500,000", 1_500_000), ("1,500,000 won", 1_500_000),
     ("150만원", 1_500_000), ("1.5억", 150_000_000), ("2.5 million won", 2_500_000),
     ("300k", 300_000), ("about 2 million", 2_000_000),
+    ("300만", 3_000_000), ("300만원", 3_000_000), ("3000000", 3_000_000), ("3,000,000", 3_000_000),
+    ("삼백만원", 3_000_000), ("백만원", 1_000_000), ("이천오백만원", 25_000_000), ("일억", 100_000_000),
 ])
 def test_amount_parsing(raw, expected):
     assert ca._parse_amount(raw) == expected
@@ -67,6 +69,30 @@ def test_nullable_int_clears_and_bool_parses():
     assert d.patches["budget_max"] is None
     d.set("noise_sensitive", "yes")
     assert d.patches["noise_sensitive"] is True
+
+
+@pytest.mark.parametrize("raw, expected", [
+    ("1000000", 1_000_000), ("50000000", 50_000_000), ("100만원", 1_000_000),
+    ("$1000", 1_000), ("1000만원", 10_000_000),
+    ("300만", 3_000_000), ("300만원", 3_000_000), ("3000000", 3_000_000), ("3,000,000", 3_000_000),
+    ("삼백만원", 3_000_000),
+])
+def test_money_type_parses_like_int(raw, expected):
+    # baby.yaml 의 budget_max 는 type: money — int 전용 분기만 있으면 항상 실패했었다
+    d = _draft("baby")
+    out = d.set("budget_max", raw)
+    assert not out.startswith("오류"), out
+    assert d.patches["budget_max"] == expected
+
+
+def test_money_type_nullable_clears_and_rejects_non_positive():
+    d = _draft("baby")
+    d.set("budget_max", "null")
+    assert d.patches["budget_max"] is None
+    msg = d.set("budget_max", "0")
+    assert msg.startswith("오류") and d.patches["budget_max"] is None   # 실패한 set 은 이전 값을 안 건드린다
+    msg = d.set("budget_max", "-100")
+    assert msg.startswith("오류")
 
 
 def test_extra_appends_without_duplicates():

@@ -331,8 +331,12 @@ def optimize_baby(
                     "search_seconds": search_seconds, "mandatory_now_requirements": len(solvable),
                     "bounded_requirements": bounded_requirements}
 
-    if unresolved or best["assignment"] is None:
+    if best["assignment"] is None:
         # infeasible — no automatic deferral of mandatory-now items (ALGORITHM step 5)
+        # A budget-infeasible combination must not leave a partial cart that looks
+        # purchasable.  In contrast, an *unresolved* sibling requirement is handled
+        # below: the independently valid, in-budget assignments remain useful
+        # recommendations while that sibling is reported as missing.
         for r, q in solvable:
             cheapest_cand, cheapest_cnt = min(pools[r.id], key=lambda sc: (int(sc[0].price * sc[1]), sc[0].tie_break))
             missing_requirements.append({
@@ -415,7 +419,12 @@ def optimize_baby(
         "over_budget": budget_max is not None and selected_price > budget_max,
         "soon_price": soon_price, "later_price": later_price,
     }
-    return BasketDecision(items=items, totals=totals, missing_requirements=[], feasible=True,
+    # A missing safety-approved candidate must still prevent confirmation, but it
+    # must not erase other safe, affordable recommendations.  This lets the result
+    # screen show the available items and clearly surface the unmet requirement
+    # instead of presenting an empty cart as if no product search occurred.
+    return BasketDecision(items=items, totals=totals, missing_requirements=missing_requirements,
+                          feasible=not missing_requirements,
                           alternatives=alternatives)
 
 

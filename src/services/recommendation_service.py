@@ -134,6 +134,7 @@ def execute_recommendation(revision_id: UUID, run_id: UUID) -> None:
     from src.repo.plan_repo import PlanRepo
     from src.repo.product_repo import ProductRepo
     from src.repo.review_repo import is_obs_flag, parse_obs_flag
+    from src.rag.care_guides import search_care_guide
     from src.services import review_service
 
     noop = lambda _m: None  # noqa: E731
@@ -244,6 +245,16 @@ def execute_recommendation(revision_id: UUID, run_id: UUID) -> None:
                 if candidate_id is not None and it.reason is not None:
                     erepo.update_candidate_reason(candidate_id, it.reason)
 
+            # "구매 전 확인"(checks) — 부품 사용 가이드 RAG 검색. 슬롯 고정 매핑이 아니라
+            # 품목명까지 넣은 질의로 임베딩 유사도 검색을 실제로 돌린다(src/rag/care_guides.py).
+            for it in build.items:
+                candidate_id = candidate_id_by_slot.get(it.slot)
+                if candidate_id is None:
+                    continue
+                hits = search_care_guide(f"{it.slot} {it.name} 사용 시 확인할 점", k=1)
+                if hits:
+                    erepo.update_candidate_checks(candidate_id, hits[0]["text"])
+
             # [5] 의 리뷰 관측(review_line_by_slot)·확인 필요(caveats)를 저장 경로에 싣는다.
             # 여기서 안 실으면 [3-B] 감점은 되는데 "왜" 가 화면에 안 간다 (review_service 주석 참고).
             if response_locale == "en-US":
@@ -297,6 +308,7 @@ def execute_recommendation(revision_id: UUID, run_id: UUID) -> None:
             fail_erepo = EngineRepo(fail_conn)
             for candidate_id in candidate_id_by_slot.values():
                 fail_erepo.fail_candidate_reason(candidate_id)
+                fail_erepo.fail_candidate_checks(candidate_id)
             fail_erepo.fail_explanation(run_id)
 
 
@@ -392,15 +404,37 @@ def _execute_baby_recommendation(conn, prepo, erepo, revision_id: UUID, run_id: 
         owned_items=[], budget_max=conditions.get("budget_max"), profile=profile,
     )
 
-    selected_candidate_ids = {it.candidate_id for it in decision.items if it.candidate_id and it.selected}
+    # `recommendation_candidate` stores every candidate considered for a requirement,
+    # while its `selected` column is the actual result-screen basket state.  The
+    # database default is true for backwards-compatible manual additions, so leaving
+    # non-winning candidates untouched makes every alternative appear in the cart.
+    # Persist the optimizer's complete decision, including explicit false values.
+    decision_by_candidate_id = {
+        item.candidate_id: item for item in decision.items if item.candidate_id
+    }
+    selected_candidate_ids = {
+        candidate_id for candidate_id, item in decision_by_candidate_id.items()
+        if item.selected
+    }
     for _o, db_cand in db_candidates:
-        result = "selected" if db_cand.candidate_id in selected_candidate_ids else "rejected"
+        item = decision_by_candidate_id.get(db_cand.candidate_id)
+        selected = bool(item and item.selected)
+        result = "selected" if selected else "rejected"
         score = next((s.score for s in ranked.by_requirement.get(db_cand.requirement_id, [])
                      if s.candidate_id == db_cand.candidate_id), None)
         erepo._exec(
             "UPDATE engine.recommendation_candidate "
             "SET result=%s, score=%s, score_method_version='baby-v1' WHERE id=%s",
             (result, score, UUID(db_cand.candidate_id)),
+        )
+        # Retain optimizer-provided quantity/timing for a proposed deferred item;
+        # candidates outside the decision keep harmless defaults but are explicitly
+        # excluded from the basket.
+        erepo.update_candidate_state(
+            UUID(db_cand.candidate_id),
+            selected=selected,
+            qty=int(item.qty) if item and item.qty >= 1 else None,
+            timing=item.timing if item else None,
         )
 
     headline = "예산 안에서 필요한 품목을 담았어요." if decision.feasible else "예산 안에서 채울 수 없는 필수 품목이 있어요."
@@ -484,7 +518,8 @@ def get_stored_result(conn, revision_id: UUID) -> dict | None:
               "failed": "failed", "stale": "failed"}.get(run["status"], run["status"])
 
     result: dict = {
-        "list_id": str(revision["plan_id"]), "run_id": str(run["id"]), "status": status,
+        "list_id": str(revision["plan_id"]), "revision_id": str(revision_id),
+        "lock_version": revision["lock_version"], "run_id": str(run["id"]), "status": status,
         "content_language": content_language,
         "progress": [
             {"step": "conditions", "label": "Organize conditions" if content_language == "en-US" else "조건 정리", "status": "done"},
@@ -528,7 +563,7 @@ def get_stored_result(conn, revision_id: UUID) -> dict | None:
             "qty": row["qty"], "selected": row["selected"], "timing": row["timing"], "budget_share": None,
             "review": review_service.review_brief(row["product_key"]),
             "reason": {"status": row["reason_status"], "text": row["reason"]},
-            "checks": {"status": "pending", "text": None},
+            "checks": {"status": row["checks_status"], "text": row["checks"]},
             "alternatives_count": alternatives_count,
         })
     selected_price = sum(i["price"] * i["qty"] for i in items if i["selected"])
