@@ -35,6 +35,16 @@ _BANNED_ENGLISH_VERDICT = re.compile(
     r"suitable|unsuitable|compliant|non[- ]compliant)\b",
     re.IGNORECASE,
 )
+_EN_AXIS_LABELS = {
+    "예산": "Budget", "가격": "Price", "성능": "Performance", "파워": "Power",
+    "전원": "Power", "호환성": "Compatibility", "밸런스": "Balance",
+    "호환여유": "Compatibility headroom", "리뷰 진위 (담당 팀원)": "Review authenticity",
+    "RAG 근거 (담당 팀원)": "RAG evidence",
+}
+
+
+def _axis_label(axis: str, locale: Locale) -> str:
+    return _EN_AXIS_LABELS.get(axis, axis) if locale == "en-US" else axis
 
 
 def _contains_verdict(text: str) -> bool:
@@ -71,8 +81,10 @@ def _issue_sentence(
     판정어가 섞이면 1회 재생성하고, 그래도 섞이거나 호출이 실패하면 규칙 템플릿으로
     내려간다. 문장화 실패는 신뢰도 점수에 영향을 주지 않는다 (기획서 §10-11 E4).
     """
-    snippets = "\n".join(f"- {e.get('text', '')}" for e in evidence) or "- (없음)"
-    prompt = f"축: {axis}\n관측값: {tool_result or '(기록 없음)'}\n근거:\n{snippets}"
+    snippets = "\n".join(f"- {e.get('text', '')}" for e in evidence) or ("- (none)" if locale == "en-US" else "- (없음)")
+    prompt = (f"Axis: {axis}\nObserved value: {tool_result or '(not recorded)'}\nEvidence:\n{snippets}"
+              if locale == "en-US"
+              else f"축: {axis}\n관측값: {tool_result or '(기록 없음)'}\n근거:\n{snippets}")
     for _attempt in range(2):
         try:
             text = (call_llm(prompt, system=verify_issue_system(locale)).get("text") or "").strip()
@@ -102,9 +114,10 @@ def verify_set(
 
     issues: list[Issue] = []
     for iss in rspec.get("issues", []):
-        axis = iss["axis"]
+        source_axis = iss["axis"]
+        axis = _axis_label(source_axis, locale)
         tool_result = iss.get("tool_result", "")
-        ev = evidence_search(domain, f"{axis} 조합 이슈", filters={"axis": axis})
+        ev = evidence_search(domain, f"{source_axis} 조합 이슈", filters={"axis": source_axis})
         issues.append(Issue(
             axis=axis,
             text=_issue_sentence(axis, tool_result, ev, locale=locale),
@@ -150,6 +163,7 @@ def verify_build(
     issues: list[Issue] = []
     penalty = 0
     for axis, state in (build.link_check or {}).items():
+        axis = _axis_label(axis, locale)
         s = str(state).lower()
         if "fail" in s or "미충족" in s or "over" in s:
             issues.append(Issue(axis=axis, text=_issue_sentence(axis, state, [], locale=locale),
@@ -165,17 +179,19 @@ def verify_build(
     if used_pct is None and budget.get("max"):
         used_pct = round(budget.get("used", 0) / budget["max"] * 100, 1)
     if used_pct and used_pct > 110:
-        issues.append(Issue(axis="예산", text=_issue_sentence("예산", f"{used_pct}%", [], locale=locale),
+        budget_axis = _axis_label("예산", locale)
+        issues.append(Issue(axis=budget_axis, text=_issue_sentence(budget_axis, f"{used_pct}%", [], locale=locale),
                             tool_result=f"{used_pct}%", judge="초과", penalty=15))
         penalty += 15
 
-    gray = ["리뷰 진위 (담당 팀원)", "RAG 근거 (담당 팀원)"]
+    gray = [_axis_label("리뷰 진위 (담당 팀원)", locale),
+            _axis_label("RAG 근거 (담당 팀원)", locale)]
     confidence = max(0, 100 - penalty)
     passed = confidence >= CONFIDENCE_THRESHOLD
     log(f"      신뢰도 {confidence} · 회색축 {gray} · {'통과' if passed else '기준 미달'}")
 
     tgt = VerificationTarget(
-        subject="세트 전체", confidence=confidence, passed=passed, rounds=1,
+        subject="Entire build" if locale == "en-US" else "세트 전체",
         issues=issues, gray_axes=gray,
         transcript=[{"round": 1, "issues": [i.model_dump() for i in issues]}],
     )

@@ -315,6 +315,8 @@ def _localized_assistant_message(text: str, cat_def: dict, locale: Locale) -> st
         return text
     if text == _ALL_SET:
         return _ALL_SET_EN
+    if text == "조건을 초기화했어요.":
+        return "Conditions have been reset."
     for question in cat_def.get("question_sets", []):
         if text == question.get("label"):
             return question.get("label_en", text)
@@ -327,7 +329,7 @@ def _messages_out(rows: list[dict], cat_def: dict | None = None, locale: Locale 
             "id": str(row["id"]),
             "role": row["role"],
             "text": _localized_assistant_message(row["content"], cat_def or {}, locale)
-            if row["role"] == "assistant" else row["content"],
+            if row["role"] in {"assistant", "system"} else row["content"],
             "created_at": row["created_at"].isoformat(),
         }
         for row in rows
