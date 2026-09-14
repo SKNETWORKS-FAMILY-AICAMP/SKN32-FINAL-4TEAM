@@ -361,6 +361,7 @@ def run_turn(category: str, cat_def: dict, values: dict, history: list[dict], te
     물을지는 에이전트가 정하지 않는다. 도구 결과마다 다시 계산해 모델에 돌려준다.
     """
     from strands import Agent
+    from strands.tools.executors import SequentialToolExecutor
 
     draft = ConditionDraft(category=category, cat_def=cat_def, values=dict(values),
                            missing_fn=missing_fn, next_question_fn=next_question_fn)
@@ -369,6 +370,7 @@ def run_turn(category: str, cat_def: dict, values: dict, history: list[dict], te
         system_prompt=system_prompt(draft, text, history),
         tools=make_tools(draft),
         messages=_history(history),
+        tool_executor=SequentialToolExecutor(),   # 도구들이 한 draft 를 순서대로 고친다
         callback_handler=None,          # 기본 핸들러는 stdout 에 스트리밍한다
     )
     result = agent(text)

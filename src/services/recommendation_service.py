@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 from datetime import datetime, timezone
 from uuid import UUID
 
@@ -15,6 +16,8 @@ from src.categories import load_category
 from src.dto import PipelineResult, Slots
 from src.errors import Conflict, NotFound, ValidationFailed
 from src.pipeline import run_pipeline as _run_scenario
+
+log = logging.getLogger(__name__)
 
 
 def run_from_scenario(scenario_name: str) -> PipelineResult:
@@ -407,6 +410,14 @@ def swap_item(conn, revision_id: UUID, item_id: UUID, candidate_id: UUID) -> dic
         raise NotFound("해당 후보를 찾을 수 없습니다.")
     erepo.update_candidate_variant(item_id, variant_id=candidate_id,
                                     offer_observation_id=target.get("offer_observation_id"))
+    # update_candidate_variant 가 reason 을 pending 으로 되돌리는데 다시 채우는 경로가 없어서 화면의
+    # "추천 이유" 가 영원히 "정리하는 중…" 이었다. [5] 를 다시 돌릴 수 없으니(rank·build 는 메모리에만
+    # 있었다) 코드가 아는 사실만으로 한 줄 적는다 — 판단이 아니라 교체 기록이다.
+    old_price = int(current["price"]) if current["price"] is not None else 0
+    new_price = int(target["price"]) if target.get("price") is not None else 0
+    erepo.update_candidate_reason(item_id, (
+        f"사용자 요청으로 교체한 부품입니다 — 자동 추천은 '{current['product_name']}'({old_price:,}원)였고 "
+        f"이 후보는 {new_price - old_price:+,}원입니다. 순위·검증 점수는 교체 전 구성 기준입니다."))
     return get_stored_result(conn, revision_id)
 
 
@@ -433,8 +444,22 @@ def _match_slot(text: str, known_slots: set[str]) -> str | None:
 
 
 def handle_result_message(conn, revision_id: UUID, text: str) -> dict:
-    """규칙 기반 결과 화면 채팅 — "그래픽카드를 더 저렴한 걸로" 같은 요청만 해석한다.
+    """결과 화면 채팅. 에이전트(RESULT_AGENT=1)가 있으면 도구 호출로 후보 조회·교체·담기/빼기·근거 설명을
+    처리하고, 없거나 실패하면 아래 규칙 경로 — "그래픽카드를 더 저렴한 걸로" 같은 요청만 해석하고
     슬롯·방향을 못 찾으면 아무것도 바꾸지 않고 이해하지 못했다는 답만 돌려준다."""
+    from src.agent import result_agent
+    if result_agent.available():
+        _require_done_run(conn, revision_id)
+        try:
+            turn = result_agent.run_turn(conn, revision_id, get_stored_result(conn, revision_id), text)
+            log.info("result agent [%s]: %s", revision_id, " | ".join(turn.trace) or "(도구 호출 없음)")
+            return {"reply": turn.reply, "result": turn.result}
+        except Exception as exc:  # noqa: BLE001 — 모델·네트워크 오류는 이번 턴만 규칙으로
+            log.warning("result agent failed, falling back to rules: %s", exc)
+            import psycopg
+            if isinstance(exc, psycopg.Error):
+                conn.rollback()        # 실패한 트랜잭션 위에서는 규칙 경로의 SQL 도 전부 거부된다
+
     erepo, run = _require_done_run(conn, revision_id)
     rows = erepo.get_candidates(run["id"])
     known_slots = {r["slot"] for r in rows}
@@ -463,8 +488,8 @@ def handle_result_message(conn, revision_id: UUID, text: str) -> dict:
         return {"reply": f"지금 선택된 {slot}가 이미 {state}. 더 {'저렴한' if cheaper else '좋은'} 후보가 없어요.",
                 "result": get_stored_result(conn, revision_id)}
     target = min(candidates, key=lambda r: r["price"]) if cheaper else max(candidates, key=lambda r: r["price"])
-    erepo.update_candidate_variant(current["id"], variant_id=target["variant_id"],
-                                    offer_observation_id=target.get("offer_observation_id"))
+    # swap_item 을 거쳐야 교체 기록 reason 이 같이 적힌다 (직접 update_candidate_variant 하면 pending 으로 남는다)
+    result = swap_item(conn, revision_id, current["id"], target["variant_id"])
     direction = "더 저렴한" if cheaper else "더 좋은"
     reply = f"{slot}를 {direction} '{target['name']}'(으)로 바꿨어요."
-    return {"reply": reply, "result": get_stored_result(conn, revision_id)}
+    return {"reply": reply, "result": result}

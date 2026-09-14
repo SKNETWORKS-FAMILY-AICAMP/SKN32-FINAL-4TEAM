@@ -11,6 +11,7 @@
 | `src/engine/stage3c_verify.py` | [3-C] 검증 쟁점 문장 |
 | `src/engine/stage5_explain.py` | [5] 추천 설명 문장 |
 | `src/agent/conditions_agent.py` | 조건 대화 에이전트 (Strands Agents SDK) — 2026-09-14 스파이크, [[docs/조건대화_에이전트_strands.md]] |
+| `src/agent/result_agent.py` | 결과 화면 대화 에이전트 (Strands) — 2026-09-14, [[docs/결과화면_에이전트_strands.md]]. 03 결과 화면(요약·입력칸·추천 이유)은 2026-09-14부터 사용자 담당 |
 | `src/config.py`, `.env.example`, `requirements.txt`, `pyproject.toml` | 설정·의존성 (공용 파일) |
 
 **`src/`의 나머지는 다른 팀원 소유다.** 2026-09-13 브랜치 비교 기준:
@@ -163,5 +164,12 @@ DB 스키마(`db/migrations/0008_frontend_contract.sql`)는 처음부터 세 상
 켜려면 `.env`에 `CONDITIONS_AGENT=1`. 남은 결정 둘: (a) §D-3 갱신·기본값 켜기 — 프론트 담당자 합의
 (b) `extra`(자유 조건)를 엔진이 읽게 할지 — 엔진 담당. 켜지 않으면 해커톤 제출물에 Strands가 코드로만
 존재하고 데모에는 안 나온다.
+
+**7. 결과 화면 에이전트 — 완료, 기본 꺼짐 (2026-09-14).**
+`src/agent/result_agent.py` + `recommendation_service.handle_result_message` 분기 + `tests/test_result_agent.py`(6건).
+`RESULT_AGENT=1`. 도구 6개가 `list_alternatives`·`swap_item`·`patch_item`·`review_service.get_summary` 를 감싼다.
+같이 고친 것: 교체 뒤 reason 이 pending 으로 남던 것(`swap_item` 이 교체 기록 문장을 적음).
+03 결과 화면 남은 일: (A) 요약을 나열식에서 구조화로 + 교체 뒤 요약 재생성, (C) `checks` pending 하드코딩 채우기 —
+`docs/결과화면_에이전트_strands.md` 한계 절.
 
 들어가기 전 참고: `tests/test_list_service.py` 3건은 **`origin/develop` 원본에서도 같은 줄에서 실패한다**(임시 워크트리로 대조 확인함). 우리 변경 탓이 아니고 develop 담당자 몫이다.
