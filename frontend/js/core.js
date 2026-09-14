@@ -3,7 +3,8 @@
 // "지금 열어 둔 장바구니 ID"와 사이드바 접힘 상태만 저장하고, 나머지는 페이지를 열 때마다 서버에서 다시 받는다.
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const won=n=>Math.round(n).toLocaleString('ko-KR')+'원';
+const tfText=s=>window.TF_I18N?.t?.(s)||s;
+const won=n=>window.TF_LOCALE?.isEnglish?.()?'₩'+Math.round(n).toLocaleString('en-US'):Math.round(n).toLocaleString('ko-KR')+'원';
 const money=n=>Number.isFinite(Number(n))?Number(n):0;
 const flow=document.getElementById('flow'); // 랜딩 페이지(index.html)에는 없음 — null
 
@@ -62,18 +63,18 @@ function tfClearResetMark(listId){try{const marks=tfResetMarks();delete marks[li
 function tfOnAuthChange(){tfPlan.lists=null;tfPlan.listsLoaded=false;tfPlan.report=null}
 function tfListGone(err){if(err&&err.status===404&&err.code==='not_found'){tfSelectList(null);tfPlan.listsLoaded=false;toast('장바구니를 찾을 수 없어 새로 시작합니다.');go('category');return true}return false}
 function tfStopPoll(){clearTimeout(tfPlan.pollTimer);tfPlan.pollTimer=null}
-function toast(t,centered=false){let el=$('.toast');if(el)el.remove();el=document.createElement('div');el.className='toast'+(centered?' toast-center':'');el.setAttribute('role','status');el.textContent=t;document.body.append(el);setTimeout(()=>el.remove(),3500)}
+function toast(t,centered=false){let el=$('.toast');if(el)el.remove();el=document.createElement('div');el.className='toast'+(centered?' toast-center':'');el.setAttribute('role','status');el.textContent=tfText(t);document.body.append(el);setTimeout(()=>el.remove(),3500)}
 // TF-DEV: go()는 location.href로 실제 페이지 이동을 하므로, 이동 직전에 띄운 toast()는
 // 페이지가 언로드되면서 사라져 사용자가 보지 못한다(회원 탈퇴 등). 이동 전에는 메시지를
 // sessionStorage에 적어두고, 다음 페이지가 열릴 때(core.js가 새로 실행될 때) 대신 띄운다.
 const TF_PENDING_TOAST_KEY='truefit-pending-toast';
 function tfQueueToast(message){try{sessionStorage.setItem(TF_PENDING_TOAST_KEY,message)}catch{}}
 (function(){try{const pending=sessionStorage.getItem(TF_PENDING_TOAST_KEY);if(pending){sessionStorage.removeItem(TF_PENDING_TOAST_KEY);toast(pending)}}catch{}})();
-function btn(t,a,cl=''){return `<button class="btn ${cl}" data-action="${a}">${t}</button>`}
-function heading(k,t,p=''){return `<div class="flow-head"><div class="flow-logo">${k}</div><h1 tabindex="-1">${t}</h1>${p?`<p class="muted">${p}</p>`:''}</div>`}
-function field(label,name,type,value,extra=''){return `<label for="f-${name}">${label}</label><input id="f-${name}" name="${name}" type="${type}" value="${esc(value)}" ${extra}>`}
+function btn(t,a,cl=''){return `<button class="btn ${cl}" data-action="${a}">${tfText(t)}</button>`}
+function heading(k,t,p=''){return `<div class="flow-head"><div class="flow-logo">${k}</div><h1 tabindex="-1">${tfText(t)}</h1>${p?`<p class="muted">${tfText(p)}</p>`:''}</div>`}
+function field(label,name,type,value,extra=''){return `<label for="f-${name}">${tfText(label)}</label><input id="f-${name}" name="${name}" type="${type}" value="${esc(value)}" ${extra}>`}
 function tfRequire(data){if(!data||typeof data!=='object')throw new TF_ApiError(0,'bad_response','서버 응답이 올바르지 않아요.');return data}
-function tfStatusPanel(title,message='',actions=''){return `<div class="panel empty"><h2>${esc(title)}</h2>${message?`<p class="muted">${esc(message)}</p>`:''}${actions}</div>`}
+function tfStatusPanel(title,message='',actions=''){return `<div class="panel empty"><h2>${esc(tfText(title))}</h2>${message?`<p class="muted">${esc(tfText(message))}</p>`:''}${actions}</div>`}
 function readAuthSession(){return TF_AUTH.user}
 // TF-DEV: 서버 로그인 상태 확인 — 모든 페이지에서 한 번 실행. 결과가 필요한 페이지는 TF_AUTH.ready.then(...)으로 이어 붙인다.
 TF_AUTH.ready=TF_AUTH.refresh();

@@ -54,6 +54,17 @@ def test_explanation_text_without_caveats_is_reasons_only():
     assert "확인이 필요한 것" not in text
 
 
+def test_explanation_text_uses_english_heading_for_english_result():
+    text = explanation_text_with_caveats(
+        ["CPU — meets the requirements"],
+        ["Evidence for review authenticity could not be verified."],
+        locale="en-US",
+    )
+
+    assert "Things to check:" in text
+    assert "확인이 필요한 것" not in text
+
+
 # ── 관측 문장이 화면까지 가는지 ─────────────────────────────────────────────
 # "7일 안에 몰림", "리뷰어가 다른 상품에서도 나타남" 은 [5] 가 슬롯별 evidence 로
 # 만들어 두는데, 서비스가 reason 만 꺼내 쓰던 탓에 화면에 가지 않았다.

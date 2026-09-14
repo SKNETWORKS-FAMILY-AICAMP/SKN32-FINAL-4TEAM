@@ -7,7 +7,15 @@ const TF_RESULT_CATEGORY_CONFIG={
  computer:{slotOrder:['CPU','GPU','RAM','메인보드','저장장치','파워','케이스','쿨러'],heading:'이 조합, 마음에 드세요?',composerPlaceholder:'예: 그래픽카드를 더 저렴한 걸로 바꿔줘'},
  baby:{slotOrder:['수유','수면','위생/기저귀','외출'],heading:'이 준비물, 마음에 드세요?',composerPlaceholder:'예: 기저귀를 더 저렴한 걸로 바꿔줘'},
 };
+const TF_RESULT_SLOT_LABEL_EN={메인보드:'Motherboard',저장장치:'Storage',파워:'Power supply',케이스:'Case',쿨러:'Cooler','위생/기저귀':'Hygiene/diapers',수유:'Feeding',수면:'Sleep',외출:'Outings'};
 function tfResultCategoryConfig(category){return TF_RESULT_CATEGORY_CONFIG[category]||TF_RESULT_CATEGORY_CONFIG.computer}
+function tfResultSlotLabel(label){return window.TF_LOCALE?.isEnglish?.()?(TF_RESULT_SLOT_LABEL_EN[label]||label):label}
+function tfResultLanguageNotice(result){
+ const expected=window.TF_LOCALE?.get?.()||'ko-KR',actual=result?.content_language||'ko-KR';
+ if(expected===actual)return '';
+ const generated=actual==='en-US'?'영어':'한국어',target=expected==='en-US'?'영어':'한국어';
+ return '<div class="demo-note result-language-note" role="status"><span>이 추천은 '+generated+'로 생성되었습니다.</span><button class="btn" type="button" data-plan-rerun data-language-rerun>'+target+'로 추천 다시 만들기</button></div>';
+}
 // TF-DEV: 백엔드가 poll마다 items를 다른 순서로 돌려줄 때가 있어(정렬 보장 없음), 그대로 그리면
 // 장바구니·채팅 목록이 가만히 있어도 저 혼자 뒤섞이는 것처럼 보인다. 카테고리별 슬롯 순서로
 // 프론트에서 항상 같은 순서로 고정한다(슬롯 순서표에 없는 값은 원래 순서를 유지하며 맨 뒤로).
@@ -29,8 +37,9 @@ function tfResultSummaryHtml(result){
  const total=Number(totals.selected_price||0),budgetMax=result.budget_max;
  const budgetLine=budgetMax?' 예산 '+won(budgetMax)+' 중 '+won(Math.max(0,budgetMax-total))+' 남아요.':'';
  const pricey=[...items].sort((a,b)=>Number(b.price||0)-Number(a.price||0))[0];
- const chips=['<button class="chip-btn" type="button" data-fill="이 구성 총평 알려줘">이 구성 총평은?</button>'];
- if(pricey)chips.unshift('<button class="chip-btn" type="button" data-fill="'+esc(pricey.slot_label)+' 더 저렴한 걸로 바꿔줘">'+esc(pricey.slot_label)+' 더 저렴하게</button>');
+ const english=window.TF_LOCALE?.isEnglish?.(),summaryPrompt=english?'Give me an overall assessment of this build':'이 구성 총평 알려줘';
+ const chips=['<button class="chip-btn" type="button" data-fill="'+esc(summaryPrompt)+'">이 구성 총평은?</button>'];
+ if(pricey){const slotLabel=tfResultSlotLabel(pricey.slot_label),cheaperPrompt=english?'Make '+slotLabel+' cheaper':pricey.slot_label+' 더 저렴한 걸로 바꿔줘';chips.unshift('<button class="chip-btn" type="button" data-fill="'+esc(cheaperPrompt)+'">'+esc(slotLabel)+(english?' cheaper':' 더 저렴하게')+'</button>')}
  return '조건에 맞춰 '+items.length+'개 부품으로 구성했어요.<ul>'+lines+'</ul>합계 <span class="figure">'+won(total)+'</span>·'+budgetLine+' 마음에 안 드는 부품이 있으면 편하게 말씀해 주세요.<div class="quick-replies">'+chips.join('')+'</div>';
 }
 function tfShowCartReviewSlide(itemId){
@@ -60,7 +69,7 @@ function resultsPage({preserve=false,scrollChat=false}={}){if(!tfPlan.listId)ret
  const toolbarButtons='<button class="btn" data-action="conditions">← 조건 수정</button><button class="btn" data-action="logs">추천 과정 보기</button><button class="btn" type="button" data-plan-rerun="alternative">다른 구성 보기</button>';
  const feed='<div class="conversation-feed">'+tfResultChatTurn('system',tfResultSummaryHtml(sortedResult))+tfPlan.resultMessages.map(m=>tfResultChatTurn(m.role,esc(m.text))).join('')+'</div>';
  const composer='<div class="conversation-current"><form id="tf-result-chat-form"><div class="chat-compose-grid no-file"><textarea id="tf-result-chat-input" name="message" rows="1" maxlength="300" aria-label="추천 결과에 대해 물어보세요" placeholder="'+esc(config.composerPlaceholder)+'" required></textarea><button class="btn strong" type="submit">전송 →</button></div><p id="tf-result-chat-error" class="error" role="alert"></p></form></div>';
- const body='<div class="result-toolbar"><div><span class="condition-kicker">03 / YOUR BASKET</span><h1 tabindex="-1">추천 구성을 확인해 보세요.</h1><p class="muted">'+esc(result.conditions_summary||'')+'</p></div><div class="row">'+toolbarButtons+'</div></div>'+(result.totals?.over_budget?'<div class="demo-note">현재 선택한 구성이 예산을 초과합니다. 품목을 빼거나 대체 후보를 선택해 주세요.</div>':'')+tfResultInsights(result)+'<div class="result-board"><div class="result-board-main"><section class="condition-card conversation-card result-chat-panel"><h2>'+esc(config.heading)+'</h2>'+feed+composer+'</section></div>'+tfResultCart(sortedResult)+'</div>';
+ const body='<div class="result-toolbar"><div><span class="condition-kicker">03 / YOUR BASKET</span><h1 tabindex="-1">추천 구성을 확인해 보세요.</h1><p class="muted">'+esc(result.conditions_summary||'')+'</p></div><div class="row">'+toolbarButtons+'</div></div>'+tfResultLanguageNotice(result)+(result.totals?.over_budget?'<div class="demo-note">현재 선택한 구성이 예산을 초과합니다. 품목을 빼거나 대체 후보를 선택해 주세요.</div>':'')+tfResultInsights(result)+'<div class="result-board"><div class="result-board-main"><section class="condition-card conversation-card result-chat-panel"><h2>'+esc(config.heading)+'</h2>'+feed+composer+'</section></div>'+tfResultCart(sortedResult)+'</div>';
  shell(body,2);
  if(tfOpenReviewItemId&&tfFindItem(tfOpenReviewItemId))tfShowCartReviewSlide(tfOpenReviewItemId);
  if(preserve){

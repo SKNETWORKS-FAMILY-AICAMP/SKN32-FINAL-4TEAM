@@ -1,9 +1,8 @@
 /* ==== Bilingual layer (Korean <-> English). Added without touching the KR logic. ==== */
 (function(){
  "use strict";
- var LS='planbasket-lang';
- var lang='ko';
- try{ var st=localStorage.getItem(LS); if(st==='en'||st==='ko') lang=st; }catch(e){}
+ var locale=(window.TF_LOCALE&&window.TF_LOCALE.get)?window.TF_LOCALE.get():'ko-KR';
+ var lang=locale==='en-US'?'en':'ko';
 
  /* ---- exact / substring dictionary (Korean source -> English) ---- */
  var DICT={
@@ -17,6 +16,10 @@
   "선택 완료":"Done","하나 이상 선택해 주세요.":"Please select at least one.","추정":"Assumed","수정 중…":"Updating…","초기화 중…":"Resetting…","보내는 중…":"Sending…","추천을 시작하는 중…":"Starting recommendation…",
   "아직 확인되지 않은 조건이 있어요. 대화로 조건을 채워 주세요.":"Some conditions are still missing. Please continue the conversation.",
   "추천을 준비하고 있어요.":"Preparing your recommendation.","조건에 맞는 후보를 찾고 조합을 확인하는 중입니다. 잠시만 기다려 주세요.":"Finding candidates and checking the combination. Please wait a moment.",
+  "이 추천은 한국어로 생성되었습니다.":"This recommendation was generated in Korean.",
+  "이 추천은 영어로 생성되었습니다.":"This recommendation was generated in English.",
+  "영어로 추천 다시 만들기":"Regenerate recommendation in English",
+  "한국어로 추천 다시 만들기":"Regenerate recommendation in Korean",
   "완료":"Done","진행 중":"In progress","대기":"Waiting",
   "아직 추천 결과가 없어요.":"No recommendation yet.","조건 대화를 마치고 추천을 받아 보세요.":"Finish the conversation to get a recommendation.",
   "추천을 만들지 못했어요.":"We couldn't create a recommendation.","다시 추천받기":"Recommend again","추천 과정 보기":"View recommendation steps","다른 구성 보기":"See another build",
@@ -59,9 +62,76 @@
   "로그아웃하지 못했어요.":"Couldn't sign out.",
   "비밀번호가 변경되었습니다.":"Your password has been changed.",
   "※ 위 내용은 화면 구성을 위한 예시 문안이며, 정식 처리방침은 서비스 출시 시 안내됩니다.":"※ This is sample text for the screen layout. The official privacy policy will be provided at launch.",
+  /* authentication screens */
+  "다시 만나 반가워요":"Welcome back",
+  "이메일과 비밀번호로 로그인하고, 저장해 둔 장바구니와 리포트를 이어가세요.":"Sign in with your email and password to continue with your saved baskets and reports.",
+  "이메일 *":"Email *","비밀번호 *":"Password *","비밀번호 확인 *":"Confirm password *",
+  "비밀번호를 입력해 주세요":"Enter your password","로그인 상태 유지":"Keep me signed in",
+  "비밀번호를 잊으셨나요?":"Forgot your password?","아직 계정이 없으신가요?":"Don't have an account yet?",
+  "이메일로 회원가입 →":"Sign up with email →","이메일로 시작하기":"Get started with email",
+  "나에게 맞는 컴퓨터 구성과 육아용품 준비를, 계정에 저장하고 이어가세요.":"Save and continue the computer build or baby-care plan that fits you.",
+  "영문·숫자 포함 8자 이상":"At least 8 characters with letters and numbers",
+  "비밀번호 재입력":"Re-enter your password","표시 이름 *":"Display name *",
+  "서비스에서 사용할 이름":"Name shown in the service","전체 동의합니다":"Agree to all",
+  "[필수]":"[Required]","[선택]":"[Optional]","이용약관 동의":"Agree to the Terms of Use",
+  "개인정보 처리방침 동의":"Agree to the Privacy Policy","약관 전문 보기":"View full terms",
+  "전문 보기":"View details","마케팅 정보 및 이벤트 수신 동의":"Agree to receive marketing and event updates",
+  "이메일로 회원가입":"Sign up with email","이미 계정이 있으신가요?":"Already have an account?",
+  "올바른 이메일 주소를 입력해 주세요.":"Please enter a valid email address.",
+  "올바른 이메일 형식으로 입력해 주세요.":"Please enter a valid email format.",
+  "이메일 확인 중…":"Checking email…","사용할 수 있는 이메일입니다. ✓":"This email is available. ✓",
+  "이미 가입된 이메일입니다. <a href=\"login.html\">로그인하기 →</a>":"This email is already registered. <a href=\"login.html\">Sign in →</a>",
+  "영문과 숫자를 포함해 8자 이상으로 입력해 주세요.":"Enter at least 8 characters including letters and numbers.",
+  "비밀번호가 일치하지 않습니다.":"Passwords do not match.","사용할 수 있는 비밀번호입니다.":"This password can be used.",
+  "이메일을 확인해 주세요.":"Please check your email.","비밀번호 조건을 확인해 주세요.":"Please check the password requirements.",
+  "표시 이름을 입력해 주세요.":"Please enter a display name.","회원가입이 완료되었습니다":"Sign-up complete",
+  "님, TrueFit에 오신 걸 환영해요.":", welcome to TrueFit.","TrueFit 시작하기 →":"Start TrueFit →",
+  "회원정보 수정":"Edit profile","표시 이름과 이메일을 최신 정보로 관리하세요.":"Keep your display name and email up to date.",
+  "기본 정보가 저장되었습니다.":"Profile information saved.","기본 정보 저장":"Save profile",
+  "비밀번호 변경":"Change password","주기적으로 비밀번호를 변경하면 계정을 더 안전하게 지킬 수 있어요.":"Changing your password periodically helps keep your account secure.",
+  "현재 비밀번호 *":"Current password *","새 비밀번호 *":"New password *","새 비밀번호 확인 *":"Confirm new password *",
+  "계정 관리":"Account management","로그아웃":"Sign out","회원 탈퇴":"Delete account",
+  "현재 비밀번호를 입력해 주세요.":"Please enter your current password.",
+  "새 비밀번호는 영문과 숫자를 포함해 8자 이상이어야 합니다.":"The new password must be at least 8 characters and include letters and numbers.",
+  "새 비밀번호가 일치하지 않습니다.":"The new passwords do not match.",
+  "정말 탈퇴하시겠어요? 계정 정보가 삭제되며 되돌릴 수 없어요.":"Delete your account? Your account information will be removed and cannot be recovered.",
+  "TrueFit으로 돌아가기":"Return to TrueFit",
+  /* sign-up terms and privacy details */
+  "제1조 (목적)":"Article 1 (Purpose)","제2조 (정의)":"Article 2 (Definitions)",
+  "제3조 (약관의 효력 및 변경)":"Article 3 (Effect and Changes)","제4조 (회원가입 및 자격)":"Article 4 (Membership and Eligibility)",
+  "제5조 (서비스의 제공 및 변경·중단)":"Article 5 (Service Provision, Changes and Suspension)",
+  "제6조 (회원의 의무)":"Article 6 (Member Responsibilities)","제7조 (게시물의 권리 귀속 및 활용)":"Article 7 (Rights and Use of Posts)",
+  "제8조 (면책조항)":"Article 8 (Disclaimer)","제9조 (분쟁해결 및 준거법)":"Article 9 (Dispute Resolution and Governing Law)",
+  "이 약관은 TrueFit(이하 \"회사\")이 제공하는 컴퓨터·육아용품 구매 계획 서비스(이하 \"서비스\")의 이용과 관련하여 회사와 회원 간의 권리, 의무 및 책임사항을 규정함을 목적으로 합니다.":"These terms define the rights, obligations and responsibilities of TrueFit (the Company) and members using its computer and baby-care purchase-planning service (the Service).",
+  "① \"회원\"이란 이 약관에 동의하고 회사와 서비스 이용계약을 체결한 자를 말합니다.":"① A member is a person who agrees to these terms and enters into a service agreement with the Company.",
+  "② \"게시물\"이란 회원이 서비스 내에 게시한 리뷰, 후기, 댓글, 이미지 등의 정보를 말합니다.":"② A post means information such as a review, comment or image submitted by a member through the Service.",
+  "① 이 약관은 서비스 화면에 게시함으로써 효력이 발생합니다.":"① These terms take effect when posted within the Service.",
+  "② 회사는 관계 법령을 위반하지 않는 범위에서 약관을 변경할 수 있으며, 변경 시 적용일자와 변경 사유를 명시하여 시행일 이전에 공지합니다.":"② The Company may change these terms within applicable law and will announce the effective date and reason before changes take effect.",
+  "① 회원가입은 이용자가 약관 내용에 동의하고, 회사가 정한 절차에 따라 가입 절차를 완료함으로써 성립합니다.":"① Membership begins when a user agrees to these terms and completes the sign-up process set by the Company.",
+  "② 만 14세 미만인 자, 이미 회원 자격을 상실한 이력이 있는 자는 회원가입이 제한될 수 있습니다.":"② Sign-up may be restricted for users under 14 or those who previously lost membership eligibility.",
+  "① 회사는 사용 목적과 예산에 맞춘 컴퓨터 구성 추천, 육아용품 준비 리스트 작성 등의 서비스를 제공합니다.":"① The Company provides services including computer-build recommendations and baby-care preparation lists based on purpose and budget.",
+  "② 회사는 운영상·기술상의 필요에 따라 서비스의 전부 또는 일부를 변경하거나 중단할 수 있으며, 이 경우 사전에 공지합니다.":"② The Company may change or suspend all or part of the Service for operational or technical reasons and will provide advance notice.",
+  "회원은 리뷰·후기 등 게시물 작성 시 사실에 근거해야 하며, 허위 사실 또는 타인의 권리를 침해하는 내용을 게시해서는 안 됩니다.":"Members must base posts such as reviews on facts and must not post false information or content that infringes others' rights.",
+  "① 회원이 서비스 내에 작성한 리뷰, 후기, 댓글 등 게시물에 대한 저작권은 이를 작성한 회원 본인에게 귀속됩니다.":"① Copyright in reviews, comments and other posts belongs to the member who created them.",
+  "② 제1항에도 불구하고 회원의 게시물은 서비스의 운영, 홍보 및 마케팅 목적으로 회사가 운영하는 웹사이트·애플리케이션·SNS·광고물 등에 무상으로 사용될 수 있으며, 이 경우 회사는 게시물의 내용을 편집하거나 요약하여 사용할 수 있습니다.":"② Despite paragraph 1, member posts may be used without charge on Company-operated websites, applications, social media and advertising for service operation, promotion and marketing, and may be edited or summarized.",
+  "③ 회원은 제2항에 따른 활용에 대해 언제든지 고객센터를 통해 이의를 제기하거나 철회를 요청할 수 있으며, 철회 시 회사는 지체 없이 해당 활용을 중단합니다.":"③ Members may object to or withdraw this use through Support at any time, after which the Company will stop the use without delay.",
+  "회사는 회원이 서비스를 통해 얻은 정보로 인해 발생한 손해에 대하여 책임을 지지 않으며, 상품 가격·리뷰·검증 결과는 실제 구매 판단의 근거로 사용할 수 없습니다.":"The Company is not responsible for loss arising from information obtained through the Service. Product prices, reviews and verification results must not be used as the sole basis for an actual purchase decision.",
+  "① 서비스 이용과 관련하여 회사와 회원 간에 분쟁이 발생한 경우, 양 당사자는 상호 협의를 통해 이를 해결하기 위해 노력합니다.":"① If a dispute arises between the Company and a member, both parties will attempt to resolve it through mutual consultation.",
+  "② 이 약관의 해석 및 회사와 회원 간의 분쟁에 대해서는 대한민국 법령을 적용합니다.":"② The laws of the Republic of Korea govern these terms and disputes between the Company and members.",
+  "※ 위 내용은 화면 구성을 위한 예시 약관이며, 실제 법적 효력을 갖는 문서가 아닙니다.":"※ These are sample terms for the interface and are not legally binding.",
+  "수집 항목":"Information collected","이메일 주소, 비밀번호(암호화 저장), 표시 이름":"Email address, encrypted password and display name",
+  "이용 목적":"Purpose of use","회원 식별 및 로그인, 저장한 장바구니·리포트 제공, 고객 문의 응대":"Member identification and sign-in, saved baskets and reports, and customer support",
+  "보유 기간":"Retention period","회원 탈퇴 시 지체 없이 파기하며, 관계 법령에 따라 보관이 필요한 경우 해당 기간 동안 보관합니다.":"Deleted without delay when membership ends, unless applicable law requires retention for a specified period.",
+  "제3자 제공":"Third-party sharing","회사는 원칙적으로 회원의 개인정보를 외부에 제공하지 않습니다.":"In principle, the Company does not provide members' personal information to outside parties.",
   /* head + header */
   "TrueFit — 잘 고르는 시작":"TrueFit — a better way to start choosing",
+  "회원정보 — TrueFit":"Account — TrueFit","카테고리 선택 — TrueFit":"Choose a category — TrueFit",
+  "조건 입력 — TrueFit":"Enter conditions — TrueFit","리스트 확정 — TrueFit":"Confirm list — TrueFit",
+  "로그인 — TrueFit":"Log in — TrueFit","추천 과정 — TrueFit":"Recommendation steps — TrueFit",
+  "내 리포트 — TrueFit":"My report — TrueFit","추천 결과 — TrueFit":"Recommendations — TrueFit",
+  "회원가입 — TrueFit":"Sign up — TrueFit",
   "TrueFit 홈":"TrueFit home",
+  "회원 메뉴":"Account menu",
   "회원 및 서비스 메뉴":"Account and service menu",
   "로그인":"Log in",
   "회원가입":"Sign up",
@@ -148,6 +218,7 @@
   "자주 묻는 질문 보기 →":"See the FAQ →",
   "현재는 화면 체험용 목업입니다.":"This is currently a mockup for screen experience.",
   "현재 제공되는 상품·가격·리뷰는 가상의 예시입니다. 실제 상품 판매, 결제, 인증 조회 및 이메일 발송은 이루어지지 않습니다.":"The products, prices and reviews shown are fictional samples. No real product sales, payment, certification lookup or email sending takes place.",
+  "입력한 리스트는 로그인 계정에는 서버에, 비로그인 상태에서는 이 브라우저에 임시로 저장됩니다.":"Lists are saved on the server for signed-in accounts and temporarily in this browser when signed out.",
   "입력한 리스트는 현재 브라우저에 저장되며, 브라우저 데이터를 삭제하면 함께 사라질 수 있습니다.":"Lists you enter are saved in your current browser and can be lost if you clear browser data.",
   "이용약관":"Terms of use",
   "정식 서비스 이용약관은 준비 중입니다. 현재 페이지는 서비스 흐름을 체험하는 목업이며, 실제 상품 판매나 결제는 진행되지 않습니다.":"The formal terms of use are being prepared. This page is a mockup for experiencing the flow; no real sales or payment take place.",
@@ -619,6 +690,30 @@
   "선택한 ":"A sample candidate including the selected ",
   "입력 용도와 예산에 맞춰 배분한 예시 후보입니다.":"A sample candidate allocated to the entered use and budget.",
 
+  /* dynamic planner copy */
+  "다른 카테고리를 선택하면 새 장바구니를 만들어요. 지금 대화는 사이드바에 그대로 남아요. 계속할까요?":"Choosing another category creates a new basket. This conversation will remain in the sidebar. Continue?",
+  "서버 응답이 올바르지 않아요.":"The server response is invalid.","로그아웃되었습니다.":"Signed out.",
+  "새 컴퓨터 조립":"Build a new computer","부품을 처음부터 골라 구성해요.":"Choose every part and build it from scratch.",
+  "기존 컴퓨터 업그레이드":"Upgrade an existing computer","지금 쓰는 부품 중 바꿀 것만 골라요.":"Choose only the parts you want to replace.",
+  "새로 만들까요, 업그레이드할까요?":"Build new or upgrade?","컴퓨터 구성 방식을 골라주세요. 이후 질문이 이 선택에 맞춰 달라져요.":"Choose how you want to configure the computer. The following questions will adapt to your choice.",
+  "카테고리 다시 선택":"Choose category again","새 컴퓨터로 변경":"Switch to a new build","업그레이드로 변경":"Switch to an upgrade",
+  "선택지":"Options","이전 대화 내용이 모두 사라지고 처음부터 다시 시작해요. 계속할까요?":"The previous conversation will be cleared and restarted. Continue?",
+  "검증 문장을 만드는 중이에요…":"Writing verification details…","검증 문장을 만들지 못했어요.":"Couldn't write verification details.",
+  "다시 계산하는 중…":"Recalculating…","추천을 준비하는 중이에요…":"Preparing recommendations…",
+  "가격 추적 중":"Tracking prices","목표가 도달":"Target reached","추적 대기":"Waiting to track",
+  "추적 대기 · 아직 수집된 가격이 없어요":"Waiting to track · no prices collected yet",
+  "로그인 후 이용해 주세요.":"Please sign in to use this feature.",
+  "이 조합, 마음에 드세요?":"How does this build look?","이 준비물, 마음에 드세요?":"How does this list look?",
+  "예: 그래픽카드를 더 저렴한 걸로 바꿔줘":"For example: make the graphics card cheaper",
+  "예: 기저귀를 더 저렴한 걸로 바꿔줘":"For example: choose cheaper diapers",
+  "추천 결과에 대해 물어보세요":"Ask about your recommendation","장바구니로 돌아가기":"Return to basket",
+  "아직 집계된 리뷰 데이터가 없어요.":"No aggregated review data is available yet.",
+  "추천 이유":"Recommendation reason","구매 전 확인":"Before purchasing","다른 후보 보기 →":"View alternatives →",
+  "상품 페이지에서 보기 ↗":"View on product page ↗","전체 리뷰":"All reviews","조작 의심 제외":"Suspected manipulation excluded",
+  "이 구성 총평은?":"How does this build look overall?","후보":"Candidate","현재 선택":"Currently selected",
+  "현재 후보 유지":"Keep current candidate","이 후보로 교체":"Switch to this candidate","현재 대비":"Compared with current",
+  "가격과 규격을 비교해 하나를 선택하세요.":"Compare prices and specifications, then choose one.",
+
   "나":"You"
  };
 
@@ -668,6 +763,8 @@
   if(body===key) return str;
   return str.replace(key,body);
  }
+
+ function translate(s){ return lang==="en" ? tstr(s) : s; }
 
  var SKIP={SCRIPT:1,STYLE:1,NOSCRIPT:1,TEXTAREA:0};
  var ATTRS=["aria-label","placeholder","title","alt"];
@@ -725,22 +822,23 @@
 
  /* ---- toggle button ---- */
  function addToggle(){
+  if(document.getElementById("lang-switch")) return;
   var b=document.createElement("button");
   b.id="lang-switch"; b.type="button";
   b.textContent = (lang==="en") ? "한국어" : "ENGLISH";
   b.setAttribute("aria-label", lang==="en" ? "한국어로 보기" : "View in English");
   b.style.cssText="position:fixed;right:18px;bottom:18px;z-index:99999;border:1px solid #314633;background:#fff;color:#222c23;border-radius:999px;padding:10px 17px;font-family:Arial,system-ui,sans-serif;font-weight:700;font-size:13px;line-height:1;letter-spacing:.3px;box-shadow:0 8px 24px rgba(24,35,25,.22);cursor:pointer";
   b.addEventListener("click",function(){
-   try{ localStorage.setItem(LS, lang==="en" ? "ko" : "en"); }catch(e){}
+   if(window.TF_LOCALE&&window.TF_LOCALE.set) window.TF_LOCALE.set(lang==="en" ? "ko-KR" : "en-US");
    location.reload();
   });
   (document.body||document.documentElement).appendChild(b);
  }
 
  function boot(){
+  document.documentElement.lang=lang;
   addToggle();
   if(lang!=="en") return;
-  document.documentElement.lang="en";
   enableEnglishDetectors();
   if(window.confirm){
    var _c=window.confirm.bind(window);
@@ -760,6 +858,17 @@
   mo.observe(document.body,OPT);
   window.addEventListener("hashchange",function(){ setTimeout(flush,0); setTimeout(flush,150); });
  }
+
+ window.TF_I18N=Object.freeze({
+  getLocale:function(){ return locale; },
+  isEnglish:function(){ return lang==="en"; },
+  t:translate,
+  apply:function(root){ if(lang==="en") translateTree(root||document.body); },
+  setLocale:function(nextLocale){
+   if(window.TF_LOCALE&&window.TF_LOCALE.set) window.TF_LOCALE.set(nextLocale);
+   location.reload();
+  }
+ });
 
  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",boot);
  else boot();

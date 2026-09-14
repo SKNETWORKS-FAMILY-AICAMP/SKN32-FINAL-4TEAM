@@ -92,6 +92,8 @@ body:has(.flow:not([hidden]))>header{display:none}
 .result-toolbar{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin:4px 0 20px}
 .result-toolbar h1{font-size:34px;margin:0 0 7px}
 .result-toolbar p{margin:0}
+.result-language-note{display:flex;align-items:center;justify-content:space-between;gap:14px}
+.result-language-note .btn{flex:none}
 .parts-accordion{display:grid;gap:10px}
 .part-row{margin:0!important;padding:0!important;border:1px solid var(--tf-border)!important;border-radius:14px!important;background:var(--tf-surface)!important;overflow:hidden}
 .part-row summary{display:grid;grid-template-columns:minmax(100px,.7fr) minmax(0,1.6fr) auto;align-items:center;gap:16px;padding:17px 19px!important;list-style:none;cursor:pointer}
@@ -150,7 +152,7 @@ body:has(.flow:not([hidden]))>header{display:none}
 .candidate-card .candidate-price{font-size:22px;font-weight:900;margin:18px 0 6px}
 .candidate-card .candidate-action{margin-top:auto;padding-top:13px;color:var(--tf-primary);font-weight:800}
 @media(max-width:900px){.result-board{grid-template-columns:1fr}.result-cart{position:static}.part-row summary{grid-template-columns:105px minmax(0,1fr) auto}}
-@media(max-width:620px){.result-toolbar{align-items:flex-start;flex-direction:column}.part-row summary{grid-template-columns:80px minmax(0,1fr) auto;padding:15px!important}.part-slot{font-size:16px}.part-detail-grid{grid-template-columns:1fr}.part-actions{justify-content:flex-start}.result-chat-row,.candidate-grid,.evidence-grid{grid-template-columns:1fr}.result-overlay-head,.result-overlay-body{padding-left:20px;padding-right:20px}.review-evidence-summary+.evidence-grid .evidence-card p{white-space:normal}}
+@media(max-width:620px){.result-toolbar{align-items:flex-start;flex-direction:column}.result-language-note{align-items:stretch;flex-direction:column}.part-row summary{grid-template-columns:80px minmax(0,1fr) auto;padding:15px!important}.part-slot{font-size:16px}.part-detail-grid{grid-template-columns:1fr}.part-actions{justify-content:flex-start}.result-chat-row,.candidate-grid,.evidence-grid{grid-template-columns:1fr}.result-overlay-head,.result-overlay-body{padding-left:20px;padding-right:20px}.review-evidence-summary+.evidence-grid .evidence-card p{white-space:normal}}
 /* Local specification attachment for the adaptive computer chat. */
 .chat-compose-grid{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:stretch}
 .chat-compose-grid.no-file{grid-template-columns:minmax(0,1fr) auto}
