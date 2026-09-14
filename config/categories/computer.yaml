@@ -41,7 +41,7 @@ fields:
       display: { game: "게임", creation: "창작", office: "사무", study: "학습", other: "기타" },
       display_en: { game: "Gaming", creation: "Creative work", office: "Office", study: "Study", other: "Other" } }
   - { key: budget_max, label: "예산" }
-  - { key: currency, label: "통화", display: { KRW: "원화", USD: "달러" }, display_en: { KRW: "KRW", USD: "USD" } }
+  - { key: currency, label: "통화", label_en: "Currency", display: { KRW: "원화", USD: "달러" }, display_en: { KRW: "KRW", USD: "USD" } }
   - { key: priority, label: "우선순위",
       display: { performance: "성능 우선", value: "가성비", quiet: "저소음" },
       display_en: { performance: "Performance first", value: "Value for money", quiet: "Quiet" } }

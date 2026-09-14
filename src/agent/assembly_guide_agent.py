@@ -32,14 +32,15 @@ def _ordered_items(items: list[dict]) -> list[dict]:
     return sorted(items, key=lambda it: rank.get(it["slot"], len(ASSEMBLY_ORDER)))
 
 
-def build_guide_fallback(ordered_items: list[dict]) -> str:
+def build_guide_fallback(ordered_items: list[dict], lang: str = "ko") -> str:
     """규칙 기반 폴백 — 검색은 실제로 하되 문장은 템플릿. 에이전트 미가용 시 이걸 쓴다."""
     lines = []
     for i, it in enumerate(ordered_items, start=1):
         name = it["product"]["name"]
         hits = search_care_guide(f"{it['slot']} {name} 조립 시 확인할 점", k=1)
-        note = hits[0]["text"] if hits else "특별히 확인할 점은 없습니다."
-        lines.append(f"{i}. {it['slot']} — {name}\n   {note}")
+        note = ((hits[0].get("text_en") if hits else None) or "No English guide is available for this component.") if lang == "en" else (hits[0]["text"] if hits else "특별히 확인할 점은 없습니다.")
+        slot = _slot_label(it['slot'], lang)
+        lines.append(f"{i}. {slot} — {name}\n   {note}")
     return "\n".join(lines)
 
 
@@ -67,7 +68,7 @@ def _model():
 
 
 def _system_prompt(ordered_items: list[dict], lang: str = "ko") -> str:
-    lines = [f"{i}. {it['slot']}: {it['product']['name']}" for i, it in enumerate(ordered_items, start=1)]
+    lines = [f"{i}. {_slot_label(it['slot'], lang)}: {it['product']['name']}" for i, it in enumerate(ordered_items, start=1)]
     language_line = (
         "한국어 존댓말로 답합니다."
         if lang != "en"
@@ -98,15 +99,13 @@ def build_guide(items: list[dict], lang: str = "ko") -> dict:
     "문장 생성 실패가 결과 자체를 막지 않는다"는 원칙을 따른다. 검색(RAG)은 폴백에서도
     실제로 수행되므로, 사용자에게 보이는 조립 가이드는 항상 실제 데이터를 인용한다.
 
-    lang="en"은 에이전트 경로에서만 적용된다 — 폴백(build_guide_fallback)은 근거 문서
-    (data/pc_care_guides.json)를 한국어 원문 그대로 인용하는 구조라 LLM을 거치지 않고는
-    번역할 수 없다. 에이전트 미가용 시에는 lang과 무관하게 한국어로 나간다.
+    영어 폴백은 근거 문서의 text_en을 사용한다.
     """
     ordered = _ordered_items(items)
     if not ordered:
         return {"status": "pending", "text": None}
     if not available():
-        return {"status": "ready", "text": build_guide_fallback(ordered)}
+        return {"status": "ready", "text": build_guide_fallback(ordered, lang)}
     from strands import Agent
 
     try:
@@ -119,4 +118,9 @@ def build_guide(items: list[dict], lang: str = "ko") -> dict:
             raise ValueError("empty_agent_response")
         return {"status": "ready", "text": text}
     except Exception:  # noqa: BLE001 — 에이전트 실패는 가이드 자체를 막지 않는다, 폴백으로
-        return {"status": "ready", "text": build_guide_fallback(ordered)}
+        return {"status": "ready", "text": build_guide_fallback(ordered, lang)}
+
+
+def _slot_label(slot: str, lang: str) -> str:
+    labels = {"케이스": "Case", "파워": "Power supply", "메인보드": "Motherboard", "쿨러": "Cooler", "저장장치": "Storage"}
+    return labels.get(slot, slot) if lang == "en" else slot

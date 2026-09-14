@@ -1,121 +1,15 @@
-const TF_CONFIRM_DRAFT_KEY = 'truefit-confirm-draft';
-
-function tfConfirmDefaultName(name, isPc, english) {
-  if (!english) {
-    return name || (isPc ? '나의 첫 컴퓨터' : '우리 아이 준비 리스트');
-  }
-
-  if (!name || ['새 추천', '컴퓨터 장바구니', '유아용품 장바구니'].includes(name)) {
-    return isPc ? 'My first computer' : 'Baby preparation list';
-  }
-
-  return name;
-}
-
-function confirmPage() {
-  if (!tfPlan.listId) return go('category');
-
-  const result = tfPlan.result;
-  if (!result || result.list_id !== tfPlan.listId) {
-    return tfLoadResult(confirmPage, 3);
-  }
-  if (result.status !== 'done' || !(result.totals && result.totals.selected_units)) {
-    return go('results');
-  }
-
-  const english = tfIsEnglish();
-  const auth = readAuthSession();
-  const summary = tfListSummary();
-  const isPc = summary.category === 'computer';
-  const today = new Date().toISOString().slice(0, 10);
-  let draft = {};
-
-  try {
-    draft = JSON.parse(sessionStorage.getItem(TF_CONFIRM_DRAFT_KEY) || '{}');
-  } catch (_) {
-    draft = {};
-  }
-
-  const defaultName = tfConfirmDefaultName(draft.name || tfPlan.name, isPc, english);
-  const accountName = esc((auth && auth.name) || (english ? 'Member' : '회원'));
-  const notice = auth
-    ? (english ? `Save to ${accountName}'s account.` : `${accountName}님 계정에 저장합니다.`)
-    : (english
-      ? 'You can review the list first, then sign in to save it.'
-      : '먼저 리스트를 확인한 뒤 로그인하여 저장할 수 있어요.');
-
-  const body =
-    heading(
-      english ? 'Ready to save this list?' : '이 장바구니로 준비할까요?',
-      english
-        ? 'Review the list name and target date before confirming.'
-        : '리스트 이름과 목표일을 확인한 뒤 확정해 주세요.'
-    ) +
-    '<form class="tf-confirm-form" onsubmit="tfSubmitConfirm(this);return false">' +
-      field(
-        english ? 'List name' : '리스트 이름',
-        'name',
-        defaultName,
-        english ? 'For example: My first computer' : '예: 나의 첫 컴퓨터'
-      ) +
-      field(english ? 'Target date' : '목표일', 'target_date', draft.target_date || today, '', 'date') +
-      '<p class="tf-save-notice">' + notice + '</p>' +
-      '<div class="tf-actions">' +
-        '<button type="button" class="tf-btn tf-btn-secondary" onclick="go(\'results\')">← ' +
-          (english ? 'Look again' : '다시 보기') +
-        '</button>' +
-        '<button type="submit" class="tf-btn tf-btn-primary">' +
-          (english ? 'Confirm list →' : '리스트 확정하기 →') +
-        '</button>' +
-      '</div>' +
-    '</form>';
-
-  shell(body, 3);
-}
-
-async function tfSubmitConfirm(form) {
-  const english = tfIsEnglish();
-  const name = form.name.value.trim();
-  const targetDate = form.target_date.value;
-  const submitButton = form.querySelector('[type="submit"]');
-
-  if (!name) {
-    alert(english ? 'Please enter a list name.' : '리스트 이름을 입력해 주세요.');
-    return;
-  }
-  if (!targetDate) {
-    alert(english ? 'Please select a target date.' : '목표일을 선택해 주세요.');
-    return;
-  }
-
-  const draft = { name, target_date: targetDate };
-  sessionStorage.setItem(TF_CONFIRM_DRAFT_KEY, JSON.stringify(draft));
-  submitButton.disabled = true;
-  submitButton.textContent = english ? 'Saving…' : '저장하는 중…';
-
-  try {
-    const response = await TF_PLAN.confirm({
-      list_id: tfPlan.listId,
-      name,
-      target_date: targetDate,
-    });
-
-    tfPlan.name = response.name || name;
-    tfPlan.result = { ...(tfPlan.result || {}), ...response, status: response.status || 'done' };
-    tfPlan.save();
-    sessionStorage.removeItem(TF_CONFIRM_DRAFT_KEY);
-    go('report');
-  } catch (error) {
-    submitButton.disabled = false;
-    submitButton.textContent = english ? 'Confirm list →' : '리스트 확정하기 →';
-    alert(
-      english
-        ? (error.message || 'Could not save the list. Please try again.')
-        : (error.message || '리스트를 저장하지 못했습니다. 다시 시도해 주세요.')
-    );
-  }
-}
-
-shell(tfStatusPanel(tfIsEnglish() ? 'Checking sign-in status…' : '로그인 상태를 확인하고 있어요…'), 3);
-TF_AUTH.ready.then(() => confirmPage());
-flow.addEventListener('tf-auth-changed', () => confirmPage());
+// TF-DEV: confirm.html 전용 — 리스트 확정(04) 화면. 비로그인이면 입력값을 임시 보관하고 로그인 후 이어온다.
+const TF_CONFIRM_DRAFT_KEY='truefit-confirm-draft';
+function tfConfirmDefaultName(name,pc,english){if(!english)return name||(pc?'나의 첫 컴퓨터':'우리 아이 준비 리스트');if(!name||['새 추천','컴퓨터 장바구니','유아용품 장바구니'].includes(name))return pc?'My first computer':'Baby preparation list';return name}
+function confirmPage(){if(!tfPlan.listId)return go('category');const result=tfPlan.result;if(!result||result.list_id!==tfPlan.listId)return tfLoadResult(confirmPage,3);if(result.status!=='done'||!(result.totals&&result.totals.selected_units))return go('results');const english=tfIsEnglish(),auth=readAuthSession(),summary=tfListSummary(),pc=tfUiCategory(result.category)==='pc',today=new Date().toLocaleDateString('en-CA');let draft=null;try{draft=JSON.parse(sessionStorage.getItem(TF_CONFIRM_DRAFT_KEY)||'null')}catch{}if(!draft||draft.listId!==tfPlan.listId)draft=null;const defaultName=tfConfirmDefaultName(draft?.name||summary?.name,pc,english),notice=auth?(english?'Save to '+esc(auth.name||'Member')+"'s account.":esc((auth.name||'회원')+'님 계정에 저장합니다.')):(english?'Sign in to save this list.':'로그인 후 리스트를 저장할 수 있습니다.');
+ shell(heading('04 / SAVE YOUR PLAN',english?'Ready to save this basket?':'이 장바구니로 준비할까요?',english?'Set a name, planned purchase date, and target price to save your plan.':'이름과 구매 예정일, 목표 가격을 정해 나만의 계획으로 저장해요.')+'<div class="flow-grid"><div class="panel"><form id="confirm-form">'+field(english?'List name *':'리스트 이름 *','name','text',defaultName,'required maxlength="60"')+field(english?'Planned purchase date *':'구매 예정일 *','date','date',draft?.date||today,'required min="'+today+'"')+field(english?'Target total (KRW) *':'목표 총액 (원) *','target','number',draft?.target||Number(result.totals.selected_price||0),'required min="1" max="100000000"')+'<label for="report-memo">'+(english?'Notes':'메모')+'</label><textarea id="report-memo" name="memo" maxlength="1000">'+esc(draft?.memo||'')+'</textarea><div class="line"></div><div class="notice">'+notice+'</div><p id="confirm-error" class="error" role="alert"></p><div class="row" style="margin-top:20px">'+btn(english?'← Look again':'← 다시 살펴보기','results')+'<button class="btn strong" type="submit">'+(auth?(english?'Confirm list':'리스트 확정하기'):(english?'Sign in and confirm':'로그인 후 확정하기'))+' →</button></div></form></div>'+tfBasketAside(result)+'</div>',3)}
+async function tfSubmitConfirm(form){const english=tfIsEnglish(),d=Object.fromEntries(new FormData(form)),error=flow.querySelector('#confirm-error'),submit=form.querySelector('button[type=submit]'),name=String(d.name||'').trim(),target=money(d.target);if(!name){error.textContent=english?'Enter a list name.':'리스트 이름을 입력해 주세요.';return}if(!d.date){error.textContent=english?'Select a planned purchase date.':'구매 예정일을 선택해 주세요.';return}if(!(target>0)){error.textContent=english?'Enter a target total.':'목표 총액을 입력해 주세요.';return}if(tfPlan.result?.totals?.over_budget){error.textContent=english?'The build is over budget. Adjust it on the recommendations page.':'예산을 초과했습니다. 추천 결과에서 구성을 조정해 주세요.';return}
+ const draft={listId:tfPlan.listId,name,date:d.date,target,memo:String(d.memo||'')},saveDraft=()=>{try{sessionStorage.setItem(TF_CONFIRM_DRAFT_KEY,JSON.stringify(draft))}catch{}};
+ if(!readAuthSession()){saveDraft();tfSendToLogin('confirm.html');return}
+ if(tfPlan.busy)return;const listId=tfPlan.listId;tfPlan.busy=true;error.textContent='';tfBusy(submit,true,english?'Saving…':'저장하는 중…');
+ try{const report=tfRequire(await TF_PLAN.confirm(listId,{name,planned_purchase_at:d.date,target_amount:target,memo:draft.memo}));try{sessionStorage.removeItem(TF_CONFIRM_DRAFT_KEY)}catch{}if(listId!==tfPlan.listId)return;tfPlan.report=report;tfPlan.listsLoaded=false;go('report')}
+ catch(err){tfBusy(submit,false);if(err.code==='unauthorized'){TF_AUTH._set(null);saveDraft();tfSendToLogin('confirm.html');return}if(tfListGone(err))return;const messages=english?{no_items_selected:'There are no selected items in the basket.',over_budget:'The build is over budget. Adjust it on the recommendations page.'}:{no_items_selected:'장바구니에 담긴 품목이 없어요.',over_budget:'예산을 초과했습니다. 추천 결과에서 구성을 조정해 주세요.'};error.textContent=messages[err.code]||tfAuthErrorMessage(err)}
+ finally{tfPlan.busy=false}}
+shell(tfStatusPanel(tfIsEnglish()?'Checking sign-in status…':'로그인 상태를 확인하고 있어요…'),3);
+TF_AUTH.ready.then(()=>confirmPage());
+flow.addEventListener('submit',e=>{if(e.target.id!=='confirm-form')return;e.preventDefault();tfSubmitConfirm(e.target)});
