@@ -25,7 +25,7 @@ class _Ctx:
         principal = Principal(user_id=None, browser_token=created["browser_token"])
         list_id = created["list_id"]
         list_uuid = uuid.UUID(list_id)
-        session_service.choose_category(self.conn, list_uuid, "computer", None, principal)
+        session_service.choose_category(self.conn, list_uuid, "computer", "build", principal)
         for field, value in (("purpose", "game"), ("budget_max", 1500000), ("priority", "value")):
             session_service.patch_slot(self.conn, list_uuid, field, value, principal)
         revision_id = PlanRepo(self.conn).get_current_revision(list_uuid)["id"]

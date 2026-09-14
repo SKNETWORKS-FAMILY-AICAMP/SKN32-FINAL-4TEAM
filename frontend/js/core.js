@@ -21,7 +21,7 @@ const tfSeg=value=>encodeURIComponent(String(value));
 const TF_PLAN={
  createSession(){return TF_API.post('/session')},
  condition(id){return TF_API.get('/session/'+tfSeg(id))},
- chooseCategory(id,category,mode){return TF_API.post('/session/'+tfSeg(id)+'/category',mode?{category,mode}:{category})},
+ chooseCategory(id,category){return TF_API.post('/session/'+tfSeg(id)+'/category',{category})},
  message(id,text){return TF_API.post('/session/'+tfSeg(id)+'/message',{text})},
  answer(id,questionId,selected){return TF_API.post('/session/'+tfSeg(id)+'/answer',{question_id:questionId,selected})},
  clearSlot(id,field){return TF_API.patch('/session/'+tfSeg(id)+'/slot',{field,value:null})},
@@ -80,28 +80,11 @@ function readAuthSession(){return TF_AUTH.user}
 // TF-DEV: 서버 로그인 상태 확인 — 모든 페이지에서 한 번 실행. 결과가 필요한 페이지는 TF_AUTH.ready.then(...)으로 이어 붙인다.
 TF_AUTH.ready=TF_AUTH.refresh();
 // TF-DEV: 카테고리 선택은 index.html 퀵스타트 카드·category.html·푸터 바로가기 모두에서 쓰여 core.js에 둔다.
-async function tfSetCategory(c,{fresh=false,mode=null}={}){if(tfPlan.busy)return;const category=tfApiCategory(c);tfPlan.busy=true;try{let fetched=tfPlan.condition;let known=fetched?.category||tfListSummary()?.category||null;
- // TF-DEV: tfListSummary()만으로는 category는 알아도 mode 같은 세부 fields를 모른다.
- // 컴퓨터는 아래에서 mode가 실제로 바뀌었는지 비교해야 하므로, 요약만 있고 fields가
- // 없는 상태(fetched가 비어있음)라면 category가 이미 known이어도 한 번 제대로 받아온다.
- if(!fresh&&tfPlan.listId&&(known==null||(category==='computer'&&!fetched))){try{fetched=tfRequire(await TF_PLAN.condition(tfPlan.listId));known=fetched.category||null}catch(err){if(tfListGone(err))return;known=null}}
+async function tfSetCategory(c,{fresh=false}={}){if(tfPlan.busy)return;const category=tfApiCategory(c);tfPlan.busy=true;try{let known=tfPlan.condition?.category||tfListSummary()?.category||null;
+ if(!fresh&&tfPlan.listId&&known==null){try{known=tfRequire(await TF_PLAN.condition(tfPlan.listId)).category||null}catch(err){if(tfListGone(err))return;known=null}}
+ if(!fresh&&tfPlan.listId&&known===category){go('conditions');return}
  if(!fresh&&tfPlan.listId&&known&&known!==category){if(!window.confirm('다른 카테고리를 선택하면 새 장바구니를 만들어요. 지금 대화는 사이드바에 그대로 남아요. 계속할까요?'))return;fresh=true}
- // TF-DEV: 컴퓨터는 "새 컴퓨터/업그레이드"(mode)를 반드시 골라야 하는데 물어볼 화면이 없으면 요약에 영원히
- // "아직 확인되지 않았어요"로 남는다. 이미 진행 중인 컴퓨터 장바구니라도 카테고리 화면에서 "컴퓨터"를
- // 누르면 매번 이 화면부터 거치게 한다(known===category 지름길보다 먼저 검사). category.html
- // (tfShowPcModeStep)에서 먼저 고르게 하고, 그 화면이 없는 곳(랜딩 퀵스타트·푸터 바로가기)에서는
- // 카테고리 화면으로 보낸다.
- if(category==='computer'&&!mode){if(typeof tfShowPcModeStep==='function')tfShowPcModeStep(fresh);else go('category');return}
- if(!fresh&&tfPlan.listId&&known===category){
-  // 이미 진행 중인 장바구니를 이어간다. mode가 실제로 바뀔 때만 서버에 반영한다 — 서버가
-  // chooseCategory를 부를 때마다 "다음 질문" 안내를 대화에 새로 추가해서, 같은 mode로 다시
-  // 확인만 해도 매번 호출하면 대화창에 같은 질문이 중복으로 쌓인다.
-  const currentMode=fetched?.fields?.find(f=>f.key==='mode')?.value??null;
-  if(mode&&mode!==currentMode){const state=tfRequire(await TF_PLAN.chooseCategory(tfPlan.listId,category,mode));tfPlan.condition=state}
-  else if(fetched){tfPlan.condition=fetched}
-  go('conditions');return;
- }
- if(fresh||!tfPlan.listId){const created=tfRequire(await TF_PLAN.createSession());tfSelectList(created.list_id)}const state=tfRequire(await TF_PLAN.chooseCategory(tfPlan.listId,category,mode));tfPlan.condition=state;tfPlan.result=null;tfPlan.report=null;tfPlan.resultMessages=[];tfPlan.listsLoaded=false;go('conditions')}catch(err){if(!tfListGone(err))toast(tfAuthErrorMessage(err))}finally{tfPlan.busy=false}}
+ if(fresh||!tfPlan.listId){const created=tfRequire(await TF_PLAN.createSession());tfSelectList(created.list_id)}const state=tfRequire(await TF_PLAN.chooseCategory(tfPlan.listId,category));tfPlan.condition=state;tfPlan.result=null;tfPlan.report=null;tfPlan.resultMessages=[];tfPlan.listsLoaded=false;go('conditions')}catch(err){if(!tfListGone(err))toast(tfAuthErrorMessage(err))}finally{tfPlan.busy=false}}
 function choose(c){return tfSetCategory(c,{fresh:true})}
 // TF-DEV: 로그인 필요 화면(account/confirm/report)과 로그아웃 버튼(사이드바·헤더·회원정보)이 공유 — core.js에 둔다.
 function tfSendToLogin(returnPage){try{sessionStorage.setItem('truefit-login-return',returnPage)}catch{}go('login')}
