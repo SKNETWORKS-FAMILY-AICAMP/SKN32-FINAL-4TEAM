@@ -32,7 +32,7 @@ def test_english_baby_message_extracts_conditions():
     assert extracted["age_months"] == 12
     assert extracted["budget_max"] == 500_000
     assert extracted["health_skin"] == ["민감성 피부"]
-    assert extracted["needs"] == ["수유", "수면", "외출", "기저귀"]
+    assert extracted["needs"] == ["수유", "수면", "외출", "기저귀·배변"]
 
 
 @pytest.mark.parametrize(("message", "expected"), [

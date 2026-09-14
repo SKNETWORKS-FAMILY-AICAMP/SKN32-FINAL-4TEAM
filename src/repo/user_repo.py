@@ -5,6 +5,11 @@ from uuid import UUID
 from src.db.base import Repo
 
 class ConversationRepo(Repo):
+    def guest_identity_known(self, guest_session_hash: str) -> bool:
+        return self._one(
+            "SELECT 1 FROM identity.conversation WHERE guest_session_hash=%s LIMIT 1",
+            (guest_session_hash,),
+        ) is not None
     def create(self, *, user_id: UUID | None, guest_session_hash: str | None) -> UUID:
         row = self._one("INSERT INTO identity.conversation (user_id, guest_session_hash) VALUES (%s, %s) RETURNING id", (user_id, guest_session_hash))
         return row["id"]

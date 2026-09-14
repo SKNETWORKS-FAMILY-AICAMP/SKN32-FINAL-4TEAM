@@ -7,6 +7,17 @@ verifies only stated eligibility; it is not a complete product safety verdict.
 from dataclasses import replace
 import re
 
+# Rule inventory (P3 CONTRACTS "expose rule inventory for P4/P7"): which slot_key has
+# an actual manual-backed eligibility rule versus a reviewed decision that no manual
+# safety condition applies. Absence from BOTH dicts means "never reviewed" and must
+# surface as unknown, not be silently treated as either pass or not-applicable.
+MANUAL_RULE_INVENTORY: dict[str, str] = {
+    "stroller": "baby_seat_v1",
+}
+# No reviewed, evidence-backed exemptions are available yet. Missing manuals are
+# not proof that a product class has no applicable safety conditions.
+REVIEWED_NOT_APPLICABLE: dict[str, str] = {}
+
 
 def verify_seat(
     service, request, *, age_months=None, weight_kg=None, independent_sitting=None
@@ -14,6 +25,7 @@ def verify_seat(
     result = service.search(replace(request, query="좌석 모드 월령 체중 필수 조건"))
     base = {
         "search_status": result.status,
+        "error_code": result.error_code,
         "rule_score": None,
         "evidence_coverage": 0.0,
         "verification_status": "unknown",
@@ -31,7 +43,6 @@ def verify_seat(
     ]
     if not hits:
         return base
-    service.repo.mark_context(result.run_id, [h["evidence_id"] for h in hits])
     patterns = {
         "age_months": r"좌석 모드 월령: (\d+(?:\.\d+)?) 개월 이상\.",
         "weight_kg": r"좌석 모드 체중: (\d+(?:\.\d+)?) kg 이하\.",

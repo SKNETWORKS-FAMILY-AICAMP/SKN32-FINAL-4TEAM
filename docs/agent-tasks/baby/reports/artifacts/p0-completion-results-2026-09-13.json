@@ -1,0 +1,24 @@
+{
+  "create_session": 200,
+  "category": 200,
+  "lists": {
+    "status": 500,
+    "body": "Internal Server Error"
+  },
+  "rename": {
+    "status": 500,
+    "body": "Internal Server Error"
+  },
+  "delete": {
+    "status": 500,
+    "body": "Internal Server Error"
+  },
+  "table_count": 35,
+  "review_metadata_columns": [
+    "author_ref",
+    "review_posted_at"
+  ],
+  "orphan_item_accepted": true,
+  "nonexistent_fulfillment_accepted": true,
+  "item_foreign_keys": 0
+}

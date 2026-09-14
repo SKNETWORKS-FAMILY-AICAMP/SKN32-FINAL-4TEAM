@@ -2,6 +2,30 @@
 
 개정일: 2026년 9월 11일 · 상태: 구현 전 설계 명세 · 대상: PostgreSQL + pgvector + 객체 저장소
 
+> **P0 v4 갱신 (2026-09-13)**: 이 문서는 축소 이전 58개 테이블 설계 입력이며, 실제 적용된 목표
+> 스키마가 아니다. `db/migrations/0010`~`0012`가 이 문서의 58개 테이블을 35개(스키마 12→8:
+> `notification`·`dataset`·`shared` 삭제, `config`/`identity`/`catalog`/`assets`/`community`/
+> `evidence`/`engine`/`planning` 병합, `rag` 6개 테이블은 유지)로 축소했고, `0013`이 축소된
+> JSON 컬럼·리비전 스코프·스냅샷 불변을 DB 제약으로 강제한다. 실제 물리 컬럼 매핑과
+> 실행 증거는 [`docs/agent-tasks/baby/schema-v1.md`](../agent-tasks/baby/schema-v1.md)를 우선
+> 참조한다. 아래 본문은 축소 전 설계 근거로만 유효하다.
+>
+> `0013`이 추가한 것 중 이 문서에 없는 항목:
+> - `engine.recommendation_candidate.revision_id` (`NOT NULL`) — run 에서 트리거로 파생되며,
+>   `recommendation_run(id, revision_id)` · `planning.requirement(id, revision_id)` 두 복합 FK 로
+>   다른 리비전의 요구를 가리키지 못하게 한다. 애플리케이션이 직접 설정/변경할 수 없다.
+> - `evidence_refs.refs[]` 는 `evidence_id`·`claim_key`·`material_id`·`material_version`·
+>   `file_sha256`·`locator`(object) 를 모두 요구하고 `(evidence_id, claim_key)` 중복을 금지한다
+>   (`recommendation_candidate_evidence_refs_items_check`). `validation_result.issues[]` 도 같은
+>   항목 규칙 + `schema_version=1`/`rule_key`/`rule_version`/`status`/`target` 을 요구한다.
+> - `evidence_id` 는 실재해야 하고 `kind='material'` 근거는 이 candidate 의 run 에 속한
+>   `rag.retrieval_run` 에서 나와야 한다 (`candidate_evidence_scope` 트리거).
+> - `planning.plan_revision.domain_snapshot` / `engine.recommendation_run.domain_snapshot` 은
+>   비어 있을 수 없고(`app.domain_snapshot_v1_valid`) 생성 이후 바뀌지 않는다
+>   (`freeze_domain_snapshot`; 리비전은 draft + run 없음일 때의 카테고리 재바인딩만 허용).
+> - `config.domain` 은 `status='active'` 이면 실제 정의와 0 이 아닌 `content_hash` 를 가져야 한다
+>   (`domain_published_definition_check`). 두 카테고리 도메인은 모두 `active` 로 seed 된다.
+
 이 명세서를 데이터베이스 설계 기준으로 한다. v6는 v5의 58개 테이블을 유지하면서 변경된 프론트 요구에 따라 이메일 인증 예정 상태, 계정 수정 시각과 UI 설정을 복원한다. 기존 설계 근거·2D/3D mockup·schema-v2.json은 이전 버전의 참고 자료이며, 이 문서와 차이가 있으면 이 문서를 우선한다.
 
 ## 1. 개발 범위와 변경 내용
@@ -2277,3 +2301,7 @@ FK는 참조 무결성을 보장하지만 조회에 필요한 인덱스를 자�
 | fact 교체 뒤 표시 attributes가 오래됨 | 표시 캐시 갱신/무효화, 검증은 유효 fact 기준, 과거 결과 보존 |
 
 이 기준은 구현 시 검증해야 할 요구이며, 현재 실제 DB·RAG 서비스에 대해 통과했다고 보고하는 결과는 아니다.
+
+## P0 reduced schema v1 transition (2026-09-12)
+
+The physical transition is `db/migrations/0010_schema_reduction_v1.sql`. It stages the v1 mappings documented in `docs/agent-tasks/baby/schema-v1.md`, retains pgvector RAG, and rejects ambiguous category/fulfilment source data before a destructive phase. Legacy source tables remain audited compatibility inputs pending a seeded mapping rehearsal; this section supersedes neither their historical definitions nor the forward-only migration record.

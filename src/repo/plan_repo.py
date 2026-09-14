@@ -8,6 +8,17 @@ from src.db.base import Repo
 
 
 class PlanRepo(Repo):
+    def published_domain_version(self, category: str) -> dict | None:
+        return self._one(
+            "SELECT dv.id FROM config.domain_version dv JOIN config.domain d ON d.id=dv.domain_id "
+            "WHERE d.code=%s AND d.status='active' ORDER BY dv.version_no DESC LIMIT 1", (category,)
+        )
+
+    def bind_domain_version(self, revision_id: UUID, category: str) -> None:
+        version = self.published_domain_version(category)
+        if version is None:
+            raise ValueError(f"published_domain_not_found:{category}")
+        self._exec("UPDATE planning.plan_revision SET domain_version_id=%s, updated_at=now() WHERE id=%s", (version["id"], revision_id))
     def create_plan(self, conversation_id: UUID, name: str, owner_user_id: UUID | None) -> UUID:
         row = self._one("INSERT INTO planning.plan (conversation_id, name, owner_user_id) VALUES (%s, %s, %s) RETURNING id", (conversation_id, name, owner_user_id))
         return row["id"]
@@ -125,13 +136,28 @@ class PlanRepo(Repo):
         row = self._one("SELECT lock_version FROM planning.plan_revision WHERE id=%s", (revision_id,))
         return None if row is None else row["lock_version"]
 
+    def lock_revision(self, revision_id: UUID) -> None:
+        """같은 리비전의 조건·요구사항 변경을 하나의 행 잠금으로 직렬화한다."""
+        self._one("SELECT id FROM planning.plan_revision WHERE id=%s FOR UPDATE", (revision_id,))
+
     def upsert_condition(self, revision_id: UUID, key: str, value: dict, origin: str, source_message_id: UUID | None = None) -> UUID:
+        self.lock_revision(revision_id)
         old = self._one("SELECT id FROM planning.plan_condition WHERE revision_id=%s AND condition_key=%s AND status='active' FOR UPDATE", (revision_id, key))
         if old:
             self._exec("UPDATE planning.plan_condition SET status='superseded', updated_at=now() WHERE id=%s", (old["id"],))
         row = self._one("INSERT INTO planning.plan_condition (revision_id, condition_key, value, origin, source_message_id, supersedes_id) VALUES (%s,%s,%s,%s,%s,%s) RETURNING id", (revision_id, key, Jsonb(value), origin, source_message_id, old["id"] if old else None))
         self._exec("UPDATE planning.plan_revision SET lock_version=lock_version+1, updated_at=now() WHERE id=%s AND state='draft'", (revision_id,))
         return row["id"]
+
+    def clear_condition(self, revision_id: UUID, key: str) -> None:
+        self.lock_revision(revision_id)
+        old = self._one(
+            "SELECT id FROM planning.plan_condition WHERE revision_id=%s AND condition_key=%s AND status='active'",
+            (revision_id, key),
+        )
+        if old:
+            self._exec("UPDATE planning.plan_condition SET status='superseded', updated_at=now() WHERE id=%s", (old["id"],))
+        self._exec("UPDATE planning.plan_revision SET lock_version=lock_version+1, updated_at=now() WHERE id=%s AND state='draft'", (revision_id,))
 
     def add_node(self, revision_id: UUID, node_type: str, template_key: str, name: str,
                  parent_id: UUID | None = None, position: int = 0) -> UUID:
@@ -160,7 +186,7 @@ class PlanRepo(Repo):
         )
         if row is not None:
             self._exec(
-                "UPDATE planning.requirement SET match_spec=%s WHERE id=%s",
+                "UPDATE planning.requirement SET match_spec=%s, status='active' WHERE id=%s",
                 (Jsonb(match_spec), row["id"]),
             )
             return row["id"]
@@ -170,6 +196,41 @@ class PlanRepo(Repo):
             (revision_id, node_id, Jsonb(match_spec)),
         )
         return row["id"]
+
+    def get_requirement_by_node(self, revision_id: UUID, node_id: UUID) -> dict | None:
+        return self._one(
+            "SELECT id, match_spec, status FROM planning.requirement WHERE revision_id=%s AND node_id=%s",
+            (revision_id, node_id),
+        )
+
+    def set_requirement_totals(self, requirement_id: UUID, *, quantity, unit_code: str,
+                               required: bool, match_spec: dict) -> None:
+        self._exec(
+            "UPDATE planning.requirement SET quantity=%s, unit_code=%s, required=%s, "
+            "match_spec=%s, status='active', updated_at=now() WHERE id=%s",
+            (quantity, unit_code, required, Jsonb(match_spec), requirement_id),
+        )
+
+    def exclude_requirements_not_in(self, revision_id: UUID, keep_slot_keys: list[str]) -> None:
+        self._exec(
+            """UPDATE planning.requirement SET status='excluded', updated_at=now()
+               WHERE revision_id=%s AND status='active' AND match_spec ? 'baby_requirement'
+                 AND node_id IN (
+                   SELECT id FROM planning.plan_node
+                   WHERE revision_id=%s AND NOT (template_key = ANY(%s)))""",
+            (revision_id, revision_id, keep_slot_keys),
+        )
+
+    def active_condition(self, revision_id: UUID, condition_key: str) -> dict | None:
+        return self._one(
+            "SELECT id, value FROM planning.plan_condition WHERE revision_id=%s AND condition_key=%s "
+            "AND status='active'",
+            (revision_id, condition_key),
+        )
+
+    def active_condition_id(self, revision_id: UUID, condition_key: str) -> UUID | None:
+        row = self.active_condition(revision_id, condition_key)
+        return None if row is None else row["id"]
 
     def load_full(self, revision_id: UUID) -> dict:
         revision = self.get_revision(revision_id)

@@ -1,0 +1,253 @@
+# Baby need-area → product-slot requirement rules (P2_catalog_requirements.md).
+#
+# Versioned DATA, not code: each rule maps one of the 9 allowed `needs` values
+# (config/categories/baby.yaml `question_sets.q_needs.options`) to a slot_key
+# whose category_code is seeded by scripts/seed_baby_catalog.py. Every one of the
+# 9 need areas below has at least one rule OR an explicit `data_gap: true` entry —
+# 의류 (clothing) has no curated category in scripts/유아용품_가상제품_스펙사전_v1.json's
+# 23 supported families, so it is declared as a data_gap rather than mapped to an
+# unrelated category or a fabricated product.
+#
+# age_window is in whole months and applies to mode: born only; it decides
+# `timing` (now/soon/later), never whether the requirement exists at all — an
+# item outside its window is still a real future need, not silently dropped.
+# These windows are internal demo scheduling values, not medical guidance
+# (CONTRACTS.md: "Demo age windows are test rules, not medical advice").
+#
+# applicability predicates reference normalized condition fields
+# (independent_sitting, weight_kg); an unanswered predicate is carried through
+# as "unknown" rather than assumed true or false (CandidateCheck/eligibility
+# resolves it later — this file only declares the requirement, never fabricates
+# an eligibility verdict).
+
+rule_set_version: "baby-rules-v1"
+
+rules:
+  # ── 수유 (feeding) ────────────────────────────────────────────────
+  - rule_key: feeding_bottle_v1
+    needs: ["수유"]
+    slot_key: bottle
+    category_code: bottle
+    mode: [born, prenatal]
+    age_window: {min_months: 0, max_months: null}
+    mandatory: true
+    required_qty: 2
+    unit_code: each
+    source_kind: synthetic_demo
+    source_ref: "scripts/유아용품_가상제품_스펙사전_v1.json#bottle"
+    review_status: unreviewed
+
+  - rule_key: feeding_formula_v1
+    needs: ["수유"]
+    slot_key: formula
+    category_code: formula
+    mode: [born, prenatal]
+    age_window: {min_months: 0, max_months: 12}
+    mandatory: false
+    required_qty: 1
+    unit_code: each
+    source_kind: synthetic_demo
+    source_ref: "scripts/유아용품_가상제품_스펙사전_v1.json#formula"
+    review_status: unreviewed
+
+  # ── 이유식·식사 (weaning / meals) ─────────────────────────────────
+  - rule_key: meal_high_chair_v1
+    needs: ["이유식·식사"]
+    slot_key: high_chair
+    category_code: high_chair
+    mode: [born]
+    age_window: {min_months: 6, max_months: null}
+    mandatory: true
+    required_qty: 1
+    unit_code: each
+    source_kind: synthetic_demo
+    source_ref: "scripts/유아용품_가상제품_스펙사전_v1.json#high_chair"
+    review_status: unreviewed
+
+  - rule_key: meal_baby_food_v1
+    needs: ["이유식·식사"]
+    slot_key: baby_food
+    category_code: baby_food
+    mode: [born]
+    age_window: {min_months: 6, max_months: null}
+    mandatory: false
+    required_qty: 1
+    unit_code: each
+    source_kind: synthetic_demo
+    source_ref: "scripts/유아용품_가상제품_스펙사전_v1.json#baby_food"
+    review_status: unreviewed
+
+  # ── 수면 (sleep) ──────────────────────────────────────────────────
+  - rule_key: sleep_crib_v1
+    needs: ["수면"]
+    slot_key: crib
+    category_code: crib
+    mode: [born, prenatal]
+    age_window: {min_months: 0, max_months: null}
+    mandatory: true
+    required_qty: 1
+    unit_code: each
+    source_kind: synthetic_demo
+    source_ref: "scripts/유아용품_가상제품_스펙사전_v1.json#crib"
+    review_status: unreviewed
+
+  - rule_key: sleep_sleepwear_v1
+    needs: ["수면"]
+    slot_key: sleepwear
+    category_code: sleepwear
+    mode: [born, prenatal]
+    age_window: {min_months: 0, max_months: null}
+    mandatory: false
+    required_qty: 2
+    unit_code: each
+    source_kind: synthetic_demo
+    source_ref: "scripts/유아용품_가상제품_스펙사전_v1.json#sleepwear"
+    review_status: unreviewed
+
+  # ── 외출 (outing) ─────────────────────────────────────────────────
+  - rule_key: outing_stroller_v1
+    needs: ["외출"]
+    slot_key: stroller
+    category_code: stroller
+    mode: [born]
+    age_window: {min_months: 6, max_months: null}
+    mandatory: true
+    required_qty: 1
+    unit_code: each
+    applicability: {independent_sitting: true}
+    source_kind: synthetic_demo
+    source_ref: "scripts/유아용품_가상제품_스펙사전_v1.json#stroller"
+    review_status: unreviewed
+
+  - rule_key: outing_car_seat_v1
+    needs: ["외출"]
+    slot_key: car_seat
+    category_code: car_seat
+    mode: [born, prenatal]
+    age_window: {min_months: 0, max_months: null}
+    mandatory: true
+    required_qty: 1
+    unit_code: each
+    source_kind: synthetic_demo
+    source_ref: "scripts/유아용품_가상제품_스펙사전_v1.json#car_seat"
+    review_status: unreviewed
+
+  # ── 목욕·위생 (bath / hygiene) ────────────────────────────────────
+  - rule_key: hygiene_bath_v1
+    needs: ["목욕·위생"]
+    slot_key: bath
+    category_code: bath
+    mode: [born, prenatal]
+    age_window: {min_months: 0, max_months: null}
+    mandatory: true
+    required_qty: 1
+    unit_code: each
+    source_kind: synthetic_demo
+    source_ref: "scripts/유아용품_가상제품_스펙사전_v1.json#bath"
+    review_status: unreviewed
+
+  - rule_key: hygiene_skincare_v1
+    needs: ["목욕·위생"]
+    slot_key: skincare
+    category_code: skincare
+    mode: [born, prenatal]
+    age_window: {min_months: 0, max_months: null}
+    mandatory: false
+    required_qty: 1
+    unit_code: each
+    source_kind: synthetic_demo
+    source_ref: "scripts/유아용품_가상제품_스펙사전_v1.json#skincare"
+    review_status: unreviewed
+
+  # ── 기저귀·배변 (diapering) ───────────────────────────────────────
+  - rule_key: diapering_diaper_v1
+    needs: ["기저귀·배변"]
+    slot_key: diaper
+    category_code: diaper
+    mode: [born]
+    age_window: {min_months: 0, max_months: null}
+    mandatory: true
+    required_qty: 1
+    unit_code: pack
+    source_kind: synthetic_demo
+    source_ref: "scripts/유아용품_가상제품_스펙사전_v1.json#diaper"
+    review_status: unreviewed
+
+  - rule_key: diapering_wipes_v1
+    needs: ["기저귀·배변"]
+    slot_key: wipes
+    category_code: wipes
+    mode: [born]
+    age_window: {min_months: 0, max_months: null}
+    mandatory: false
+    required_qty: 1
+    unit_code: pack
+    source_kind: synthetic_demo
+    source_ref: "scripts/유아용품_가상제품_스펙사전_v1.json#wipes"
+    review_status: unreviewed
+
+  # ── 의류 (clothing) — explicit data gap, no fabricated category ──
+  - rule_key: clothing_data_gap_v1
+    needs: ["의류"]
+    slot_key: clothing
+    category_code: null
+    mode: [born, prenatal]
+    age_window: {min_months: 0, max_months: null}
+    mandatory: false
+    required_qty: 0
+    unit_code: each
+    data_gap: true
+    data_gap_reason: "no_curated_clothing_category_in_generator_dictionary"
+    source_kind: synthetic_demo
+    source_ref: null
+    review_status: data_gap
+
+  # ── 놀이 (play) ───────────────────────────────────────────────────
+  - rule_key: play_mat_v1
+    needs: ["놀이"]
+    slot_key: mat
+    category_code: mat
+    mode: [born]
+    age_window: {min_months: 3, max_months: null}
+    mandatory: false
+    required_qty: 1
+    unit_code: each
+    source_kind: synthetic_demo
+    source_ref: "scripts/유아용품_가상제품_스펙사전_v1.json#mat"
+    review_status: unreviewed
+
+  # ── 안전·건강 (safety / health) ───────────────────────────────────
+  - rule_key: safety_gate_v1
+    needs: ["안전·건강"]
+    slot_key: gate
+    category_code: gate
+    mode: [born]
+    age_window: {min_months: 6, max_months: null}
+    mandatory: false
+    required_qty: 1
+    unit_code: each
+    source_kind: synthetic_demo
+    source_ref: "scripts/유아용품_가상제품_스펙사전_v1.json#gate"
+    review_status: unreviewed
+
+  - rule_key: safety_thermometer_v1
+    needs: ["안전·건강"]
+    slot_key: thermometer
+    category_code: thermometer
+    mode: [born, prenatal]
+    age_window: {min_months: 0, max_months: null}
+    mandatory: true
+    required_qty: 1
+    unit_code: each
+    source_kind: synthetic_demo
+    source_ref: "scripts/유아용품_가상제품_스펙사전_v1.json#thermometer"
+    review_status: unreviewed
+
+# Owned-item canonicalization: baby.yaml `q_owned` options → the slot_key they
+# fulfil. "없음" (none) intentionally maps to nothing.
+owned_item_slot_map:
+  유모차: stroller
+  카시트: car_seat
+  젖병: bottle
+  아기침대: crib
+  기저귀: diaper

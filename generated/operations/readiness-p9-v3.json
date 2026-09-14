@@ -1,0 +1,144 @@
+{
+  "status": "partial",
+  "checks": [
+    {
+      "id": "search_provider",
+      "status": "blocked",
+      "reason": "search_provider_unconfigured",
+      "observed": {
+        "configured": null,
+        "corpus": "synthetic"
+      }
+    },
+    {
+      "id": "database",
+      "status": "pass",
+      "reason": "database_connection_ok",
+      "observed": {}
+    },
+    {
+      "id": "migration_chain",
+      "status": "pass",
+      "reason": "develop_migration_chain_applied",
+      "observed": {
+        "applied": [
+          "0000_prereq",
+          "0001_tables",
+          "0002_unique",
+          "0003_foreign_keys",
+          "0004_triggers",
+          "0005_indexes",
+          "0006_rag_active_profile",
+          "0007_app_user_password_auth",
+          "0008_frontend_contract",
+          "0009_frontend_requirement_revision",
+          "0010_review_summary_relation_axis",
+          "0011_drop_rag_schema",
+          "0012_schema_reduction_safe_subset",
+          "0013_result_item_interaction"
+        ],
+        "missing": [],
+        "unexpected": []
+      }
+    },
+    {
+      "id": "target_schema",
+      "status": "pass",
+      "reason": "develop_schema_matches_v3",
+      "observed": {
+        "missing_tables": [],
+        "forbidden_present": []
+      }
+    },
+    {
+      "id": "baby_domain",
+      "status": "pass",
+      "reason": "baby_domain_hash_matches",
+      "observed": {
+        "domain_version_id": "9b609881-5526-4102-bced-9ce6ea0b5439",
+        "version_no": 1,
+        "status": "draft",
+        "content_hash": "0252cd94fd2b8933b0a1c153a5f3c6e1a5774bd1bc10b824a533054921652527"
+      }
+    },
+    {
+      "id": "candidate_coverage",
+      "status": "pass",
+      "reason": "all_need_slots_have_candidates",
+      "observed": {
+        "coverage": {
+          "수유": {
+            "bottle": 3,
+            "formula": 2
+          },
+          "이유식·식사": {
+            "baby_food": 2,
+            "high_chair": 2
+          },
+          "수면": {
+            "crib": 2,
+            "sleepwear": 2
+          },
+          "외출": {
+            "car_seat": 5,
+            "stroller": 5
+          },
+          "목욕·위생": {
+            "bath": 2,
+            "skincare": 2
+          },
+          "기저귀·배변": {
+            "diaper": 3,
+            "wipes": 1
+          },
+          "놀이": {
+            "mat": 2
+          },
+          "안전·건강": {
+            "gate": 2,
+            "thermometer": 2
+          }
+        },
+        "missing": {}
+      }
+    },
+    {
+      "id": "pricing_units",
+      "status": "pass",
+      "reason": "catalog_price_and_unit_shape_valid",
+      "observed": {
+        "invalid_variant_count": 0
+      }
+    },
+    {
+      "id": "manual_mapping",
+      "status": "blocked",
+      "reason": "no_published_manual_mapping",
+      "observed": {
+        "published_mappings": 0,
+        "corpus": "synthetic"
+      }
+    },
+    {
+      "id": "api_and_runs",
+      "status": "pass",
+      "reason": "required_api_and_run_statuses_present",
+      "observed": {
+        "missing_routes": [],
+        "run_statuses": {},
+        "terminal_statuses": [
+          "completed",
+          "failed",
+          "stale"
+        ],
+        "unknown_statuses": []
+      }
+    }
+  ],
+  "provider": null,
+  "corpus": "synthetic",
+  "versions": {
+    "contract": 3,
+    "target_db_commit": "da798393850c03866374b05c01eed568fbc84f71"
+  }
+}

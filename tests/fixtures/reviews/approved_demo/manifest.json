@@ -1,0 +1,27 @@
+{
+ "schema_version": 1,
+ "dataset_version": "baby-review-analysis-approved-demo-v1",
+ "corpus": "synthetic",
+ "language": "ko",
+ "domain": "baby",
+ "generated_at": "2026-09-14T00:00:00+00:00",
+ "files": [
+  {
+   "path": "samples.jsonl",
+   "sha256": "8c734787f00bcc3d0f5056422b9ab410676edcefc75847d25aeecdff338b4bdc",
+   "record_count": 3
+  },
+  {
+   "path": "labels.jsonl",
+   "sha256": "e209bbaae57408ae29f08d15de2a14da70abe56ae4b9f9ca6ef612f3ac3dcefb",
+   "record_count": 3
+  },
+  {
+   "path": "analysis.jsonl",
+   "sha256": "bc18dc505a35a8a33f2ef24285103de1a7af46c8599a4053c42e4c76c3bcc7f1",
+   "record_count": 1
+  }
+ ],
+ "label_definition_version": "v1",
+ "split_policy": "fixed"
+}

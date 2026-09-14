@@ -16,7 +16,7 @@ from src.repo.engine_repo import EngineRepo
 from src.repo.notification_repo import NotificationRepo
 from src.repo.plan_repo import PlanRepo
 from src.repo.user_repo import UserRepo
-from src.services import auth_service, recommendation_service
+from src.services import auth_service, feedback_service, recommendation_service
 from src.services.session_service import _owned, _token_hash
 
 _DEFAULT_NAME_BY_CATEGORY = {"computer": "컴퓨터 장바구니", "baby": "유아용품 장바구니"}
@@ -126,6 +126,10 @@ def confirm(conn, list_id: UUID, principal: Principal, *, name: str, planned_pur
         raise Conflict("이미 확정된 목록입니다.")
     prepo.rename(list_id, name)
 
+    # stored["items"]가 이미 리뷰 배지를 계산해 뒀다 — 상품키로 다시 찾지 않고 item_id로 재사용해
+    # 결과 화면과 확정 스냅샷의 리뷰 표시가 어긋나지 않게 한다.
+    review_by_item_id = {item["item_id"]: item["review"] for item in stored["items"]}
+
     # 확정 성공(state가 draft→confirmed로 바뀐 요청)만 후보를 얼린다 — confirm_revision이
     # 이미 원자적 UPDATE라 동시 확정 요청 중 단 하나만 여기 도달한다.
     for row in EngineRepo(conn).get_candidates(UUID(stored["run_id"])):
@@ -133,7 +137,7 @@ def confirm(conn, list_id: UUID, principal: Principal, *, name: str, planned_pur
             continue  # 가격 관측이 없는 슬롯 — 구매 항목으로 얼릴 수 없다
         snapshot = {
             "slot": row["slot"], "slot_label": row["slot_label"], "qty": 1, "timing": "now",
-            "review": None, "evidence_text": row["reason"] or "",
+            "review": review_by_item_id.get(str(row["id"])), "evidence_text": row["reason"] or "",
             "product": {
                 "product_key": row["product_key"], "name": row["product_name"],
                 "image_url": row["image_url"], "purchase_url": row["purchase_url"],
@@ -143,6 +147,12 @@ def confirm(conn, list_id: UUID, principal: Principal, *, name: str, planned_pur
             revision["id"], row["offer_id"], row["offer_observation_id"], int(row["price"]), snapshot
         )
 
+    # P8 FB03: draft→confirmed 전환에 성공한 요청만 여기 도달한다(위의 Conflict가 이미
+    # 중복 확정을 막는다) — 실패한 확정 시도는 아무 것도 남기지 않는다.
+    feedback_service.emit_confirmed(
+        conn, plan_id=revision["plan_id"], revision_id=revision["id"],
+        run_id=UUID(stored["run_id"]), version=revision["lock_version"], user_id=user_id,
+    )
     return get_report(conn, list_id, principal)
 
 
