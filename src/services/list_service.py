@@ -97,6 +97,11 @@ def delete(conn, list_id: UUID, principal: Principal) -> None:
     prepo.soft_delete(list_id)
 
 
+def _report_lang(prepo: PlanRepo, revision_id: UUID) -> str:
+    from src.engine.lang import lang_of
+    return lang_of({r["condition_key"]: r["value"].get("value") for r in prepo.load_full(revision_id)["conditions"]})
+
+
 def confirm(conn, list_id: UUID, principal: Principal, *, name: str, planned_purchase_at: str | None,
             target_amount: int | None, memo: str, if_match: int | None = None) -> dict:
     user_id = _require_login(conn, principal)
@@ -147,8 +152,10 @@ def confirm(conn, list_id: UUID, principal: Principal, *, name: str, planned_pur
             continue
         if row["offer_id"] is None or row["offer_observation_id"] is None or row["price"] is None:
             continue  # 가격 관측이 없는 슬롯 — 구매 항목으로 얼릴 수 없다
+        item_view = next((i for i in stored["items"] if i["item_id"] == str(row["id"])), None)
         snapshot = {
-            "slot": row["slot"], "slot_label": row["slot_label"], "qty": 1, "timing": "now",
+            "slot": row["slot"], "slot_label": (item_view or {}).get("slot_label") or row["slot_label"],  # 결과 화면과 같은 언어
+            "qty": 1, "timing": "now",
             "review": review_by_item_id.get(str(row["id"])), "evidence_text": row["reason"] or "",
             "product": {
                 "product_key": row["product_key"], "name": row["product_name"],
@@ -204,7 +211,8 @@ def get_report(conn, list_id: UUID, principal: Principal) -> dict:
         "price_watch": _price_watch_out(
             watch, int(revision["target_amount"]) if revision["target_amount"] is not None else None
         ),
-        "data_notice": "상품·가격·리뷰는 합성 데이터입니다.",
+        "data_notice": ("Products, prices and reviews are synthetic demo data." if _report_lang(prepo, revision["id"]) == "en"
+                        else "상품·가격·리뷰는 합성 데이터입니다."),
     }
 
 

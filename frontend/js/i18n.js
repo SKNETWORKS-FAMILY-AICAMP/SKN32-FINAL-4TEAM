@@ -23,6 +23,10 @@
   "완료":"Done","진행 중":"In progress","대기":"Waiting",
   "아직 추천 결과가 없어요.":"No recommendation yet.","조건 대화를 마치고 추천을 받아 보세요.":"Finish the conversation to get a recommendation.",
   "추천을 만들지 못했어요.":"We couldn't create a recommendation.","다시 추천받기":"Recommend again","추천 과정 보기":"View recommendation steps","다른 구성 보기":"See another build",
+  /* TF-DEV: 03 결과 채팅 입력칸 예시 (results.js composerPlaceholder) */
+  "예: 그래픽카드를 더 저렴한 걸로 바꿔줘":"e.g. Swap the graphics card for a cheaper one",
+  "예: 기저귀를 더 저렴한 걸로 바꿔줘":"e.g. Swap the diapers for a cheaper option",
+  "추천 결과에 대해 물어보세요":"Ask about the recommendation",
   "추천 요약":"Summary","추천 설명을 만드는 중이에요…":"Writing the explanation…","추천 설명을 만들지 못했어요.":"Couldn't write the explanation.",
   "추천 이유를 정리하는 중이에요…":"Writing the reason…","추천 이유를 만들지 못했어요.":"Couldn't write the reason.","확인할 점을 정리하는 중이에요…":"Writing things to check…","확인할 점을 만들지 못했어요.":"Couldn't write things to check.",
   "리뷰 정보 없음":"No review data","리뷰 정보를 불러오는 중이에요…":"Loading reviews…","이 상품의 리뷰 정보가 아직 없어요.":"No reviews for this product yet.",

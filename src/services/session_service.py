@@ -8,6 +8,7 @@ from src.agent import conditions_agent
 from src.auth.deps import Principal
 from src.categories import available_categories, load_category
 from src.engine import slot_rules
+from src.engine.lang import L, lang_of
 from src.errors import Conflict, FileTooLarge, NotFound, ValidationFailed
 from src.i18n import Locale, normalize_locale
 from src.repo.plan_repo import PlanRepo
@@ -208,7 +209,9 @@ def _display(
     value,
     locale: Locale = "ko-KR",
     option_labels: dict | None = None,
+    values: dict | None = None,
 ) -> str | None:
+    values = values or {}
     if value in (None, [], ""):
         return None
     if meta.get("computed"):
@@ -227,6 +230,9 @@ def _display(
             return "Yes" if value else "No"
         return "예" if value else "아니오"
     if meta["key"] == "budget_max" and isinstance(value, (int, float)):
+        if values.get("currency") == "USD":   # 달러로 말한 사용자 — 달러만 (고정 환율 src/config.USD_KRW_RATE)
+            from src.agent.conditions_agent import usd
+            return usd(int(value))
         return f"₩{int(value):,}" if locale == "en-US" else f"{int(value):,}원"
     return str(value)
 
@@ -247,7 +253,7 @@ def _build_fields(cat_def: dict, values: dict, locale: Locale = "ko-KR") -> list
             status = "assumed"
         out.append({
             "key": meta["key"], "label": _localized(meta, "label", locale), "value": value,
-            "display": _display(meta, value, locale, _option_label_map(cat_def, meta["key"], locale)),
+            "display": _display(meta, value, locale, _option_label_map(cat_def, meta["key"], locale), values),
             "status": status, "editable": True,
         })
     return out
@@ -268,6 +274,7 @@ def compute_missing(cat_def: dict, values: dict) -> list[str]:
 def _next_question(cat_def: dict, values: dict, locale: Locale = "ko-KR") -> dict | None:
     locale = normalize_locale(locale)
     mode = values.get("mode")
+    en = lang_of(values) == "en"      # 영어 사용자 — yaml 의 label_en/options_en (없으면 한국어 그대로)
     missing = set(compute_missing(cat_def, values))
     for q in cat_def.get("question_sets", []):
         if q.get("mode_only") and q["mode_only"] != mode:
@@ -275,12 +282,12 @@ def _next_question(cat_def: dict, values: dict, locale: Locale = "ko-KR") -> dic
         if q["maps_to"] not in missing:
             continue
         options = q.get("options") or []
-        option_labels = _localized(q, "options", locale) or options
         qvalues = q.get("values") or options
+        labels = (q.get("options_en") if en and q.get("options_en") else None) or options
         return {
-            "id": q["id"], "field": q["maps_to"], "text": _localized(q, "label", locale),
+            "id": q["id"], "field": q["maps_to"], "text": (q.get("label_en") if en else None) or q["label"],
             "select": q["select"],
-            "options": [{"value": v, "label": o} for o, v in zip(option_labels, qvalues)],
+            "options": [{"value": v, "label": o} for o, v in zip(labels, qvalues)],
         }
     return None
 
@@ -377,7 +384,10 @@ def choose_category(
     mode: str | None,
     principal: Principal,
     locale: Locale = "ko-KR",
+    language: str | None = None,
 ) -> dict:
+    """language 는 프론트 언어 토글(X-TrueFit-Lang 헤더). 조건 대화 없이 칩만 눌러도 [3-C]·[5]·결과 문장이 그 언어로 나온다.
+    locale 은 이 요청(ConditionState) 응답 자체의 표시 언어 — Accept-Language 기반, 백그라운드 실행 시점엔 없다."""
     locale = normalize_locale(locale)
     repo = PlanRepo(conn)
     current = _owned(repo, list_id, principal)
@@ -394,6 +404,8 @@ def choose_category(
         repo.bind_domain_version(current["id"], category)
     repo.upsert_condition(current["id"], "category", {"value": category}, "explicit")
     repo.upsert_condition(current["id"], "mode", {"value": mode}, "explicit")
+    if language in ("ko", "en") and "language" in (cat_def.get("slot_schema") or {}):
+        repo.upsert_condition(current["id"], "language", {"value": language}, "explicit")
     if previous_category is not None and previous_category != category:
         for key in values:
             if key not in {"category", "mode"}:
@@ -402,7 +414,7 @@ def choose_category(
         keys = ("due_date",) if mode == "born" else ("age_months", "weight_kg", "independent_sitting")
         for key in keys:
             repo.clear_condition(current["id"], key)
-    nq = _next_question(cat_def, {"mode": mode}, locale)
+    nq = _next_question(cat_def, {"mode": mode, "language": language}, locale)
     if nq:
         ConversationRepo(conn).add_message(current["conversation_id"], "assistant", nq["text"])
     return _state(conn, list_id, principal, locale)
@@ -487,15 +499,11 @@ def handle_message(
 
     nq = _next_question(cat_def, values, locale)
     if reply is None:
+        lang = lang_of(values)
         if nq:
-            if extracted:
-                reply = nq["text"]
-            elif locale == "en-US":
-                reply = "Sorry, I didn't understand that. " + nq["text"]
-            else:
-                reply = "죄송해요, 이해하지 못했어요. " + nq["text"]
+            reply = nq["text"] if extracted else L(lang, "죄송해요, 이해하지 못했어요. ", "Sorry, I didn't catch that. ") + nq["text"]
         else:
-            reply = _ALL_SET_EN if locale == "en-US" else _ALL_SET
+            reply = L(lang, _ALL_SET, _ALL_SET_EN)
     convo.add_message(current["conversation_id"], "assistant", reply)
     return _state(conn, list_id, principal, locale)
 
@@ -546,7 +554,7 @@ def handle_answer(
     values[key] = value
 
     nq = _next_question(cat_def, values, locale)
-    reply = nq["text"] if nq else (_ALL_SET_EN if locale == "en-US" else _ALL_SET)
+    reply = nq["text"] if nq else L(lang_of(values), _ALL_SET, _ALL_SET_EN)
     convo.add_message(current["conversation_id"], "assistant", reply)
     return _state(conn, list_id, principal, locale)
 
@@ -564,7 +572,8 @@ def reset_conditions(
     for row in full["conditions"]:
         if row["condition_key"] not in ("category", "mode"):
             repo.upsert_condition(current["id"], row["condition_key"], {"value": None}, "explicit")
-    ConversationRepo(conn).add_message(current["conversation_id"], "system", "조건을 초기화했어요.")
+    ConversationRepo(conn).add_message(current["conversation_id"], "system",
+                                       L(lang_of(_current_values(repo, current["id"])[0]), "조건을 초기화했어요.", "Conditions were reset."))
     return _state(conn, list_id, principal, locale)
 
 

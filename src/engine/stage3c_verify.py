@@ -81,6 +81,9 @@ def _issue_sentence(
     판정어가 섞이면 1회 재생성하고, 그래도 섞이거나 호출이 실패하면 규칙 템플릿으로
     내려간다. 문장화 실패는 신뢰도 점수에 영향을 주지 않는다 (기획서 §10-11 E4).
     """
+    if locale == "en-US":
+        # stage4 의 link_check 값("ok (근사)")은 엔진 상수다 — 영어 문장에 한국어 토막이 섞이지 않게 입력에서만 바꾼다
+        tool_result = (tool_result or "").replace("근사", "approximate")
     snippets = "\n".join(f"- {e.get('text', '')}" for e in evidence) or ("- (none)" if locale == "en-US" else "- (없음)")
     prompt = (f"Axis: {axis}\nObserved value: {tool_result or '(not recorded)'}\nEvidence:\n{snippets}"
               if locale == "en-US"
@@ -184,8 +187,14 @@ def verify_build(
                             tool_result=f"{used_pct}%", judge="초과", penalty=15))
         penalty += 15
 
-    gray = [_axis_label("리뷰 진위 (담당 팀원)", locale),
-            _axis_label("RAG 근거 (담당 팀원)", locale)]
+    # 회색축 = 이 경로에서 실제로 검사하지 못한 것. 화면 caveats 에 "<축> 근거는 확인되지 않았습니다" 로 나간다.
+    # (전에는 "리뷰 진위 (담당 팀원)" 같은 내부 자리표시가 그대로 사용자에게 나갔다)
+    if locale == "en-US":
+        gray = ["manual/spec evidence (RAG not connected)",
+                "detailed compatibility check (socket/power/size are approximations)"]
+    else:
+        gray = ["설명서·규격(RAG 미연결)",
+                "호환성 정밀 검사(소켓·전력·크기는 근사값)"]
     confidence = max(0, 100 - penalty)
     passed = confidence >= CONFIDENCE_THRESHOLD
     log(f"      신뢰도 {confidence} · 회색축 {gray} · {'통과' if passed else '기준 미달'}")

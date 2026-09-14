@@ -80,7 +80,11 @@ def _db_backed_analysis(product_key: str) -> dict | None:
         return None
 
 
-def get_summary(product_key: str) -> ReviewSummaryOut:
+OBSERVATION_SOURCE_EN = "relation/behavior-axis observation (not review text)"
+SUSPECT_SOURCE_EN = "rule-based count — not a manipulation verdict (2+ indicators, no ground-truth labels)"
+
+
+def get_summary(product_key: str, lang: str = "ko") -> ReviewSummaryOut:
     """S5 리뷰 상세. 실측(관계·행동 축 관측 + P8 파일 기반 분석)과 합성 데모 블록을 분리해 낸다.
 
     - 관측(관계·행동 축)은 상품 단위이고 점수가 아니다. 개별 리뷰의 진위가 아니다
@@ -101,8 +105,9 @@ def get_summary(product_key: str) -> ReviewSummaryOut:
     if facts is None and d is None and db is None:
         raise NotFound(f"리뷰 요약 없음: {product_key}", field="product_key")
 
+    en = lang == "en"
     if facts is not None:
-        auth = store.get_review_authenticity(key)
+        auth = store.get_review_authenticity(key, lang)
         risk = auth["product_manipulation_risk"]
         ref = risk.get("product_ref")
         risk_out = ProductRiskOut(
@@ -113,17 +118,19 @@ def get_summary(product_key: str) -> ReviewSummaryOut:
         # 관측 문장을 계약의 summaries 자리에 낸다. 화면에 문장을 실을 칸이 여기뿐이다.
         # source 로 출처를 밝혀 리뷰 발췌로 읽히지 않게 한다 — 이건 본문이 아니라 집계 사실이다.
         # (오버레이에 관측 사실 전용 칸이 생기면 그쪽으로 옮긴다)
-        summaries = [{"text": t, "source": OBSERVATION_SOURCE, "observed_at": None}
+        summaries = [{"text": t, "source": OBSERVATION_SOURCE_EN if en else OBSERVATION_SOURCE, "observed_at": None}
                      for t in risk["evidence"]]
         # 규칙 기반 의심 건수 — 판정이 아니라는 표시(SUSPECT_SOURCE)를 문장과 함께 붙인다
         sus = default_suspect_counts()
-        line = sus.sentence(key) if sus else None
+        line = sus.sentence(key, lang) if sus else None
         if line:
-            summaries.append({"text": line, "source": SUSPECT_SOURCE, "observed_at": None})
+            summaries.append({"text": line, "source": SUSPECT_SOURCE_EN if en else SUSPECT_SOURCE, "observed_at": None})
     else:
         risk_out = ProductRiskOut(evidence=[], reliable_range=None)
         orig, total, summaries = None, 0, []
-        note = ("관측 없음 — 이 상품은 관계·행동 축 산출물에 없다(리뷰 수 문턱 미만이거나 데이터 기간 밖). "
+        note = (("No observation — this product is not in the relation/behavior-axis output (below the review-count "
+                 "threshold or outside the data period). No cleaned rating or exclusion ratio is computed.") if en else
+                "관측 없음 — 이 상품은 관계·행동 축 산출물에 없다(리뷰 수 문턱 미만이거나 데이터 기간 밖). "
                 "정제 평점·제외 비율은 산출하지 않는다.")
 
     excluded_count = excluded_ratio = rating_refined = None
@@ -308,7 +315,7 @@ def review_trace_steps(review_line_by_slot: dict[str, str],
     """
     observed = {
         slot: line for slot, line in (review_line_by_slot or {}).items()
-        if line and not line.startswith(("리뷰 관측 없음", "No review observations"))
+        if line and not line.startswith(("리뷰 관측 없음", "No review observations", "No review observation"))
     }
     if not observed:
         return []

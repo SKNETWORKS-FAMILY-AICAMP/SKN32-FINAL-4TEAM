@@ -8,18 +8,24 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
+import re
+from pathlib import Path
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 from uuid import UUID
 
 from src.categories import load_category
 from src.dto import PipelineResult, Slots
+from src.engine.lang import L, currency_of, fmt_money, lang_of
 from src.errors import Conflict, NotFound, ValidationFailed
 from src.i18n import normalize_locale
 from src.pipeline import run_pipeline as _run_scenario
 
 if TYPE_CHECKING:
     from src.i18n import Locale
+
+log = logging.getLogger(__name__)
 
 
 def run_from_scenario(scenario_name: str) -> PipelineResult:
@@ -238,6 +244,7 @@ def execute_recommendation(revision_id: UUID, run_id: UUID) -> None:
                 noop,
                 rank=rank,
                 locale=response_locale,
+                conditions=values,
             )
 
             for it in explanation.items:
@@ -257,17 +264,18 @@ def execute_recommendation(revision_id: UUID, run_id: UUID) -> None:
 
             # [5] 의 리뷰 관측(review_line_by_slot)·확인 필요(caveats)를 저장 경로에 싣는다.
             # 여기서 안 실으면 [3-B] 감점은 되는데 "왜" 가 화면에 안 간다 (review_service 주석 참고).
+            cur = currency_of(values)
             if response_locale == "en-US":
                 category_label = {"computer": "Computer", "baby": "Baby care"}.get(category, category)
                 budget = values.get("budget_max")
                 trace_rows = [
-                    ("Organize conditions", f"Category: {category_label}, budget: ₩{budget:,}" if budget else "Conditions organized"),
+                    ("Organize conditions", f"Category: {category_label}, budget: {fmt_money(budget, cur)}" if budget else "Conditions organized"),
                     ("Collect candidates", f"{len(build.items)} parts in the set"),
                     ("Generate explanation", explanation.headline),
                 ]
             else:
                 trace_rows = [
-                    ("조건 정리", f"카테고리 {category}, 예산 {values.get('budget_max'):,}원" if values.get("budget_max") else "조건 정리"),
+                    ("조건 정리", f"카테고리 {category}, 예산 {fmt_money(values.get('budget_max'), cur)}" if values.get("budget_max") else "조건 정리"),
                     ("후보 수집", f"세트 {len(build.items)}개 부품"),
                     ("설명 생성", explanation.headline),
                 ]
@@ -294,10 +302,12 @@ def execute_recommendation(revision_id: UUID, run_id: UUID) -> None:
             if demotion is not None:
                 trace.insert(-1, demotion)
 
+            # 03 "추천 요약" 본문 = summary + 확인이 필요한 것. 슬롯별 reason 은 각 부품의 "추천 이유" 에
+            # 따로 나가므로 여기 나열하지 않는다 (전에는 reason 8줄을 이어붙여 요약이 아니었다).
             erepo.set_explanation(
                 run_id, headline=explanation.headline,
                 text=review_service.explanation_text_with_caveats(
-                    [it.reason for it in explanation.items],
+                    explanation.summary,
                     explanation.caveats,
                     locale=response_locale,
                 ),
@@ -490,6 +500,137 @@ def _conditions_summary(cat_def: dict, values: dict, locale: Locale = "ko-KR") -
     return " · ".join(parts)
 
 
+_SWAP_RE = re.compile(r"자동 추천은 '(.+?)'\((\$?[\d,]+원?)\)였고 이 후보는 ([+-]\$?[\d,]+원?)")
+_SWAP_RE_EN = re.compile(r"automatic pick was '(.+?)' \((\$?[\d,]+원?)\); this one is ([+-]\$?[\d,]+원?)")
+
+
+def memo_suggestion(result: dict, values: dict) -> str:
+    """04 리스트 확정 "메모" 초기값. 저장된 사실만 — 조건, 확정 구성, 사용자가 직접 바꾼 것, 확인이 필요한 것.
+    LLM 없음(요약 문장은 이미 03 에서 만들었고, 메모는 사용자가 고쳐 쓰는 칸이다). 1,000자 제한 안."""
+    items = result.get("items") or []
+    totals = result.get("totals") or {}
+    lang = lang_of(values)
+    cur = currency_of(values)
+    m = lambda n, signed=False: fmt_money(n, cur, signed)  # noqa: E731
+    lines: list[str] = []
+    cond = result.get("conditions_summary") or ""
+    if result.get("budget_max") and m(result["budget_max"]) not in cond:   # 조건 요약에 이미 예산이 있으면 반복 안 함
+        cond += (" · " if cond else "") + L(lang, f"예산 {m(result['budget_max'])}", f"budget {m(result['budget_max'])}")
+    if cond:
+        lines.append(L(lang, "[조건] ", "[Conditions] ") + cond)
+    chosen = [it for it in items if it["selected"]]
+    if chosen:
+        parts = [f"{slot_label(it['slot'], lang)} {it['product']['name']}" + (f" ×{it['qty']}" if it["qty"] > 1 else "")
+                 + (L(lang, " (나중에)", " (later)") if it["timing"] == "later" else L(lang, " (곧)", " (soon)") if it["timing"] == "soon" else "")
+                 for it in chosen]
+        tail = ""
+        if totals.get("budget_remaining") is not None:
+            tail = (L(lang, f", 예산 초과 {m(-totals['budget_remaining'])}", f", over budget by {m(-totals['budget_remaining'])}") if totals.get("over_budget")
+                    else L(lang, f", 예산 잔여 {m(totals['budget_remaining'])}", f", {m(totals['budget_remaining'])} left"))
+        lines.append(L(lang, f"[구성] {len(chosen)}개 부품 {m(totals.get('selected_price', 0))}{tail} — ",
+                       f"[Build] {len(chosen)} parts, {m(totals.get('selected_price', 0))}{tail} — ") + ", ".join(parts))
+    removed = [slot_label(it["slot"], lang) for it in items if not it["selected"]]
+    if removed:
+        lines.append(L(lang, "[뺀 것] ", "[Removed] ") + ", ".join(removed))
+    swapped = []
+    for it in items:
+        rt = (it.get("reason") or {}).get("text") or ""
+        sw = _SWAP_RE.search(rt) or _SWAP_RE_EN.search(rt)
+        if sw:
+            swapped.append(f"{slot_label(it['slot'], lang)} {sw.group(1)} → {it['product']['name']} ({sw.group(3)})")
+    if swapped:
+        lines.append(L(lang, "[직접 바꾼 것] ", "[Swapped by you] ") + "; ".join(swapped)
+                     + L(lang, " — 호환·검증은 교체 전 구성 기준", " — compatibility/verification refer to the build before the swap"))
+    headline = (result.get("explanation") or {}).get("headline")
+    if headline:
+        lines.append(L(lang, "[요약] ", "[Summary] ") + headline)
+    checks = []
+    if values.get("extra"):
+        checks.append(L(lang, "추가 요청 미반영: ", "Extra requests not applied: ") + ", ".join(map(str, values["extra"]))
+                      + L(lang, " — 직접 확인", " — check manually"))
+    v = result.get("verification") or {}
+    if v.get("confidence") is not None:
+        checks.append(L(lang, f"세트 검증 신뢰도 {v['confidence']}점", f"set verification confidence {v['confidence']}")
+                      + (L(lang, " (쟁점 있음)", " (issues noted)") if v.get("issues") else ""))
+    if checks:
+        lines.append(L(lang, "[확인] ", "[Check] ") + " · ".join(checks))
+    text = "\n".join(lines)
+    return text if len(text) <= 1000 else text[:997] + "…"
+
+
+# 슬롯 키(엔진·DB)는 한국어 그대로 두고, 영어 사용자에게 보이는 slot_label·메모에서만 바꾼다.
+SLOT_LABEL_EN = {"메인보드": "Motherboard", "저장장치": "Storage", "파워": "PSU", "케이스": "Case", "쿨러": "Cooler"}
+
+
+def slot_label(slot: str, lang: str) -> str:
+    return SLOT_LABEL_EN.get(slot, slot) if lang == "en" else slot
+
+
+def explanation_text(summary: str, caveats: list[str], lang: str = "ko") -> str:
+    """explanation.text — 요약 문단 + "확인이 필요한 것". 화면은 한 상자에 그대로 보여준다."""
+    if not caveats:
+        return summary
+    return summary + L(lang, "\n\n확인이 필요한 것: ", "\n\nNeeds checking: ") + " · ".join(caveats)
+
+
+# 세트 검증 축([3-C] link_check 키 + 예산)이 어느 슬롯에 걸리는지. 검증은 세트 단위라 슬롯 정보가 없어서
+# 화면의 "구매 전 확인"에 나눠 실을 때만 이 표를 쓴다 — 없는 축은 전 슬롯 공통으로 본다.
+_AXIS_SLOTS: dict[str, tuple[str, ...]] = {
+    "socket": ("CPU", "메인보드"), "bios": ("CPU", "메인보드"),
+    "power": ("파워", "GPU", "CPU"), "gpu_len": ("GPU", "케이스"), "cooler_height": ("쿨러", "케이스"),
+}
+_SWAP_REASON_PREFIX = "사용자 요청으로 교체한 부품입니다"
+_SWAP_REASON_PREFIX_EN = "Swapped at your request"
+
+
+def _care_guide_en(text: str | None) -> str | None:
+    """저장된 사용 가이드 문장(한국어) → 같은 가이드의 영어 문장. data/pc_care_guides.json 의 text_en."""
+    if not text:
+        return None
+    try:
+        from src.config import CARE_GUIDES_JSON
+        for g in json.loads(Path(CARE_GUIDES_JSON).read_text(encoding="utf-8")):
+            if g.get("text") == text:
+                return g.get("text_en") or None
+    except (OSError, ValueError):
+        return None
+    return None
+
+
+def _item_checks(item: dict, validations: list[dict], confidence: int | None, lang: str = "ko",
+                 guide: dict | None = None) -> dict:
+    """"구매 전 확인" — 사용 가이드(RAG, develop 이 저장한 것)를 앞에 두고, 코드가 아는 사실을 잇는다:
+    이 슬롯에 걸린 세트 검증 쟁점, 리뷰 관측(상품 단위), 교체 여부. 전에는 `pending` 하드코딩이었다."""
+    from src.services import review_service
+    slot = item["slot"]
+    parts: list[str] = []
+    if guide and guide.get("status") == "ready" and guide.get("text"):
+        g = _care_guide_en(guide["text"]) if lang == "en" else guide["text"]
+        if g:
+            parts.append(L(lang, "사용 가이드: ", "Guide: ") + g)
+    hit = [v for v in validations
+           if slot in _AXIS_SLOTS.get(v["rule_key"], ()) or v["rule_key"] not in _AXIS_SLOTS]
+    if hit:
+        parts += [f"[{v['rule_key']}] {v['message']}" for v in hit]
+    else:
+        parts.append(L(lang, "이 부품에 걸린 세트 검증 쟁점 없음", "No set-verification issue on this part")
+                     + (L(lang, f" (세트 신뢰도 {confidence}점)", f" (set confidence {confidence})") if confidence is not None else ""))
+    try:
+        summary = review_service.get_summary(item["product"]["product_key"], lang)
+        obs = [x["text"] for x in summary.summaries]
+        parts.append((L(lang, "리뷰 관측: ", "Review observations (product-level): ") + " / ".join(obs)
+                      + L(lang, " — 상품 단위 신호이며 개별 리뷰의 진위가 아닙니다", " — a product-level signal, not the authenticity of any single review"))
+                     if obs else L(lang, "리뷰 관측 없음 — 리뷰 수 문턱 미만이거나 데이터 기간 밖",
+                                   "No review observation — below the review-count threshold or outside the data period"))
+    except NotFound:
+        parts.append(L(lang, "리뷰 관측 없음", "No review observation"))
+    reason_text = (item.get("reason") or {}).get("text") or ""
+    if reason_text.startswith(_SWAP_REASON_PREFIX) or reason_text.startswith(_SWAP_REASON_PREFIX_EN):
+        parts.append(L(lang, "교체한 부품 — 호환·검증은 재실행되지 않았습니다 (재계산은 '다른 구성 보기')",
+                       "Swapped part — compatibility/verification were not re-run (use 'See another build' to recompute)"))
+    return {"status": "ready", "text": " · ".join(parts)}
+
+
 def get_stored_result(conn, revision_id: UUID) -> dict | None:
     """GET /result 가 호출 — 저장된 실행/후보/검증만 읽어 RecommendResult 모양으로 조립한다.
 
@@ -516,6 +657,7 @@ def get_stored_result(conn, revision_id: UUID) -> dict | None:
 
     status = {"queued": "running", "running": "running", "completed": "done",
               "failed": "failed", "stale": "failed"}.get(run["status"], run["status"])
+    lang = lang_of(values)
 
     result: dict = {
         "list_id": str(revision["plan_id"]), "revision_id": str(revision_id),
@@ -532,10 +674,10 @@ def get_stored_result(conn, revision_id: UUID) -> dict | None:
         "verification": {"status": "pending", "confidence": None, "issues": []},
         "explanation": {"status": "pending", "text": None},
         "reasoning_log": run.get("reasoning_log") or [],
-        "data_notice": "상품·가격·리뷰는 합성 데이터입니다.",
+        "data_notice": L(lang, "상품·가격·리뷰는 합성 데이터입니다.", "Products, prices and reviews are synthetic demo data."),
     }
     if status == "failed":
-        result["error"] = {"code": "recommend_failed", "message": "추천을 만드는 중 오류가 발생했어요."}
+        result["error"] = {"code": "recommend_failed", "message": L(lang, "추천을 만드는 중 오류가 발생했어요.", "Something went wrong while building the recommendation.")}
         return result
     if status == "running":
         return result
@@ -551,7 +693,7 @@ def get_stored_result(conn, revision_id: UUID) -> dict | None:
         slot_variants = candidates_by_slot.get(row["slot"], [])
         alternatives_count = sum(1 for c in slot_variants if c["variant_id"] != row["variant_id"])
         items.append({
-            "item_id": str(row["id"]), "slot": row["slot"], "slot_label": row["slot_label"],
+            "item_id": str(row["id"]), "slot": row["slot"], "slot_label": slot_label(row["slot_label"], lang),
             "product": {
                 "product_key": row["product_key"], "variant_id": str(row["variant_id"]),
                 "name": row["product_name"], "brand": row["brand"] or "",
@@ -581,6 +723,8 @@ def get_stored_result(conn, revision_id: UUID) -> dict | None:
     validations = erepo.get_validations(run["id"])
     penalty = sum((v["measured_values"] or {}).get("penalty", 0) for v in validations)
     confidence = max(0, 100 - penalty)
+    for item in items:
+        item["checks"] = _item_checks(item, validations, confidence, lang_of(values), guide=item.get("checks"))
     result["verification"] = {
         "status": "ready", "confidence": confidence,
         "issues": [
@@ -593,6 +737,7 @@ def get_stored_result(conn, revision_id: UUID) -> dict | None:
         "headline": run.get("explanation_headline"),
         "text": run.get("explanation_text"),
     }
+    result["memo_suggestion"] = memo_suggestion(result, values)
     return result
 
 
@@ -634,28 +779,19 @@ def patch_item(conn, revision_id: UUID, item_id: UUID, *, selected: bool | None,
     return get_stored_result(conn, revision_id)
 
 
-def _alternative_out(row: dict, *, current: bool, current_price: int,
-                     locale: Locale = "ko-KR") -> dict:
+def _alternative_out(row: dict, *, current: bool, current_price: int, lang: str = "ko") -> dict:
     price = int(row["price"]) if row.get("price") is not None else 0
     delta = price - current_price
-    locale = normalize_locale(locale)
-    if locale == "en-US":
-        label = "Current selection" if current else (
-            "Value candidate" if delta < 0 else ("Premium candidate" if delta > 0 else "Equivalent candidate")
-        )
-    else:
-        label = "현재 선택" if current else (
-            "절약형 후보" if delta < 0 else ("프리미엄 후보" if delta > 0 else "동급 후보")
-        )
+    label = (L(lang, "현재 선택", "Current pick") if current else
+             L(lang, "절약형 후보", "Budget pick") if delta < 0 else
+             L(lang, "프리미엄 후보", "Premium pick") if delta > 0 else L(lang, "동급 후보", "Same-price pick"))
     attrs = row.get("attributes") or {}
     return {
         "candidate_id": str(row["variant_id"]), "label": label, "current": current,
         "product": {
             "product_key": row.get("product_key") or str(row["product_id"]),
             "variant_id": str(row["variant_id"]), "name": row["name"], "brand": row.get("brand") or "",
-            "spec_summary": ((f"Performance tier {attrs['perf_tier']}" if locale == "en-US"
-                              else f"성능 티어 {attrs['perf_tier']}")
-                             if attrs.get("perf_tier") is not None else None),
+            "spec_summary": L(lang, f"성능 티어 {attrs['perf_tier']}", f"Performance tier {attrs['perf_tier']}") if attrs.get("perf_tier") is not None else None,
             "image_url": row.get("image_url"), "purchase_url": row.get("purchase_url"),
         },
         "price": price, "price_delta": delta, "review": None,
@@ -669,8 +805,10 @@ def list_alternatives(conn, revision_id: UUID, item_id: UUID, *,
     current = _find_candidate(erepo.get_candidates(run["id"]), item_id)
     current_price = int(current["price"]) if current["price"] is not None else 0
     slot_variants = ProductRepo(conn).candidates_by_slot().get(current["slot"], [])
+    from src.repo.plan_repo import PlanRepo
+    lang = lang_of({r["condition_key"]: r["value"].get("value") for r in PlanRepo(conn).load_full(revision_id)["conditions"]})
     items = [
-        _alternative_out(row, current=False, current_price=current_price, locale=locale)
+        _alternative_out(row, current=False, current_price=current_price, lang=lang)
         for row in sorted(slot_variants, key=lambda r: r["price"] if r["price"] is not None else 0)
         if row["variant_id"] != current["variant_id"]
     ]
@@ -692,6 +830,27 @@ def swap_item(conn, revision_id: UUID, item_id: UUID, candidate_id: UUID) -> dic
         raise NotFound("해당 후보를 찾을 수 없습니다.")
     erepo.update_candidate_variant(item_id, variant_id=candidate_id,
                                     offer_observation_id=target.get("offer_observation_id"))
+    # update_candidate_variant 가 reason 을 pending 으로 되돌리는데 다시 채우는 경로가 없어서 화면의
+    # "추천 이유" 가 영원히 "정리하는 중…" 이었다. [5] 를 다시 돌릴 수 없으니(rank·build 는 메모리에만
+    # 있었다) 코드가 아는 사실만으로 한 줄 적는다 — 판단이 아니라 교체 기록이다.
+    old_price = int(current["price"]) if current["price"] is not None else 0
+    new_price = int(target["price"]) if target.get("price") is not None else 0
+    cvals = {r["condition_key"]: r["value"].get("value") for r in PlanRepo(conn).load_full(revision_id)["conditions"]}
+    lang, cur = lang_of(cvals), currency_of(cvals)
+    delta = fmt_money(new_price - old_price, cur, signed=True)
+    erepo.update_candidate_reason(item_id, L(lang,
+        f"사용자 요청으로 교체한 부품입니다 — 자동 추천은 '{current['product_name']}'({fmt_money(old_price, cur)})였고 "
+        f"이 후보는 {delta}입니다. 순위·검증 점수는 교체 전 구성 기준입니다.",
+        f"Swapped at your request — the automatic pick was '{current['product_name']}' ({fmt_money(old_price, cur)}); "
+        f"this one is {delta}. Ranking and verification scores refer to the build before the swap."))
+    # 요약(explanation)도 교체 전 구성 기준이다. [5] 를 다시 돌릴 수 없으니 그 사실을 본문 끝에 적는다.
+    if run.get("explanation_status") == "ready" and run.get("explanation_text"):
+        note = L(lang,
+                 f"※ 이후 {current['slot']}를 '{target['name']}'(으)로 교체했습니다({delta}). 이 요약은 교체 전 구성 기준입니다.",
+                 f"※ {slot_label(current['slot'], 'en')} was later swapped to '{target['name']}' ({delta}). This summary describes the build before the swap.")
+        erepo.set_explanation(run["id"], headline=run.get("explanation_headline") or "",
+                              text=run["explanation_text"].rstrip() + "\n\n" + note,
+                              reasoning_log=run.get("reasoning_log") or [])
 
     # P8 FB03: 실제로 바꿔치기가 성공한 뒤에만 기록한다 — 위의 not-found 거부는 아무 것도
     # 남기지 않는다.
@@ -735,18 +894,24 @@ def _match_slot(text: str, known_slots: set[str]) -> str | None:
     return next((slot for slot in known_slots if slot.lower() in lowered), None)
 
 
-def _result_change_direction(text: str) -> str | None:
-    lowered = text.lower()
-    if any(word in lowered for word in _CHEAPER_WORDS):
-        return "cheaper"
-    if any(word in lowered for word in _PRICIER_WORDS):
-        return "pricier"
-    return None
-
-
 def _is_result_summary_request(text: str) -> bool:
     lowered = text.lower()
     return any(word in lowered for word in _SUMMARY_WORDS)
+
+
+# 질문 표지 — 방향어("성능"·"가성비")가 들어 있어도 묻는 말이면 교체하지 않는다.
+# "이 그래픽카드 성능 괜찮아?" 가 RTX 5070 Ti 로 교체되던 오탐(2026-09-14 실측).
+_QUESTION_MARKERS = ("?", "？", "괜찮", "나아", "어때", "맞아", "일까", "인가", "할까", "좋을까", "뭐", "어떤", "무엇")
+
+
+def _parse_swap_request(text: str, known_slots: set[str]) -> tuple[str | None, str | None, bool]:
+    """규칙 경로의 해석 — (슬롯, 방향 'cheaper'|'pricier'|None, 질문인가). 순수 함수라 테스트 가능."""
+    slot = _match_slot(text, known_slots)
+    cheaper = any(w in text for w in _CHEAPER_WORDS)
+    pricier = any(w in text for w in _PRICIER_WORDS)
+    direction = "cheaper" if cheaper and not pricier else "pricier" if pricier and not cheaper else None
+    is_question = any(m in text for m in _QUESTION_MARKERS) or (cheaper and pricier)
+    return slot, direction, is_question
 
 
 def handle_result_message(
@@ -756,9 +921,23 @@ def handle_result_message(
     *,
     locale: Locale = "ko-KR",
 ) -> dict:
-    """규칙 기반 결과 화면 채팅 — "그래픽카드를 더 저렴한 걸로" 같은 요청만 해석한다.
+    """결과 화면 채팅. 에이전트(RESULT_AGENT=1)가 있으면 도구 호출로 후보 조회·교체·담기/빼기·근거 설명을
+    처리하고, 없거나 실패하면 아래 규칙 경로 — "그래픽카드를 더 저렴한 걸로" 같은 요청만 해석하고
     슬롯·방향을 못 찾으면 아무것도 바꾸지 않고 이해하지 못했다는 답만 돌려준다."""
     locale = normalize_locale(locale)
+    from src.agent import result_agent
+    if result_agent.available():
+        _require_done_run(conn, revision_id)
+        try:
+            turn = result_agent.run_turn(conn, revision_id, get_stored_result(conn, revision_id), text)
+            log.info("result agent [%s]: %s", revision_id, " | ".join(turn.trace) or "(도구 호출 없음)")
+            return {"reply": turn.reply, "result": turn.result}
+        except Exception as exc:  # noqa: BLE001 — 모델·네트워크 오류는 이번 턴만 규칙으로
+            log.warning("result agent failed, falling back to rules: %s", exc)
+            import psycopg
+            if isinstance(exc, psycopg.Error):
+                conn.rollback()        # 실패한 트랜잭션 위에서는 규칙 경로의 SQL 도 전부 거부된다
+
     erepo, run = _require_done_run(conn, revision_id)
     result = get_stored_result(conn, revision_id)
     if _is_result_summary_request(text):
@@ -775,7 +954,7 @@ def handle_result_message(
 
     rows = erepo.get_candidates(run["id"])
     known_slots = {r["slot"] for r in rows}
-    slot = _match_slot(text, known_slots)
+    slot, direction, is_question = _parse_swap_request(text, known_slots)
     if slot is None:
         if locale == "en-US":
             return {
@@ -786,17 +965,21 @@ def handle_result_message(
         return {"reply": "무엇을 바꿀지 이해하지 못했어요. 부품 이름(예: 그래픽카드)과 원하시는 "
                           "방향(더 저렴한/더 좋은)을 함께 말씀해 주세요.",
                 "result": get_stored_result(conn, revision_id)}
-    change_direction = _result_change_direction(text)
-    cheaper = change_direction == "cheaper"
-    if change_direction is None:
+    if direction is None or is_question:
+        # 묻는 말(또는 방향이 애매한 말)은 실행하지 않고 되묻는다 — "바꿔드릴까요?" 는 사용자가 확정해야 룰 동작이 된다
         if locale == "en-US":
             label = _EN_SLOT_LABELS.get(slot, slot)
+            hint = {"cheaper": "cheaper", "pricier": "better"}.get(direction) or "cheaper or better"
             return {
-                "reply": f"How should I change the {label}? Try 'make it cheaper' or 'choose a better one'.",
+                "reply": f"Should I change the {label} to a {hint} one? Say 'make it {hint}' to confirm. "
+                         "Nothing has been changed yet.",
                 "result": get_stored_result(conn, revision_id),
             }
-        return {"reply": f"{slot}를 어떻게 바꿔드릴까요? '더 저렴한 걸로' 또는 '더 좋은 걸로'처럼 말씀해 주세요.",
+        hint = ({"cheaper": "더 저렴한", "pricier": "더 좋은"}.get(direction) or "더 저렴한/더 좋은")
+        return {"reply": f"{slot}를 {hint} 후보로 바꿔드릴까요? 바꾸려면 '{slot} {hint} 걸로'라고 말씀해 주세요. "
+                          "지금은 아무것도 바꾸지 않았어요.",
                 "result": get_stored_result(conn, revision_id)}
+    cheaper = direction == "cheaper"
 
     current = next(r for r in rows if r["slot"] == slot)
     current_price = int(current["price"]) if current["price"] is not None else 0
@@ -820,13 +1003,13 @@ def handle_result_message(
         return {"reply": f"지금 선택된 {slot}가 이미 {state}. 더 {'저렴한' if cheaper else '좋은'} 후보가 없어요.",
                 "result": get_stored_result(conn, revision_id)}
     target = min(candidates, key=lambda r: r["price"]) if cheaper else max(candidates, key=lambda r: r["price"])
-    erepo.update_candidate_variant(current["id"], variant_id=target["variant_id"],
-                                    offer_observation_id=target.get("offer_observation_id"))
+    # swap_item 을 거쳐야 교체 기록 reason 이 같이 적힌다 (직접 update_candidate_variant 하면 pending 으로 남는다)
+    result = swap_item(conn, revision_id, current["id"], target["variant_id"])
     if locale == "en-US":
         label = _EN_SLOT_LABELS.get(slot, slot)
-        direction = "less expensive" if cheaper else "higher-tier"
-        reply = f"Changed the {label} to the {direction} '{target['name']}'."
+        tier = "less expensive" if cheaper else "higher-tier"
+        reply = f"Changed the {label} to the {tier} '{target['name']}'."
     else:
-        direction = "더 저렴한" if cheaper else "더 좋은"
-        reply = f"{slot}를 {direction} '{target['name']}'(으)로 바꿨어요."
-    return {"reply": reply, "result": get_stored_result(conn, revision_id)}
+        tier = "더 저렴한" if cheaper else "더 좋은"
+        reply = f"{slot}를 {tier} '{target['name']}'(으)로 바꿨어요."
+    return {"reply": reply, "result": result}
