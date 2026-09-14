@@ -1,5 +1,4 @@
 // TF-DEV: report.html 전용 — 리스트 리포트(05) 화면. 로그인 필요 — 서버 로그인 확인이 끝난 뒤 그린다.
-function tfOnListRenamed(id){if(tfPlan.report&&tfPlan.report.list_id===id)reportPage()}
 function reportPage(){if(!tfPlan.listId)return go('category');const r=tfPlan.report;if(!r||r.list_id!==tfPlan.listId){tfLoadThen(reportPage,4,()=>TF_PLAN.report(tfPlan.listId).then(data=>{tfPlan.report=tfRequire(data)}).catch(err=>{if(err.status===404&&err.code==='not_found'){tfPlan.report={list_id:tfPlan.listId,status:'none'};return}if(err.code==='unauthorized'){TF_AUTH._set(null);tfSendToLogin('report.html');return}throw err}));return}
  if(r.status==='none'){shell(heading('05 / MY REPORT','저장된 리포트가 없어요.')+`<div class="panel empty"><p>추천 리스트를 확정하면 구매 계획을 다시 볼 수 있어요.</p>${btn('추천 결과 보기','results','strong')}</div>`,4);return}
  const items=r.items||[];

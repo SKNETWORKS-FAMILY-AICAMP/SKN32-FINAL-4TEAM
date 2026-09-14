@@ -1,11 +1,14 @@
-"""[3-C] 적대적 검증 — 검사AI ↔ 변호인AI + judge(규칙) + RAG.
+"""[3-C] 검증 — 규칙 judge + 쟁점 문장화 + RAG.
 
 컴퓨터: 완성 세트 1건을 대상. 유아: 품목별.
 신뢰도 = 100 − Σ(쟁점 감점). CONFIDENCE_THRESHOLD 미만이면 재탐색.
 
+검사AI↔변호인AI 디베이트는 걷어냈다 (기획서 §10-12). 축마다 논증 2건을 만드는 대신
+관측값·근거를 중립 서술한 쟁점 문장 1건만 만든다. 판정과 감점은 규칙이 정한다.
+
 데모 = 시나리오별 정답값 주입 (기획서 §10-9 B안):
   - tool 결과·신뢰도·회색축·문제 슬롯을 scenario["verify"]["rounds"][i] 에서 그대로.
-  - 논증 텍스트만 LLM 으로 실제 생성 (MOCK_MODE 면 목 문장).
+  - 쟁점 문장만 LLM 으로 실제 생성 (MOCK_MODE 면 목 문장).
   - VerificationResult 스키마 / judge 집계 규칙 / evidence_search 계약은 실제 것 유지 → drop-in.
 """
 from __future__ import annotations
@@ -14,20 +17,41 @@ from src.clients.llm_client import call_llm
 from src.config import CONFIDENCE_THRESHOLD
 from src.dto import BuildResult, Issue, VerificationResult, VerificationTarget
 from src.engine import LogFn
+from src.engine.prompts import VERIFY_ISSUE_SYSTEM
 from src.rag.evidence_search import evidence_search
 
+# 이 문장은 서술만 한다 — 판정이 섞이면 규칙이 정한 judge 와 화면에서 어긋난다.
+_BANNED_VERDICT_WORDS = ("위반", "불합격", "부적합", "적합", "통과", "안전합니다", "위험합니다")
 
-def _debate_lines(axis: str, domain: str) -> tuple[str, str, list[dict]]:
-    """논증 텍스트 생성 (실제 LLM 자리). + RAG 근거 조회."""
-    ev = evidence_search(domain, f"{axis} 조합 이슈", filters={"axis": axis})
-    pros = call_llm(f"axis={axis} 공격", system="검사AI")["text"]
-    deff = call_llm(f"axis={axis} 반박", system="변호인AI")["text"]
-    return pros, deff, ev
+
+def _rule_sentence(axis: str, tool_result: str) -> str:
+    """LLM 없이 쓰는 기본 문장. 관측값만 옮기고 해석하지 않는다."""
+    if tool_result:
+        return f"{axis}: 관측값 {tool_result}"
+    return f"{axis}: 관측값이 기록되지 않았습니다"
+
+
+def _issue_sentence(axis: str, tool_result: str, evidence: list[dict]) -> str:
+    """쟁점 1건을 중립 문장으로.
+
+    판정어가 섞이면 1회 재생성하고, 그래도 섞이거나 호출이 실패하면 규칙 템플릿으로
+    내려간다. 문장화 실패는 신뢰도 점수에 영향을 주지 않는다 (기획서 §10-11 E4).
+    """
+    snippets = "\n".join(f"- {e.get('text', '')}" for e in evidence) or "- (없음)"
+    prompt = f"축: {axis}\n관측값: {tool_result or '(기록 없음)'}\n근거:\n{snippets}"
+    for _attempt in range(2):
+        try:
+            text = (call_llm(prompt, system=VERIFY_ISSUE_SYSTEM).get("text") or "").strip()
+        except Exception:
+            break
+        if text and not any(w in text for w in _BANNED_VERDICT_WORDS):
+            return text
+    return _rule_sentence(axis, tool_result)
 
 
 def verify_set(build: BuildResult, scenario: dict, round_index: int, log: LogFn) -> VerificationResult:
     """세트 검증 1라운드. 정답값은 scenario['verify']['rounds'][round_index]."""
-    log(f"[3-C] 세트 검증 (검사AI ↔ 변호인AI + judge 규칙) ... (라운드 {round_index + 1})")
+    log(f"[3-C] 세트 검증 (규칙 judge + 쟁점 문장화) ... (라운드 {round_index + 1})")
     vspec = scenario["verify"]
     rounds = vspec["rounds"]
     rspec = rounds[min(round_index, len(rounds) - 1)]
@@ -37,12 +61,13 @@ def verify_set(build: BuildResult, scenario: dict, round_index: int, log: LogFn)
 
     issues: list[Issue] = []
     for iss in rspec.get("issues", []):
-        pros, deff, ev = _debate_lines(iss["axis"], domain)
+        axis = iss["axis"]
+        tool_result = iss.get("tool_result", "")
+        ev = evidence_search(domain, f"{axis} 조합 이슈", filters={"axis": axis})
         issues.append(Issue(
-            axis=iss["axis"],
-            prosecutor=iss.get("prosecutor") or pros,
-            defender=iss.get("defender") or deff,
-            tool_result=iss.get("tool_result", ""),
+            axis=axis,
+            text=_issue_sentence(axis, tool_result, ev),
+            tool_result=tool_result,
             evidence=ev,
             judge=iss.get("judge", ""),
             penalty=int(iss.get("penalty", 0)),
@@ -54,6 +79,7 @@ def verify_set(build: BuildResult, scenario: dict, round_index: int, log: LogFn)
 
     for iss in issues:
         log(f"      · {iss.axis}: 감점 {iss.penalty}  ({iss.judge})  근거 {len(iss.evidence)}건")
+        log(f"        {iss.text}")
     if gray:
         log(f"      회색축(근거 0건 → 검증 불가): {gray}")
     log(f"      신뢰도 {confidence} → {'통과' if passed else '기준 미달 → 재탐색'}")
@@ -68,10 +94,10 @@ def verify_set(build: BuildResult, scenario: dict, round_index: int, log: LogFn)
 
 
 def verify_build(build: BuildResult, category: str, log: LogFn = lambda _m: None) -> VerificationResult:
-    """DB 경로([추천 실행])의 세트 검증 — 규칙 스캐폴드.
+    """DB 경로([추천 실행])의 세트 검증 — 규칙 judge + 쟁점 문장화.
 
-    검사AI↔변호인AI 디베이트·리뷰 진위·RAG 근거는 담당 팀원이 채운다. 여기서는
-    link_check/예산 기반 규칙 confidence 로 파이프라인을 완성한다.
+    RAG 근거 연결은 담당 팀원 자리라 여기서는 근거 없이 관측값만으로 문장을 만든다.
+    link_check/예산 기반 규칙으로 confidence 를 낸다.
     """
     log("[3-C] 세트 검증 (규칙 스캐폴드) ...")
     issues: list[Issue] = []
@@ -79,10 +105,12 @@ def verify_build(build: BuildResult, category: str, log: LogFn = lambda _m: None
     for axis, state in (build.link_check or {}).items():
         s = str(state).lower()
         if "fail" in s or "미충족" in s or "over" in s:
-            issues.append(Issue(axis=axis, tool_result=state, judge="위반", penalty=20))
+            issues.append(Issue(axis=axis, text=_issue_sentence(axis, state, []),
+                                tool_result=state, judge="위반", penalty=20))
             penalty += 20
         elif "pending" in s or "근사" in s:
-            issues.append(Issue(axis=axis, tool_result=state, judge="확인 필요", penalty=6))
+            issues.append(Issue(axis=axis, text=_issue_sentence(axis, state, []),
+                                tool_result=state, judge="확인 필요", penalty=6))
             penalty += 6
 
     budget = build.budget or {}
@@ -90,7 +118,8 @@ def verify_build(build: BuildResult, category: str, log: LogFn = lambda _m: None
     if used_pct is None and budget.get("max"):
         used_pct = round(budget.get("used", 0) / budget["max"] * 100, 1)
     if used_pct and used_pct > 110:
-        issues.append(Issue(axis="예산", tool_result=f"{used_pct}%", judge="초과", penalty=15))
+        issues.append(Issue(axis="예산", text=_issue_sentence("예산", f"{used_pct}%", []),
+                            tool_result=f"{used_pct}%", judge="초과", penalty=15))
         penalty += 15
 
     gray = ["리뷰 진위 (담당 팀원)", "RAG 근거 (담당 팀원)"]

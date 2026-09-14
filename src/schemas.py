@@ -5,13 +5,27 @@
 """
 from __future__ import annotations
 
-from datetime import date
+from datetime import datetime
 from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
 
-# ── auth (이메일+비밀번호, 서버 쿠키만 사용) ──
+# ── auth: 코드 로그인 (보류 — §G 재사용 예정) ──
+class RequestCodeIn(BaseModel):
+    email: str
+
+
+class VerifyCodeIn(BaseModel):
+    email: str
+    code: str
+
+
+class TokenOut(BaseModel):
+    token: str
+
+
+# ── auth: 이메일+비밀번호 (§A-4) ──
 class SignupIn(BaseModel):
     email: str
     password: str
@@ -27,7 +41,21 @@ class LoginIn(BaseModel):
     remember: bool = False
 
 
-class PatchMeIn(BaseModel):
+class UserOut(BaseModel):
+    id: str
+    email: str
+    display_name: str
+    marketing_agreed: bool
+    created_at: datetime
+
+
+class UserEnvelopeOut(BaseModel):
+    """프론트 TF_AUTH가 `data.user`로 읽는다(frontend/js/api.js) — 사용자 응답은 항상 이 봉투로 감싼다."""
+
+    user: UserOut
+
+
+class ProfilePatchIn(BaseModel):
     display_name: Optional[str] = None
     email: Optional[str] = None
     marketing_agreed: Optional[bool] = None
@@ -42,36 +70,8 @@ class WithdrawIn(BaseModel):
     password: str
 
 
-class UserOut(BaseModel):
-    id: str
-    email: str
-    display_name: str
-    marketing_agreed: bool
-    created_at: str
-
-
-class UserEnvelopeOut(BaseModel):
-    user: UserOut
-
-
 class EmailAvailabilityOut(BaseModel):
     available: bool
-
-
-# 비밀번호 재설정·이메일 인증(§G, 2026-10-26 예정)에 재사용 예정 — 삭제하지 말고 보류
-# (docs/frontend_외부수정요청.md §A-4 각주). 비밀번호 로그인의 일부가 아니며 현재 라우터는
-# 미구현(NotImplementedError)을 그대로 유지한다.
-class RequestCodeIn(BaseModel):
-    email: str
-
-
-class VerifyCodeIn(BaseModel):
-    email: str
-    code: str
-
-
-class TokenOut(BaseModel):
-    token: str
 
 
 # ── session (S1~S3) ──
@@ -96,11 +96,6 @@ class AnswerIn(BaseModel):
 class SlotPatchIn(BaseModel):
     field: str
     value: Any | None = None
-
-
-class SpecFileIn(BaseModel):
-    file_name: str
-    content: str = Field(max_length=1_000_000)
 
 
 # ── 조건 대화 (§D-4-1) ──
@@ -131,14 +126,11 @@ class NextQuestionOut(BaseModel):
 class ConditionState(BaseModel):
     list_id: str
     category: str | None = None
-    mode: str | None = None
     messages: list[MessageOut] = Field(default_factory=list)
     fields: list[FieldOut] = Field(default_factory=list)
     next_question: NextQuestionOut | None = None
     can_recommend: bool = False
     accepts_spec_file: bool = False
-    revision_id: str | None = None
-    lock_version: int | None = None
 
 
 # ── recommend / result (§D-4-2) ──
@@ -204,12 +196,6 @@ class ItemOut(BaseModel):
     reason: TextStatusOut
     checks: TextStatusOut
     alternatives_count: int = 0
-    # ── baby extension (CONTRACTS target extension of frontend D-4-2) ──
-    requirement_id: str | None = None
-    candidate_id: str | None = None
-    eligibility: str | None = None          # pass | fail | unknown
-    coverage: str | None = None             # partial | full | none | error
-    status: str | None = None               # owned | to_purchase | purchased
 
 
 class TotalsOut(BaseModel):
@@ -231,6 +217,39 @@ class VerificationOut(BaseModel):
     issues: list[VerificationIssueOut] = Field(default_factory=list)
 
 
+class ItemPatchIn(BaseModel):
+    selected: Optional[bool] = None
+    qty: Optional[int] = Field(default=None, ge=1, le=99)
+    timing: Optional[Literal["now", "soon", "later"]] = None
+
+
+class AlternativeOut(BaseModel):
+    candidate_id: str
+    label: str
+    current: bool = False
+    product: ProductOut
+    price: int
+    price_delta: int
+    review: ReviewBriefOut | None = None
+
+
+class AlternativesOut(BaseModel):
+    items: list[AlternativeOut] = Field(default_factory=list)
+
+
+class SwapIn(BaseModel):
+    candidate_id: str
+
+
+class ResultMessageIn(BaseModel):
+    text: str = Field(max_length=300)
+
+
+class SpecFileIn(BaseModel):
+    file_name: str
+    content: str = Field(max_length=1_000_000)
+
+
 class RecommendErrorOut(BaseModel):
     code: str
     message: str
@@ -241,7 +260,7 @@ class RecommendResultOut(BaseModel):
 
     list_id: str
     run_id: str
-    status: str                      # running | done | failed | conflict
+    status: str                      # running | done | failed
     progress: list[ProgressStepOut] = Field(default_factory=list)
     category: str
     conditions_summary: str = ""
@@ -253,40 +272,6 @@ class RecommendResultOut(BaseModel):
     reasoning_log: list[dict] = Field(default_factory=list)
     data_notice: str = "상품·가격·리뷰는 합성 데이터입니다."
     error: RecommendErrorOut | None = None
-    # ── baby extension ──
-    revision_id: str | None = None
-    lock_version: int | None = None
-    feasible: bool | None = None
-    missing_requirements: list[dict[str, Any]] = Field(default_factory=list)
-
-
-# ── baby item edit / alternatives / result-message (P5) ──
-class ItemPatchIn(BaseModel):
-    selected: Optional[bool] = None
-    qty: Optional[int] = Field(default=None, ge=1, le=99)
-    timing: Optional[Literal["now", "soon", "later"]] = None
-
-
-class SwapIn(BaseModel):
-    candidate_id: str
-
-
-class AlternativeOut(BaseModel):
-    candidate_id: str
-    current: bool = False
-    product: ProductOut
-    price: int | None = None
-    price_delta: int | None = None
-    review: ReviewBriefOut | None = None
-    selection_allowed: bool = True
-
-
-class AlternativesOut(BaseModel):
-    items: list[AlternativeOut] = Field(default_factory=list)
-
-
-class ResultMessageIn(BaseModel):
-    text: str = Field(min_length=1, max_length=300)
 
 
 class ResultMessageOut(BaseModel):
@@ -294,48 +279,46 @@ class ResultMessageOut(BaseModel):
     result: RecommendResultOut
 
 
-# ── list confirm (S5-a) / report (S5-b) ──
+# ── 사이드바 목록 · 확정(S5-a) · 리포트(S5-b) · 가격 알림 (§D-4-3) ──
+class ListSummaryOut(BaseModel):
+    list_id: str
+    name: str
+    category: Optional[str] = None
+    stage: Literal["category", "conditions", "results", "report"]
+    updated_at: datetime
+
+
+class ListsOut(BaseModel):
+    items: list[ListSummaryOut] = Field(default_factory=list)
+
+
 class ListRenameIn(BaseModel):
     name: str = Field(min_length=1, max_length=60)
 
 
-class ListSummaryOut(BaseModel):
-    list_id: str
-    name: str
-    category: str | None = None
-    stage: str
-    updated_at: str
-
-
 class ConfirmIn(BaseModel):
     name: str = Field(min_length=1, max_length=60)
-    planned_purchase_at: date | None = None
-    target_amount: int | None = Field(default=None, ge=0)
+    planned_purchase_at: Optional[str] = None
+    target_amount: Optional[int] = Field(default=None, ge=0)
     memo: str = Field(default="", max_length=1000)
 
 
-class ReportOut(BaseModel):
-    list_id: str
+class ReportProductOut(BaseModel):
+    product_key: str
     name: str
-    category: str | None = None
-    owner_display_name: str | None = None
-    planned_purchase_at: str | None = None
-    target_amount: int | None = None
-    memo: str = ""
-    total: int
-    totals: dict[str, int] = Field(default_factory=dict)
-    confirmed_at: str | None = None
-    items: list[dict] = Field(default_factory=list)
-    buy_links: list[dict] = Field(default_factory=list)
-    missing_requirements: list[dict] = Field(default_factory=list)
-    owned: list[dict] = Field(default_factory=list)
-    data_notice: str | None = None
+    image_url: str | None = None
+    purchase_url: str | None = None
 
 
-# ── price alert (develop `da79839`; P0 review R3 — restore the dropped route/service) ──
-class AlertIn(BaseModel):
-    enabled: bool
-    target_amount: int | None = Field(default=None, ge=0)
+class ReportItemOut(BaseModel):
+    slot: str
+    slot_label: str
+    product: ReportProductOut
+    price: int
+    qty: int = 1
+    timing: str = "now"
+    review: ReviewBriefOut | None = None
+    evidence_text: str | None = None
 
 
 class PriceWatchOut(BaseModel):
@@ -344,6 +327,26 @@ class PriceWatchOut(BaseModel):
     status: Literal["waiting", "tracking", "reached"] = "waiting"
     latest_total: int | None = None
     observed_at: str | None = None
+
+
+class ReportOut(BaseModel):
+    list_id: str
+    name: str
+    category: str
+    owner_display_name: str
+    planned_purchase_at: str | None = None
+    target_amount: int | None = None
+    memo: str = ""
+    total: int
+    confirmed_at: str
+    items: list[ReportItemOut] = Field(default_factory=list)
+    price_watch: PriceWatchOut
+    data_notice: str = "상품·가격·리뷰는 합성 데이터입니다."
+
+
+class AlertIn(BaseModel):
+    enabled: bool
+    target_amount: Optional[int] = None
 
 
 # ── reviews (A7) ──
@@ -366,9 +369,9 @@ class ReviewTelemetry(BaseModel):
 
 class PartReviewIn(BaseModel):
     variant_id: str
-    rating: int = Field(ge=1, le=5)
-    title: str = Field(min_length=1, max_length=120)
-    body: str = Field(min_length=1, max_length=5000)
+    rating: int
+    title: str
+    body: str
     axis_scores: dict[str, Any] = Field(default_factory=dict)
     telemetry: Optional[ReviewTelemetry] = None
 
@@ -426,25 +429,17 @@ class ReviewSummaryOut(BaseModel):
       0% 로 그려서 없는 분포를 단정한다
 
     실측과 합성은 섞지 않는다 — 합성값은 `synthetic_demo` 안에만, `is_synthetic` 표지와 함께.
-
-    P8: `excluded_count`·`excluded_ratio`·`rating_refined`·`distribution_refined`는
-    더 이상 항상 null이 아니다 — evidence.review_aggregate에 검수 승인된 파일 기반
-    분석(review_service._db_backed_summary)이 있으면 실제 값을 낸다. 판정기가 없는
-    관계·행동 축 관측 경로(PC 부품)는 그 분석이 없으므로 계속 null만 낸다 — 필드
-    타입만 넓혔을 뿐 기존 PC 경로의 동작은 바뀌지 않는다.
     """
     product_key: str
     total_count: int = 0
-    excluded_count: Optional[int] = None
-    excluded_ratio: Optional[float] = None
+    excluded_count: None = None
+    excluded_ratio: None = None
     rating_raw: Optional[float] = None
-    rating_refined: Optional[float] = None
+    rating_refined: None = None
     distribution_raw: dict[str, float] = {}
     distribution_refined: dict[str, float] = {}
     summaries: list[dict[str, Any]] = []
     data_notice: str
-    analysis_version: Optional[str] = None
-    status: str = "unavailable"          # unavailable | ready — DB 분석 유무
     # ── 계약 밖 추가 ──
     product_name: Optional[str] = None
     product_manipulation_risk: ProductRiskOut

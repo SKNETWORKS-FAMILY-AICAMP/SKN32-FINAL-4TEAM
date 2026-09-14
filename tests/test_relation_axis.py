@@ -50,7 +50,7 @@ def test_batch_produces_observations_not_scores(tmp_path):
     assert card["product_key"] == "BURST"
     assert "score" not in card and card["controls"]["burst7"] > 0
     assert any("7일 안에 몰림" in o for o in card["observations"])
-    assert json.loads(out.read_text())["controls"] == res["controls"]
+    assert json.loads(out.read_text(encoding="utf-8"))["controls"] == res["controls"]
 
 
 def test_store_keeps_cleaned_rating_empty(tmp_path):

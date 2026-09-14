@@ -64,7 +64,7 @@ UX와 UI 담당이 화면 단위로 나눠 작업할 수 있도록, 해시 라�
 - `js/api.js` — `TF_API`, `TF_AUTH`, 오류 메시지. **모든 페이지**.
 - `js/core.js` — `$`/`esc`/`won`, `tfPlan` 상태, `TF_PLAN`(API 래퍼), `go()`/`tfHref()`(페이지 이동), `tfSetCategory`/`choose`(카테고리 선택 — 랜딩 퀵스타트·푸터 바로가기에서도 씀), `tfSendToLogin`/`tfLogout`. **모든 페이지**.
 - `js/footer.js` — 모든 페이지에 중복 삽입된 `<footer>`의 안내창·서비스 바로가기 동작. **모든 페이지**.
-- `js/planner-shell.js` — 사이드바·단계 표시줄·`shell()`·장바구니 이름변경삭제, 추천 결과 공용 조각(리뷰 지표, 후보 비교 오버레이, 폴링). **category/conditions/results/logs/confirm/report 6개**.
+- `js/planner-shell.js` — 사이드바·단계 표시줄·`shell()`·장바구니 삭제, 추천 결과 공용 조각(리뷰 지표, 후보 비교 오버레이, 폴링). **category/conditions/results/logs/confirm/report 6개**.
 - `js/pages/auth.js` — `authShell()`, `loginPage`/`signupPage`/`accountPage`. **login/signup/account 3개**. 로그인·회원가입 페이지는 스크립트 로드 뒤 `window.addEventListener('DOMContentLoaded', ()=>loginPage())` 형태의 **인라인 부트스트랩 한 줄**로 그 페이지의 렌더 함수를 호출한다(각 HTML 파일 맨 아래 `<script>`).
 - `js/i18n.js` — 영문 전환. **모든 페이지**, 항상 스크립트 목록 맨 마지막.
 
