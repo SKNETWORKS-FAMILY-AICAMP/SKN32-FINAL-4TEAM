@@ -80,6 +80,10 @@ flow.addEventListener('click',e=>{
  const del=e.target.closest('[data-basket-delete]');if(del){tfDeleteList(del.dataset.basketDelete);return}
  const logout=e.target.closest('[data-flow-account-logout]');if(logout){e.preventDefault();tfLogout().then(ok=>{if(ok)location.reload()});return}
  const overlayClose=e.target.closest('[data-overlay-close]');if(overlayClose){closeResultOverlay();return}
+ // TF-DEV: results.js에만 있어서 05 리포트(report.js)의 "상품 페이지로 이동" 버튼이 아무 반응이
+ // 없던 버그 수정 — planner-shell.js는 category/conditions/results/logs/confirm/report 6개
+ // 페이지 전부에 로드되므로 여기 두면 어느 화면의 버튼이든 동작한다.
+ const productUrl=e.target.closest('[data-plan-product-url]');if(productUrl){e.preventDefault();const url=productUrl.dataset.planProductUrl||'';if(/^https?:\/\//i.test(url))window.open(url,'_blank','noopener');else toast(tfIsEnglish()?'The retailer link is not available yet.':'판매처 링크가 아직 연결되지 않았어요.');return}
  const actionBtn=e.target.closest('[data-action]');if(actionBtn){const a=actionBtn.dataset.action;if(a==='print'){window.print();return}if(a==='download'){tfDownloadReport();return}go(a);return}
 });
 
