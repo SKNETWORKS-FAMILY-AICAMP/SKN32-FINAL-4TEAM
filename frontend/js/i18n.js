@@ -30,6 +30,7 @@
   "추천 요약":"Summary","추천 설명을 만드는 중이에요…":"Writing the explanation…","추천 설명을 만들지 못했어요.":"Couldn't write the explanation.",
   "추천 이유를 정리하는 중이에요…":"Writing the reason…","추천 이유를 만들지 못했어요.":"Couldn't write the reason.","확인할 점을 정리하는 중이에요…":"Writing things to check…","확인할 점을 만들지 못했어요.":"Couldn't write things to check.",
   "리뷰 정보 없음":"No review data","리뷰 정보를 불러오는 중이에요…":"Loading reviews…","이 상품의 리뷰 정보가 아직 없어요.":"No reviews for this product yet.",
+  "조립·설치 가이드":"Assembly & Setup Guide","가이드를 준비하지 못했어요.":"Couldn't prepare the guide.","가이드를 준비하는 중이에요…":"Preparing the guide…",
   "다른 후보를 불러오는 중이에요…":"Loading alternatives…","가격과 규격을 비교해 하나를 선택하세요.":"Compare price and specs, then pick one.","바꿀 수 있는 다른 후보가 없어요.":"No other candidates available.","선택한 후보로 바꿨어요.":"Switched to the selected candidate.",
   "판매처 링크가 아직 연결되지 않았어요.":"The seller link isn't connected yet.","결제는 각 판매처에서 진행됩니다.":"Payment happens at each seller.",
   "현재 선택한 구성이 예산을 초과합니다. 품목을 빼거나 대체 후보를 선택해 주세요.":"Your current build is over budget. Remove items or choose alternatives.",

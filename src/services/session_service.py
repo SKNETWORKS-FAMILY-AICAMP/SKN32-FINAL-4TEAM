@@ -46,6 +46,11 @@ def normalize_baby_conditions(values: dict) -> NormalizedConditions:
     raw_age = values.get("age_months")
     months = raw_age.get("value") if isinstance(raw_age, dict) else raw_age
     exact = bool(raw_age.get("exact", True)) if isinstance(raw_age, dict) else True
+    if isinstance(months, dict):
+        # 조건 로딩 경로에 따라 age_months 가 {"value": {"value":.., "exact":..}} 로 한 번 더
+        # 감긴 채 들어올 수 있다 — _field_value 와 같은 방어적 언랩(같은 파일, 위 참고).
+        exact = bool(months.get("exact", True))
+        months = months.get("value")
     return {
         "category": "baby", "mode": values.get("mode"),
         "age_stage": {"months": months, "label": _age_stage_label(months), "exact": exact}

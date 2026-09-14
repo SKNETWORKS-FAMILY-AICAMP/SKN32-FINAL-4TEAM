@@ -181,6 +181,7 @@ def get_report(conn, list_id: UUID, principal: Principal) -> dict:
     revision = _owned(prepo, list_id, principal)
     if revision["owner_user_id"] != user_id or revision["state"] != "confirmed":
         raise NotFound("확정된 목록을 찾을 수 없습니다.")
+    lang = _report_lang(prepo, revision["id"])
 
     owner = UserRepo(conn).get(revision["owner_user_id"])
     items = []
@@ -194,6 +195,14 @@ def get_report(conn, list_id: UUID, principal: Principal) -> dict:
             "evidence_text": snapshot.get("evidence_text", ""),
         })
     watch = NotificationRepo(conn).get_for_revision(revision["id"])
+
+    # 조립 가이드 — 리포트를 열 때마다 그 자리에서 만든다(확정 시점에 미리 만들어 저장하지
+    # 않는다 — 브라우저의 "리포트 인쇄/PDF"(window.print())가 이 섹션까지 그대로 PDF로
+    # 담아주므로, 서버가 PDF를 따로 만들 필요가 없다는 게 이 기능의 핵심 결정이다).
+    from src.agent.assembly_guide_agent import build_guide
+    guide_items = [{"slot": it["slot"], "product": it["product"]} for it in items if it["product"]]
+    care_guide = build_guide(guide_items, lang=lang)
+
     return {
         "list_id": str(list_id),
         # A confirmed report is a snapshot; later sidebar renames must not rewrite
@@ -211,7 +220,8 @@ def get_report(conn, list_id: UUID, principal: Principal) -> dict:
         "price_watch": _price_watch_out(
             watch, int(revision["target_amount"]) if revision["target_amount"] is not None else None
         ),
-        "data_notice": ("Products, prices and reviews are synthetic demo data." if _report_lang(prepo, revision["id"]) == "en"
+        "care_guide": care_guide,
+        "data_notice": ("Products, prices and reviews are synthetic demo data." if lang == "en"
                         else "상품·가격·리뷰는 합성 데이터입니다."),
     }
 
