@@ -163,3 +163,31 @@ def test_budget_in_dollars_sets_currency_and_shows_both(monkeypatch):
     d2 = _draft("computer")
     d2.set("budget_max", "150만원")
     assert "currency" not in d2.patches
+
+
+def test_bare_number_is_dollars_in_english_and_won_in_korean(monkeypatch):
+    monkeypatch.setattr(ca, "USD_KRW_RATE", 1400.0)
+    assert ca._parse_budget("1500", lang="en") == (2_100_000, "USD")            # 영어 대화 + 단위 없음 → 달러
+    assert ca._parse_budget("1,500", lang="en") == (2_100_000, "USD")
+    assert ca._parse_budget("1500", lang="ko") == (1_500, None)                # 한국어 → 원화 그대로
+    assert ca._parse_budget("1,500,000 won", lang="en") == (1_500_000, None)   # 명시적 원화는 영어여도 원화
+    assert ca._parse_budget("150만원", lang="en") == (1_500_000, None)
+    assert ca._parse_budget("2000", lang="ko", session_currency="USD") == (2_800_000, "USD")   # 이미 달러로 말한 사용자
+    assert ca._parse_budget("$900", lang="ko") == (1_260_000, "USD")
+    d = _draft("computer", {"category": "computer"}); d.lang = "en"
+    d.set("budget_max", "1500")
+    assert d.patches["budget_max"] == 2_100_000 and d.patches["currency"] == "USD"
+    d2 = _draft("computer", {"category": "computer", "currency": "USD"})
+    d2.set("budget_max", "2,000,000원")
+    assert d2.patches["budget_max"] == 2_000_000 and d2.patches["currency"] == "KRW"
+
+
+def test_currency_set_after_bare_budget_reinterprets_it(monkeypatch):
+    monkeypatch.setattr(ca, "USD_KRW_RATE", 1400.0)
+    d = _draft("computer", {"category": "computer", "currency": "USD"}); d.lang = "en"
+    d.set("budget_max", "1,500,000")          # 모델이 "won" 을 떼고 넘김 → 일단 달러로 읽힘
+    assert d.patches["budget_max"] == 2_100_000_000
+    out = d.set("currency", "KRW")             # 뒤이어 통화가 오면 다시 해석
+    assert d.patches["budget_max"] == 1_500_000 and d.patches["currency"] == "KRW" and "다시 해석" in out
+    d.set("currency", "USD")
+    assert d.patches["budget_max"] == 2_100_000_000

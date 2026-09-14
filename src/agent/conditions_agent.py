@@ -45,7 +45,9 @@ class ConditionDraft:
     values: dict                       # 현재 저장된 조건 (읽기 전용으로 취급)
     missing_fn: MissingFn              # 무엇이 필수인지는 규칙(session_service)이 정한다
     next_question_fn: NextQuestionFn
+    lang: str = "ko"                   # 이번 턴의 사용자 언어 — 단위 없는 숫자를 달러로 볼지 정한다
     patches: dict = field(default_factory=dict)   # 이번 턴에 바뀐 것만
+    _bare_budget: float | None = None  # 이번 턴에 단위 없이 받은 예산 숫자 — currency 가 뒤늦게 오면 다시 해석한다
     trace: list[str] = field(default_factory=list) # 도구 호출 기록 (로그·"추천 과정 보기" 용)
 
     def question(self, key: str) -> dict | None:
@@ -83,10 +85,27 @@ class ConditionDraft:
         meta = self.schema().get(key)
         if meta is None:
             return self._record(call, f"오류: '{key}' 는 설정할 수 없는 필드입니다. 가능한 필드: {', '.join(self.schema())}")
-        try:
-            value = _coerce(meta, raw)
-        except ValueError as exc:
-            return self._record(call, f"오류: {key} — {exc}")
+        budget_currency: str | None = None
+        if key == "budget_max" and isinstance(raw, str) and raw.strip().lower() not in ("", "null", "none"):
+            value, budget_currency = _parse_budget(raw, self.lang, self.current("currency"))
+            if value is None:
+                return self._record(call, f"오류: {key} — 원 단위 정수로 (예: 1500000 · 150만원 · $1,500)")
+            bare = raw.replace(",", "").strip()
+            self._bare_budget = float(bare) if re.fullmatch(r"\d+(?:\.\d+)?", bare) else None
+        elif key == "currency" and self._bare_budget is not None and str(raw).strip().upper() in ("KRW", "USD"):
+            # 모델이 "1,500,000 won" 을 '1,500,000' + currency='KRW' 두 호출로 쪼갠다(실측). 단위 없이 받았던 숫자를
+            # 이제 온 통화로 다시 해석한다 — 아니면 1,500,000 이 달러로 읽혀 21억 원이 된다.
+            cur = str(raw).strip().upper()
+            self.patches["budget_max"] = int(round(self._bare_budget * USD_KRW_RATE)) if cur == "USD" else int(self._bare_budget)
+            self.patches["currency"] = cur
+            b = self.patches["budget_max"]
+            shown = f"{usd(b)} (= {b:,}원)" if cur == "USD" else f"{b:,}원"
+            return self._record(call, f"currency = {cur} 반영 · budget_max 를 {shown} 로 다시 해석" + self._status())
+        else:
+            try:
+                value = _coerce(meta, raw)
+            except ValueError as exc:
+                return self._record(call, f"오류: {key} — {exc}")
         q = self.question(key)
         if meta.get("type") == "list" and q and q.get("none_option"):
             # 목록형 "없음" 은 ["none"] 하나로 — 규칙 경로(slot_rules)·칩 선택(handle_answer)과 같은 표현
@@ -94,10 +113,13 @@ class ConditionDraft:
                 value = ["none"]
         self.patches[key] = value
         shown = json.dumps(value, ensure_ascii=False)
-        if key == "budget_max" and isinstance(raw, str) and _detect_currency(raw) == "USD" and "currency" in self.schema():
-            # 달러로 말했다 — 저장은 원화, 통화는 따로 기록해 답변·표시가 달러를 앞에 두게 한다
-            self.patches["currency"] = "USD"
-            shown = f"{usd(value)} (= {value:,}원, 고정 환율 1 USD = {USD_KRW_RATE:,.0f}원)"   # 달러 먼저 — 모델이 이 순서를 베낀다
+        if key == "budget_max" and "currency" in self.schema():
+            if budget_currency == "USD":
+                # 달러로 말했다(또는 영어 대화의 단위 없는 숫자) — 저장은 원화, 통화는 따로 기록해 답변·표시가 달러를 앞에 두게
+                self.patches["currency"] = "USD"
+                shown = f"{usd(value)} (= {value:,}원, 고정 환율 1 USD = {USD_KRW_RATE:,.0f}원)"   # 달러 먼저 — 모델이 이 순서를 베낀다
+            elif isinstance(raw, str) and _KRW_RE.search(raw) and self.current("currency") == "USD":
+                self.patches["currency"] = "KRW"       # 달러로 말하던 사용자가 명시적으로 원화를 말했다
         return self._record(call, f"{key} = {shown} 반영" + self._status())
 
     def clear(self, key: str) -> str:
@@ -139,6 +161,20 @@ def _parse_money(text: str) -> tuple[int | None, str | None]:
             usd_amount = float(m.group(0)) if m else None
         return (int(round(usd_amount * USD_KRW_RATE)) if usd_amount is not None else None), "USD"
     return _parse_amount(text), None
+
+
+_KRW_RE = re.compile(r"(원|won|krw|만|억)", re.I)
+
+
+def _parse_budget(raw: str, lang: str = "ko", session_currency: str | None = None) -> tuple[int | None, str | None]:
+    """예산 문자열 → (원화 정수, 통화). 달러 표지($·dollars)는 달러. 원·won·만·억은 원화.
+    **단위 없는 숫자("1500")는 영어 대화이거나 이미 달러로 말한 사용자면 달러**, 아니면 원화."""
+    krw, cur = _parse_money(raw)
+    if cur == "USD" or krw is None or _KRW_RE.search(raw):
+        return krw, cur
+    if lang == "en" or session_currency == "USD":
+        return int(round(krw * USD_KRW_RATE)), "USD"      # krw 는 이때 단위 없는 숫자 그대로다
+    return krw, None
 
 
 def usd(krw: int | None) -> str:
@@ -227,8 +263,10 @@ def make_tools(draft: ConditionDraft) -> list:
 
         Args:
             field: 시스템 프롬프트의 필드 목록에 있는 키 (예: purpose, budget_max)
-            value: 값. enum 은 허용값 코드 그대로, 금액은 사용자가 말한 그대로("150만원", "1,500,000", "$1,500",
-                   "1500 dollars" — 달러는 코드가 환산), 목록은 쉼표로 구분, bool 은 true/false, 지우려면 "null"
+            value: 값. enum 은 허용값 코드 그대로, 금액은 **통화 단위까지 사용자가 말한 그대로**("150만원",
+                   "1,500,000 won", "$1,500", "1500 dollars" — 환산은 코드가 한다. 단위를 떼고 숫자만 넘기지 말 것),
+                   목록은 쉼표로 구분, bool 은 true/false, 지우려면 "null".
+                   Amounts: pass the unit/symbol the user used ("1,500,000 won", "$1,200"); never strip it.
         """
         return draft.set(field, value)
 
@@ -402,7 +440,8 @@ def run_turn(category: str, cat_def: dict, values: dict, history: list[dict], te
     from strands.tools.executors import SequentialToolExecutor
 
     draft = ConditionDraft(category=category, cat_def=cat_def, values=dict(values),
-                           missing_fn=missing_fn, next_question_fn=next_question_fn)
+                           missing_fn=missing_fn, next_question_fn=next_question_fn,
+                           lang=_reply_language(text, history, _chip_codes(cat_def)))
     agent = Agent(
         model=_model(),
         system_prompt=system_prompt(draft, text, history),
