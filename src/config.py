@@ -103,3 +103,9 @@ REVIEW_RISK_CONTROL_SCOPE: str = "Computer Components|Data Storage"
 # 규칙 기반 "의심 지표 2개+ 리뷰 수". 조작 판정이 아니다 — 리뷰 단위 라벨이 없어 정밀도를 못 잰다.
 # 파일이 자기 방법·한계를 담고 있다(method · limits · baseline). 없으면 이 문장을 내지 않는다.
 REVIEW_SUSPECT_COUNTS: Path = DATA_DIR / "review_suspect_counts.json"
+
+# [3-C] "구매 전 확인" — 부품 사용 가이드·주의 문구 RAG(임베딩 검색). 합성 작성 문서,
+# 소량(16개)이라 벡터DB 없이 인메모리 코사인 검색으로 충분하다. RAG_EMBEDDING_PROVIDER(bedrock)와
+# 무관한 별도 기능 — 이미 동작 확인된 OpenAI 키를 그대로 쓴다.
+CARE_GUIDES_JSON: Path = DATA_DIR / "pc_care_guides.json"
+CARE_GUIDE_EMBEDDING_MODEL: str = os.getenv("CARE_GUIDE_EMBEDDING_MODEL", "text-embedding-3-small")

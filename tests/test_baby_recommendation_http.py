@@ -183,6 +183,20 @@ def test_rh01_full_guest_flow_produces_real_persisted_recommendation(client: Tes
     assert isinstance(data["feasible"], bool)
     assert data["totals"]["selected_price"] >= 0
 
+    # 후보 풀에는 같은 슬롯의 대체 상품이 여러 개 들어가지만, 장바구니에는
+    # 최적화가 고른 후보 하나만 담긴다. (0013의 selected 기본값=true를 그대로
+    # 두면 모든 대체 후보가 장바구니·합계에 포함되는 회귀가 발생한다.)
+    selected_by_slot: dict[str, list[dict]] = {}
+    for item in data["items"]:
+        if item["selected"]:
+            selected_by_slot.setdefault(item["slot"], []).append(item)
+    assert all(len(items) <= 1 for items in selected_by_slot.values())
+    assert data["totals"]["selected_price"] == sum(
+        item["price"] * item["qty"] for items in selected_by_slot.values() for item in items
+    )
+    if data["budget_max"] is not None:
+        assert data["totals"]["selected_price"] <= data["budget_max"]
+
     # 실제 requirement/candidate/validation 행이 이 리비전/run 스코프로 저장됐다.
     reqs = raw_conn.execute(
         "SELECT n.template_key FROM planning.requirement r JOIN planning.plan_node n ON n.id=r.node_id WHERE r.revision_id=%s AND r.status='active'",
