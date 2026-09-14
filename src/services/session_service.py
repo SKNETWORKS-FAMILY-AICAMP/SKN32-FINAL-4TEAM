@@ -399,7 +399,12 @@ def choose_category(
     cat_def = _category(category)
     if mode is not None and mode not in cat_def["modes"]:
         raise ValidationFailed("카테고리에 맞지 않는 mode입니다.", field="mode")
-    mode = mode or cat_def["modes"][0]
+    # mode가 question_sets 안에 있으면(예: 컴퓨터의 q_mode) 챗봇이 직접 물어본다 —
+    # 여기서 조용히 기본값을 채워버리면 그 질문이 영원히 안 나온다. 그런 질문이
+    # 없는 카테고리(예: 유아용품)만 이전처럼 첫 mode로 즉시 확정한다.
+    mode_asked_in_chat = "mode" in cat_def.get("required_inputs", [])
+    if mode is None and not mode_asked_in_chat:
+        mode = cat_def["modes"][0]
     values, previous_category = _current_values(repo, current["id"])
     previous_mode = values.get("mode")
     # A draft pins its domain version on first category selection.  Re-selecting
@@ -408,14 +413,15 @@ def choose_category(
     if previous_category != category:
         repo.bind_domain_version(current["id"], category)
     repo.upsert_condition(current["id"], "category", {"value": category}, "explicit")
-    repo.upsert_condition(current["id"], "mode", {"value": mode}, "explicit")
+    if mode is not None:
+        repo.upsert_condition(current["id"], "mode", {"value": mode}, "explicit")
     if language in ("ko", "en") and "language" in (cat_def.get("slot_schema") or {}):
         repo.upsert_condition(current["id"], "language", {"value": language}, "explicit")
     if previous_category is not None and previous_category != category:
         for key in values:
             if key not in {"category", "mode"}:
                 repo.clear_condition(current["id"], key)
-    elif category == "baby" and previous_mode is not None and previous_mode != mode:
+    elif category == "baby" and previous_mode is not None and mode is not None and previous_mode != mode:
         keys = ("due_date",) if mode == "born" else ("age_months", "weight_kg", "independent_sitting")
         for key in keys:
             repo.clear_condition(current["id"], key)

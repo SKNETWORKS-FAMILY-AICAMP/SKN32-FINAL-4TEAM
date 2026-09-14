@@ -1,7 +1,7 @@
 category: computer
 label: "컴퓨터 (PC 본체 조립)"
 modes: [build, upgrade]
-required_inputs: [purpose, budget_max, priority]
+required_inputs: [mode, purpose, budget_max, priority]
 required_inputs_by_mode:               # mode별 추가 필수 (§D-4-1)
   upgrade: [upgrade_parts]
 slot_structure: [CPU, GPU, RAM, 메인보드, 저장장치, 파워, 케이스, 쿨러]
@@ -47,6 +47,12 @@ fields:
       display_en: { performance: "Performance first", value: "Value for money", quiet: "Quiet" } }
 
 question_sets:
+  - { id: q_mode, select: single, maps_to: mode,
+      label: "새로 만들까요, 업그레이드할까요?",
+      options: ["새 컴퓨터 조립", "기존 컴퓨터 업그레이드"],
+      values: [build, upgrade],
+      label_en: "Building a new PC or upgrading?",
+      options_en: ["Build a new PC", "Upgrade an existing one"] }
   - { id: q_purpose, select: single, maps_to: purpose,
       label: "주로 어떤 용도로 쓰실 건가요?",
       options: ["게임", "창작·작업", "사무", "학습", "기타"],

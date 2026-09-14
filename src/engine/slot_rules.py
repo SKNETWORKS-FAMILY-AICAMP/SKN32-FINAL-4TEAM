@@ -117,8 +117,10 @@ _PURPOSE = [
 ]
 
 _PRIORITY = [
+    # "가격"은 빼져 있다 — 자유 채팅으로 예산을 말할 때("가격은 150만원까지") 거의 항상 섞여
+    # 나와서, 우선순위를 말한 적 없는 사용자도 priority가 자동으로 "가성비"로 채워지는 오탐이 있었다.
     ("performance", ["성능", "빠른", "고사양", "performance", "fast", "high-end", "fps"]),
-    ("value", ["가성비", "저렴", "싸게", "가격", "value", "budget", "affordable", "cheap"]),
+    ("value", ["가성비", "저렴", "싸게", "value", "budget", "affordable", "cheap"]),
     ("quiet", ["조용", "저소음", "소음", "quiet", "silent", "low noise"]),
 ]
 
