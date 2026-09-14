@@ -20,7 +20,7 @@ import re
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
-from src.config import CONDITIONS_AGENT, LLM_MODEL, LLM_PROVIDER, MOCK_MODE, OPENAI_API_KEY
+from src.config import CONDITIONS_AGENT, LLM_MODEL, LLM_PROVIDER, MOCK_MODE, OPENAI_API_KEY, USD_KRW_RATE
 from src.engine.slot_rules import _parse_won
 
 # 대화로 설정하지 않는 필드 — 사양 파일 첨부(/spec-file)가 채운다
@@ -93,7 +93,12 @@ class ConditionDraft:
             if any(str(x).lower() in ("none", q["none_option"], "없음", "없어요") for x in value):
                 value = ["none"]
         self.patches[key] = value
-        return self._record(call, f"{key} = {json.dumps(value, ensure_ascii=False)} 반영" + self._status())
+        shown = json.dumps(value, ensure_ascii=False)
+        if key == "budget_max" and isinstance(raw, str) and _detect_currency(raw) == "USD" and "currency" in self.schema():
+            # 달러로 말했다 — 저장은 원화, 통화는 따로 기록해 답변·표시가 달러를 앞에 두게 한다
+            self.patches["currency"] = "USD"
+            shown = f"{usd(value)} (= {value:,}원, 고정 환율 1 USD = {USD_KRW_RATE:,.0f}원)"   # 달러 먼저 — 모델이 이 순서를 베낀다
+        return self._record(call, f"{key} = {shown} 반영" + self._status())
 
     def clear(self, key: str) -> str:
         call = f"clear_condition({key!r})"
@@ -114,6 +119,30 @@ class ConditionDraft:
             items.append(text)
         self.patches["extra"] = items
         return self._record(call, f"extra 에 추가: {text}" + self._status())
+
+
+_USD_RE = re.compile(r"(?:\$|usd|us\s*dollars?|dollars?|달러|불)", re.I)
+
+
+def _detect_currency(text: str) -> str | None:
+    return "USD" if _USD_RE.search(text) else None
+
+
+def _parse_money(text: str) -> tuple[int | None, str | None]:
+    """(원 단위 정수, 사용자가 말한 통화). '$1,500' · '1500 dollars' · '1.2k USD' → 고정 환율로 원화 환산."""
+    if _detect_currency(text) == "USD":
+        t = _USD_RE.sub(" ", text).replace(",", "")
+        m = re.search(r"(\d+(?:\.\d+)?)\s*(k|thousand)\b", t, re.I)
+        usd_amount = float(m.group(1)) * 1_000 if m else None
+        if usd_amount is None:
+            m = re.search(r"\d+(?:\.\d+)?", t)
+            usd_amount = float(m.group(0)) if m else None
+        return (int(round(usd_amount * USD_KRW_RATE)) if usd_amount is not None else None), "USD"
+    return _parse_amount(text), None
+
+
+def usd(krw: int | None) -> str:
+    return "-" if krw is None else f"${krw / USD_KRW_RATE:,.0f}"
 
 
 def _parse_amount(text: str) -> int | None:
@@ -148,15 +177,15 @@ def _coerce(meta: dict, raw):
             if str(v).lower() == str(s).lower():
                 return v
         raise ValueError(f"허용값은 {allowed} 중 하나")
-    if t == "int":
+    if t in ("int", "money"):          # money: develop 의 baby.yaml 표기 — 저장은 원 단위 정수
         if isinstance(s, bool):
             raise ValueError("정수가 필요")
         if isinstance(s, (int, float)):
             return int(s)
-        amount = _parse_amount(str(s))
+        amount, _ = _parse_money(str(s))
         if amount is not None:
             return amount
-        raise ValueError("원 단위 정수로 (예: 1500000 또는 150만원)")
+        raise ValueError("원 단위 정수로 (예: 1500000 · 150만원 · $1,500)")
     if t == "bool":
         if isinstance(s, bool):
             return s
@@ -194,11 +223,12 @@ def make_tools(draft: ConditionDraft) -> list:
     @tool
     def set_condition(field: str, value: str) -> str:
         """조건 필드 하나를 설정한다. 사용자가 명시적으로 말한 값만 넣는다.
+        Set one condition field. Game titles go to field "games" (comma-separated), a stated use ("gaming PC") also sets "purpose".
 
         Args:
             field: 시스템 프롬프트의 필드 목록에 있는 키 (예: purpose, budget_max)
-            value: 값. enum 은 허용값 코드 그대로, 금액은 원 단위 정수 또는 "150만원",
-                   목록은 쉼표로 구분, bool 은 true/false, 지우려면 "null"
+            value: 값. enum 은 허용값 코드 그대로, 금액은 사용자가 말한 그대로("150만원", "1,500,000", "$1,500",
+                   "1500 dollars" — 달러는 코드가 환산), 목록은 쉼표로 구분, bool 은 true/false, 지우려면 "null"
         """
         return draft.set(field, value)
 
@@ -207,6 +237,8 @@ def make_tools(draft: ConditionDraft) -> list:
         """필드 목록에 없는 구체적 요구(예: "흰색 케이스", "RGB 없이", "무선 키보드 포함")를
         추가 조건으로 남긴다. 필드가 있는 값(게임 제목 → games, 해상도 → resolution 등)은
         여기가 아니라 set_condition 으로 넣는다. 판단·추천은 하지 않고 기록만 한다.
+        Only for requests that have NO field (e.g. "white case", "no RGB"). Game titles, resolution, budget,
+        priority are fields — use set_condition for those, never this tool.
 
         Args:
             text: 사용자의 요구를 짧은 한 구절로
@@ -245,7 +277,7 @@ def _field_lines(draft: ConditionDraft) -> list[str]:
             if q.get("values"):
                 pairs = [f"{o}→{json.dumps(v, ensure_ascii=False)}" for o, v in zip(q["options"], q["values"]) if v is not None]
                 line += ". 선택지: " + ", ".join(pairs)
-                if meta.get("type") == "int":
+                if meta.get("type") in ("int", "money"):
                     line += " (정확한 값을 알면 그 값)"
             else:
                 line += ". 선택지: " + ", ".join(q["options"])
@@ -291,10 +323,13 @@ def _reply_language(text: str, history: list[dict] = (), chip_codes: set[str] = 
 
 def system_prompt(draft: ConditionDraft, user_text: str = "", history: list[dict] = ()) -> str:
     current = {k: draft.current(k) for k in draft.schema() if draft.current(k) not in (None, [], "")}
-    nq = draft.next_question()
-    ask = (f"지금 다음 질문은 \"{nq['text']}\" 입니다. " if nq else "")
-    ask += ("도구를 부른 뒤에는 도구 결과의 '다음 질문' 을 그대로 물어 답변을 맺습니다 (화면이 그 항목의 "
-            "선택지를 함께 보여줍니다). 다른 항목을 먼저 묻지 않습니다.")
+    if current.get("currency") == "USD" and isinstance(current.get("budget_max"), int):
+        current["budget_max"] = f"{usd(current['budget_max'])} ({current['budget_max']:,}원)"
+    # 턴 시작 시점의 '다음 질문' 을 여기 박으면 모델이 도구로 채운 뒤에도 그 질문을 또 붙인다(실측 2회).
+    # 도구 결과에 다시 계산한 '다음 질문' 이 실리니 그것만 따르게 한다.
+    ask = ("도구를 부른 뒤에는 **마지막 도구 결과의 '다음 질문'** 을 그대로 물어 답변을 맺습니다 (화면이 그 항목의 "
+           "선택지를 함께 보여줍니다). 마지막 도구 결과가 '모두 채워짐' 이면 질문을 붙이지 않습니다. "
+           "도구를 하나도 안 불렀으면 '비어 있는 필수 항목' 의 첫 번째를 묻습니다.")
     return "\n".join([
         f"당신은 TrueFit(목적성 쇼핑 플래너)의 조건 수집 도우미입니다. 카테고리: {draft.cat_def.get('label', draft.category)}.",
         "사용자의 말에서 아래 필드에 해당하는 값을 찾아 set_condition 으로 반영하고, 필드에 없는 구체적 요구는",
@@ -314,6 +349,8 @@ def system_prompt(draft: ConditionDraft, user_text: str = "", history: list[dict
         "4. 필수 항목이 모두 채워졌으면 '이 조건으로 추천을 받아볼 수 있다'고 안내하고 추가 조건이 있으면 말해 달라고 합니다.",
         "5. 값을 바꿀 때는 clear_condition 없이 set_condition 에 새 값만 넣습니다. clear 는 '취소'·'빼 주세요' 에만 씁니다.",
         "6. 제품 추천·가격·성능·호환성 판단을 하지 않습니다. 그건 다음 단계의 엔진이 합니다.",
+        "7. 금액: 사용자가 달러로 말했거나 currency 가 USD 면 달러를 앞에 쓰고 원화를 괄호로 병기합니다 (도구 결과의 환산값 그대로, "
+        f"고정 환율 1 USD = {USD_KRW_RATE:,.0f}원). 달러 얘기가 없었으면 원화만 씁니다. 금액을 새로 계산하지 않습니다.",
         "",
         ("답변 언어: 한국어 존댓말." if _reply_language(user_text, history, _chip_codes(draft.cat_def)) == "ko"
          else "Reply language: English. Write the entire reply in English, including the closing question."),
@@ -375,4 +412,9 @@ def run_turn(category: str, cat_def: dict, values: dict, history: list[dict], te
         callback_handler=None,          # 기본 핸들러는 stdout 에 스트리밍한다
     )
     result = agent(text)
+    # 사용자가 쓰는 언어를 조건으로 남긴다 — [3-C]·[5]·결과 조립이 읽어 문장 언어를 맞춘다 (패널엔 안 보임)
+    if "language" in draft.schema():
+        detected = _reply_language(text, history, _chip_codes(cat_def))
+        if draft.values.get("language") != detected:
+            draft.patches["language"] = detected
     return TurnResult(reply=str(result).strip(), patches=dict(draft.patches), trace=list(draft.trace))

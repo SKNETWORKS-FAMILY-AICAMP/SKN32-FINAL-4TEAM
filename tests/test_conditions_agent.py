@@ -141,3 +141,25 @@ def test_unavailable_under_mock_mode(monkeypatch):
     monkeypatch.setattr(ca, "MOCK_MODE", True)
     monkeypatch.setattr(ca, "CONDITIONS_AGENT", True)
     assert ca.available() is False
+
+
+# ── 달러 입력 (영어 데모) ──────────────────────────────────────────────────
+@pytest.mark.parametrize("raw, krw", [("$1,500", 1_500 * 1400), ("1500 dollars", 1_500 * 1400), ("1.2k USD", 1_200 * 1400),
+                                      ("USD 900", 900 * 1400), ("천 달러", None)])   # 한글 숫자는 안 잡는다 — 되묻게
+def test_usd_amounts_convert_at_fixed_rate(monkeypatch, raw, krw):
+    monkeypatch.setattr(ca, "USD_KRW_RATE", 1400.0)
+    assert ca._parse_money(raw) == (krw, "USD")
+    assert ca._parse_money("150만원") == (1_500_000, None)
+
+
+def test_budget_in_dollars_sets_currency_and_shows_both(monkeypatch):
+    monkeypatch.setattr(ca, "USD_KRW_RATE", 1400.0)
+    d = _draft("computer", {"category": "computer", "mode": "build"})
+    out = d.set("budget_max", "$1,200")
+    assert d.patches["budget_max"] == 1_680_000 and d.patches["currency"] == "USD"
+    assert "$1,200 (= 1,680,000원, 고정 환율 1 USD = 1,400원)" in out
+    p = ca.system_prompt(d, "budget is $1,200")
+    assert '"budget_max": "$1,200 (1,680,000원)"' in p and "달러를 앞에" in p
+    d2 = _draft("computer")
+    d2.set("budget_max", "150만원")
+    assert "currency" not in d2.patches

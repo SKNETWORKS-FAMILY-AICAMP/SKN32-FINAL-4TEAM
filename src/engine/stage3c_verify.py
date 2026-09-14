@@ -17,6 +17,7 @@ from src.clients.llm_client import call_llm
 from src.config import CONFIDENCE_THRESHOLD
 from src.dto import BuildResult, Issue, VerificationResult, VerificationTarget
 from src.engine import LogFn
+from src.engine.lang import L, localize_system
 from src.engine.prompts import VERIFY_ISSUE_SYSTEM
 from src.rag.evidence_search import evidence_search
 
@@ -24,14 +25,14 @@ from src.rag.evidence_search import evidence_search
 _BANNED_VERDICT_WORDS = ("위반", "불합격", "부적합", "적합", "통과", "안전합니다", "위험합니다")
 
 
-def _rule_sentence(axis: str, tool_result: str) -> str:
+def _rule_sentence(axis: str, tool_result: str, lang: str = "ko") -> str:
     """LLM 없이 쓰는 기본 문장. 관측값만 옮기고 해석하지 않는다."""
     if tool_result:
-        return f"{axis}: 관측값 {tool_result}"
-    return f"{axis}: 관측값이 기록되지 않았습니다"
+        return L(lang, f"{axis}: 관측값 {tool_result}", f"{axis}: observed {tool_result}")
+    return L(lang, f"{axis}: 관측값이 기록되지 않았습니다", f"{axis}: no observation recorded")
 
 
-def _issue_sentence(axis: str, tool_result: str, evidence: list[dict]) -> str:
+def _issue_sentence(axis: str, tool_result: str, evidence: list[dict], lang: str = "ko") -> str:
     """쟁점 1건을 중립 문장으로.
 
     판정어가 섞이면 1회 재생성하고, 그래도 섞이거나 호출이 실패하면 규칙 템플릿으로
@@ -41,12 +42,12 @@ def _issue_sentence(axis: str, tool_result: str, evidence: list[dict]) -> str:
     prompt = f"축: {axis}\n관측값: {tool_result or '(기록 없음)'}\n근거:\n{snippets}"
     for _attempt in range(2):
         try:
-            text = (call_llm(prompt, system=VERIFY_ISSUE_SYSTEM).get("text") or "").strip()
+            text = (call_llm(prompt, system=localize_system(VERIFY_ISSUE_SYSTEM, lang)).get("text") or "").strip()
         except Exception:
             break
         if text and not any(w in text for w in _BANNED_VERDICT_WORDS):
             return text
-    return _rule_sentence(axis, tool_result)
+    return _rule_sentence(axis, tool_result, lang)
 
 
 def verify_set(build: BuildResult, scenario: dict, round_index: int, log: LogFn) -> VerificationResult:
@@ -93,7 +94,7 @@ def verify_set(build: BuildResult, scenario: dict, round_index: int, log: LogFn)
     return VerificationResult(list_id=build.list_id, category=domain, mode="set", targets=[tgt])
 
 
-def verify_build(build: BuildResult, category: str, log: LogFn = lambda _m: None) -> VerificationResult:
+def verify_build(build: BuildResult, category: str, log: LogFn = lambda _m: None, lang: str = "ko") -> VerificationResult:
     """DB 경로([추천 실행])의 세트 검증 — 규칙 judge + 쟁점 문장화.
 
     RAG 근거 연결은 담당 팀원 자리라 여기서는 근거 없이 관측값만으로 문장을 만든다.
@@ -105,11 +106,11 @@ def verify_build(build: BuildResult, category: str, log: LogFn = lambda _m: None
     for axis, state in (build.link_check or {}).items():
         s = str(state).lower()
         if "fail" in s or "미충족" in s or "over" in s:
-            issues.append(Issue(axis=axis, text=_issue_sentence(axis, state, []),
+            issues.append(Issue(axis=axis, text=_issue_sentence(axis, state, [], lang),
                                 tool_result=state, judge="위반", penalty=20))
             penalty += 20
         elif "pending" in s or "근사" in s:
-            issues.append(Issue(axis=axis, text=_issue_sentence(axis, state, []),
+            issues.append(Issue(axis=axis, text=_issue_sentence(axis, state, [], lang),
                                 tool_result=state, judge="확인 필요", penalty=6))
             penalty += 6
 
@@ -118,13 +119,14 @@ def verify_build(build: BuildResult, category: str, log: LogFn = lambda _m: None
     if used_pct is None and budget.get("max"):
         used_pct = round(budget.get("used", 0) / budget["max"] * 100, 1)
     if used_pct and used_pct > 110:
-        issues.append(Issue(axis="예산", text=_issue_sentence("예산", f"{used_pct}%", []),
+        issues.append(Issue(axis="예산", text=_issue_sentence("예산", f"{used_pct}%", [], lang),
                             tool_result=f"{used_pct}%", judge="초과", penalty=15))
         penalty += 15
 
     # 회색축 = 이 경로에서 실제로 검사하지 못한 것. 화면 caveats 에 "<축> 근거는 확인되지 않았습니다" 로 나간다.
     # (전에는 "리뷰 진위 (담당 팀원)" 같은 내부 자리표시가 그대로 사용자에게 나갔다)
-    gray = ["설명서·규격(RAG 미연결)", "호환성 정밀 검사(소켓·전력·크기는 근사값)"]
+    gray = [L(lang, "설명서·규격(RAG 미연결)", "manual/spec evidence (RAG not connected)"),
+            L(lang, "호환성 정밀 검사(소켓·전력·크기는 근사값)", "detailed compatibility check (socket/power/size are approximations)")]
     confidence = max(0, 100 - penalty)
     passed = confidence >= CONFIDENCE_THRESHOLD
     log(f"      신뢰도 {confidence} · 회색축 {gray} · {'통과' if passed else '기준 미달'}")

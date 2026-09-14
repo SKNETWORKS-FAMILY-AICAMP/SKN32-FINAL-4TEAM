@@ -38,6 +38,9 @@ CONDITIONS_AGENT: bool = os.getenv("CONDITIONS_AGENT", "0") == "1"
 # 결과 화면 대화 에이전트(src/agent/result_agent.py, Strands). "1" 이면 /session/{id}/result-message 의
 # 자유 텍스트를 LLM 도구 호출(후보 조회·교체·담기/빼기·수량·시점·근거 설명)로 처리한다. 기본 "0" — 규칙 경로.
 RESULT_AGENT: bool = os.getenv("RESULT_AGENT", "0") == "1"
+# 달러 입력("$1,500", "1500 dollars")을 원화 예산으로 바꾸는 고정 환율. 카탈로그·엔진은 전부 원화라 저장은 원화로 하고,
+# 사용자가 달러로 말했으면(currency=USD) 답변·표시에서 달러를 앞에 두고 원화를 병기한다. 실시간 환율이 아니다.
+USD_KRW_RATE: float = float(os.getenv("USD_KRW_RATE", "1400"))
 
 # --------------------------------------------------------------------------
 # DB / 인증

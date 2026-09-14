@@ -16,6 +16,8 @@ slot_schema:
   health_skin:           { type: list, none_allowed: true }                # ["none"] = 특이사항 없음(응답함, 미응답과 다름)
   owned_items:            { type: list, none_allowed: true }               # ["none"] = 보유 물품 없음(응답함, 미응답과 다름)
   budget_max:             { type: money, nullable: true }
+  currency:               { type: enum, values: [KRW, USD], nullable: true }   # 사용자가 말한 통화. 저장 금액은 항상 원화
+  language:               { type: enum, values: [ko, en], nullable: true }   # 사용자가 쓰는 언어 (02 가 감지). 문장 언어만 바뀐다
   weight_kg:              { type: float, nullable: true, mode_only: born }  # 선택 — 관련 need 확인 후에만 질문
   independent_sitting:    { type: bool, nullable: true, mode_only: born }   # 선택 — 관련 need 확인 후에만 질문
 
@@ -31,6 +33,7 @@ fields:
   - { key: health_skin, label: "건강·피부 특성" }
   - { key: owned_items, label: "이미 보유한 물품" }
   - { key: budget_max, label: "예산" }
+  - { key: currency, label: "통화", display: { KRW: "원화", USD: "달러" }, display_en: { KRW: "KRW", USD: "USD" } }
   - { key: weight_kg, label: "몸무게(kg)", mode_only: born }
   - { key: independent_sitting, label: "혼자 앉기 가능", mode_only: born }
 

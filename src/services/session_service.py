@@ -165,12 +165,15 @@ def _field_value(meta: dict, values: dict):
     return values.get(meta["key"])
 
 
-def _display(meta: dict, value) -> str | None:
+def _display(meta: dict, value, values: dict | None = None) -> str | None:
+    values = values or {}
     if value in (None, [], ""):
         return None
     if meta.get("computed"):
         return value["label"]
     disp_map = meta.get("display")
+    if values.get("language") == "en" and meta.get("display_en"):   # 영어 사용자 — 패널·조건 요약의 표시값 (라벨은 프론트 i18n)
+        disp_map = meta["display_en"]
     if disp_map:
         return disp_map.get(value, disp_map.get(str(value), str(value)))
     if isinstance(value, list):
@@ -180,6 +183,9 @@ def _display(meta: dict, value) -> str | None:
     if isinstance(value, bool):
         return "예" if value else "아니오"
     if meta["key"] == "budget_max" and isinstance(value, (int, float)):
+        if values.get("currency") == "USD":   # 달러로 말한 사용자 — 달러 앞, 원화 병기 (고정 환율 src/config.USD_KRW_RATE)
+            from src.agent.conditions_agent import usd
+            return f"{usd(int(value))} ({int(value):,}원)"
         return f"{int(value):,}원"
     return str(value)
 
@@ -196,7 +202,7 @@ def _build_fields(cat_def: dict, values: dict) -> list[dict]:
         status = "confirmed" if source_key in values and raw is not None else "missing"
         out.append({
             "key": meta["key"], "label": meta["label"], "value": value,
-            "display": _display(meta, value), "status": status, "editable": True,
+            "display": _display(meta, value, values), "status": status, "editable": True,
         })
     return out
 

@@ -26,8 +26,8 @@ from collections import deque
 from dataclasses import dataclass, field
 from uuid import UUID
 
-from src.agent.conditions_agent import _model, _reply_language
-from src.config import LLM_MODEL, LLM_PROVIDER, MOCK_MODE, OPENAI_API_KEY, RESULT_AGENT
+from src.agent.conditions_agent import _model, _reply_language, usd
+from src.config import LLM_MODEL, LLM_PROVIDER, MOCK_MODE, OPENAI_API_KEY, RESULT_AGENT, USD_KRW_RATE
 from src.errors import NotFound
 
 log = logging.getLogger(__name__)
@@ -41,8 +41,15 @@ def available() -> bool:
             and bool(OPENAI_API_KEY) and bool(LLM_MODEL))
 
 
+_CURRENCY = {"code": "KRW"}     # run_turn 이 세션 조건(currency)으로 매 턴 설정. 달러면 "$1,041 (1,457,000원)"
+
+
 def _won(n: int | None) -> str:
-    return "-" if n is None else f"{n:,}원"
+    if n is None:
+        return "-"
+    if _CURRENCY["code"] == "USD":
+        return f"{usd(n)} ({n:,}원)"
+    return f"{n:,}원"
 
 
 # ── 세션: 도구가 공유하는 연결·상태 ────────────────────────────────────────
@@ -310,6 +317,8 @@ def system_prompt(result: dict, user_text: str, history: list[dict], prefetched:
         "호환·검증에 대해 '문제 없다'고 단정하지 않습니다 — 재실행 여부만 말합니다.",
         "6. 전체를 다시 짜 달라는 요청('처음부터', '다른 구성')은 도구가 없습니다 — 화면의 '다른 구성 보기' 버튼을 안내합니다.",
         "7. 구성표에 없는 슬롯이나 상품을 만들지 않습니다. '죄송'·'확인할 수 없다' 로 시작하지 않습니다 — 아는 사실부터 말합니다.",
+        *([f"8. 금액은 달러를 앞에, 원화를 괄호로 — 구성표·도구 결과에 적힌 그대로 (고정 환율 1 USD = {USD_KRW_RATE:,.0f}원). 새로 환산하지 않습니다."]
+          if _CURRENCY["code"] == "USD" else []),
         *(["", "사용자 질문에 대해 미리 조회한 근거 (이걸로 답합니다. 더 필요하면 explain):", prefetched] if prefetched else []),
         "",
         ("답변 언어: 한국어 존댓말." if _reply_language(user_text, history) == "ko"
@@ -360,6 +369,14 @@ def _guarded_reply(session: ResultSession, prefetched: str) -> str:
             "바꾸고 싶은 부품과 방향(더 저렴한/더 좋은), 또는 궁금한 부품을 말씀해 주세요.")
 
 
+def _session_currency(conn, revision_id: UUID) -> str:
+    """02 에서 사용자가 달러로 말했으면 currency=USD 가 조건에 남아 있다."""
+    from src.repo.plan_repo import PlanRepo
+    full = PlanRepo(conn).load_full(revision_id)
+    values = {r["condition_key"]: r["value"].get("value") for r in full.get("conditions", [])}
+    return "USD" if values.get("currency") == "USD" else "KRW"
+
+
 # ── 실행 ───────────────────────────────────────────────────────────────────
 @dataclass
 class TurnResult:
@@ -376,6 +393,7 @@ def run_turn(conn, revision_id: UUID, result: dict, text: str) -> TurnResult:
 
     run_id = result["run_id"]
     hist_rows = [{"role": "user", "content": u} for u, _ in _HISTORY.get(run_id, ())]
+    _CURRENCY["code"] = _session_currency(conn, revision_id)
     session = ResultSession(conn=conn, revision_id=revision_id, result=result)
     prefetched = _prefetch_explanations(session, text)
     prompt = system_prompt(result, text, hist_rows, prefetched)

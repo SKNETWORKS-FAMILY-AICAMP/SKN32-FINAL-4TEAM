@@ -15,6 +15,7 @@ from uuid import UUID
 
 from src.categories import load_category
 from src.dto import PipelineResult, Slots
+from src.engine.lang import L, lang_of
 from src.errors import Conflict, NotFound, ValidationFailed
 from src.pipeline import run_pipeline as _run_scenario
 
@@ -152,7 +153,7 @@ def execute_recommendation(revision_id: UUID, run_id: UUID) -> None:
             rank = stage3b_rank.run(hf, spec, slots, noop)
             build = stage4_optimize.run(rank, spec, noop)
             build.list_id = str(revision_id)
-            verification = stage3c_verify.verify_build(build, category, noop)
+            verification = stage3c_verify.verify_build(build, category, noop, lang=lang_of(values))
 
             # 부품·가격·검증은 여기서 이미 확정됐다. [5] 설명 문장(LLM)은 아직 안 돌았으므로
             # reason=None 으로 저장한다 — add_candidate가 자동으로 reason_status='pending' 처리.
@@ -242,7 +243,7 @@ def execute_recommendation(revision_id: UUID, run_id: UUID) -> None:
             # 따로 나가므로 여기 나열하지 않는다 (전에는 reason 8줄을 이어붙여 요약이 아니었다).
             erepo.set_explanation(
                 run_id, headline=explanation.headline,
-                text=explanation_text(explanation.summary, explanation.caveats),
+                text=explanation_text(explanation.summary, explanation.caveats, lang_of(values)),
                 reasoning_log=trace,
             )
     except Exception:  # noqa: BLE001 — [5] 실패는 문장만 failed, 부품표는 이미 done인 채로 둔다
@@ -432,6 +433,7 @@ def _conditions_summary(cat_def: dict, values: dict) -> str:
 
 
 _SWAP_RE = re.compile(r"자동 추천은 '(.+?)'\(([\d,]+)원\)였고 이 후보는 ([+-][\d,]+)원")
+_SWAP_RE_EN = re.compile(r"automatic pick was '(.+?)' \(([\d,]+)원\); this one is ([+-][\d,]+)원")
 
 
 def memo_suggestion(result: dict, values: dict) -> str:
@@ -439,52 +441,57 @@ def memo_suggestion(result: dict, values: dict) -> str:
     LLM 없음(요약 문장은 이미 03 에서 만들었고, 메모는 사용자가 고쳐 쓰는 칸이다). 1,000자 제한 안."""
     items = result.get("items") or []
     totals = result.get("totals") or {}
+    lang = lang_of(values)
     lines: list[str] = []
     cond = result.get("conditions_summary") or ""
     if result.get("budget_max") and f"{result['budget_max']:,}원" not in cond:   # 조건 요약에 이미 예산이 있으면 반복 안 함
-        cond += (" · " if cond else "") + f"예산 {result['budget_max']:,}원"
+        cond += (" · " if cond else "") + L(lang, f"예산 {result['budget_max']:,}원", f"budget {result['budget_max']:,}원")
     if cond:
-        lines.append(f"[조건] {cond}")
+        lines.append(L(lang, "[조건] ", "[Conditions] ") + cond)
     chosen = [it for it in items if it["selected"]]
     if chosen:
         parts = [f"{it['slot']} {it['product']['name']}" + (f" ×{it['qty']}" if it["qty"] > 1 else "")
-                 + (" (나중에)" if it["timing"] == "later" else " (곧)" if it["timing"] == "soon" else "")
+                 + (L(lang, " (나중에)", " (later)") if it["timing"] == "later" else L(lang, " (곧)", " (soon)") if it["timing"] == "soon" else "")
                  for it in chosen]
         tail = ""
         if totals.get("budget_remaining") is not None:
-            tail = (f", 예산 초과 {-totals['budget_remaining']:,}원" if totals.get("over_budget")
-                    else f", 예산 잔여 {totals['budget_remaining']:,}원")
-        lines.append(f"[구성] {len(chosen)}개 부품 {totals.get('selected_price', 0):,}원{tail} — " + ", ".join(parts))
+            tail = (L(lang, f", 예산 초과 {-totals['budget_remaining']:,}원", f", over budget by {-totals['budget_remaining']:,}원") if totals.get("over_budget")
+                    else L(lang, f", 예산 잔여 {totals['budget_remaining']:,}원", f", {totals['budget_remaining']:,}원 left"))
+        lines.append(L(lang, f"[구성] {len(chosen)}개 부품 {totals.get('selected_price', 0):,}원{tail} — ",
+                       f"[Build] {len(chosen)} parts, {totals.get('selected_price', 0):,}원{tail} — ") + ", ".join(parts))
     removed = [it["slot"] for it in items if not it["selected"]]
     if removed:
-        lines.append("[뺀 것] " + ", ".join(removed))
+        lines.append(L(lang, "[뺀 것] ", "[Removed] ") + ", ".join(removed))
     swapped = []
     for it in items:
-        m = _SWAP_RE.search(((it.get("reason") or {}).get("text") or ""))
+        m = _SWAP_RE.search(((it.get("reason") or {}).get("text") or "")) or _SWAP_RE_EN.search(((it.get("reason") or {}).get("text") or ""))
         if m:
             swapped.append(f"{it['slot']} {m.group(1)} → {it['product']['name']} ({m.group(3)}원)")
     if swapped:
-        lines.append("[직접 바꾼 것] " + "; ".join(swapped) + " — 호환·검증은 교체 전 구성 기준")
+        lines.append(L(lang, "[직접 바꾼 것] ", "[Swapped by you] ") + "; ".join(swapped)
+                     + L(lang, " — 호환·검증은 교체 전 구성 기준", " — compatibility/verification refer to the build before the swap"))
     headline = (result.get("explanation") or {}).get("headline")
     if headline:
-        lines.append(f"[요약] {headline}")
+        lines.append(L(lang, "[요약] ", "[Summary] ") + headline)
     checks = []
     if values.get("extra"):
-        checks.append("추가 요청 미반영: " + ", ".join(map(str, values["extra"])) + " — 직접 확인")
+        checks.append(L(lang, "추가 요청 미반영: ", "Extra requests not applied: ") + ", ".join(map(str, values["extra"]))
+                      + L(lang, " — 직접 확인", " — check manually"))
     v = result.get("verification") or {}
     if v.get("confidence") is not None:
-        checks.append(f"세트 검증 신뢰도 {v['confidence']}점" + (" (쟁점 있음)" if v.get("issues") else ""))
+        checks.append(L(lang, f"세트 검증 신뢰도 {v['confidence']}점", f"set verification confidence {v['confidence']}")
+                      + (L(lang, " (쟁점 있음)", " (issues noted)") if v.get("issues") else ""))
     if checks:
-        lines.append("[확인] " + " · ".join(checks))
+        lines.append(L(lang, "[확인] ", "[Check] ") + " · ".join(checks))
     text = "\n".join(lines)
     return text if len(text) <= 1000 else text[:997] + "…"
 
 
-def explanation_text(summary: str, caveats: list[str]) -> str:
+def explanation_text(summary: str, caveats: list[str], lang: str = "ko") -> str:
     """explanation.text — 요약 문단 + "확인이 필요한 것". 화면은 한 상자에 그대로 보여준다."""
     if not caveats:
         return summary
-    return summary + "\n\n확인이 필요한 것: " + " · ".join(caveats)
+    return summary + L(lang, "\n\n확인이 필요한 것: ", "\n\nNeeds checking: ") + " · ".join(caveats)
 
 
 # 세트 검증 축([3-C] link_check 키 + 예산)이 어느 슬롯에 걸리는지. 검증은 세트 단위라 슬롯 정보가 없어서
@@ -494,9 +501,10 @@ _AXIS_SLOTS: dict[str, tuple[str, ...]] = {
     "power": ("파워", "GPU", "CPU"), "gpu_len": ("GPU", "케이스"), "cooler_height": ("쿨러", "케이스"),
 }
 _SWAP_REASON_PREFIX = "사용자 요청으로 교체한 부품입니다"
+_SWAP_REASON_PREFIX_EN = "Swapped at your request"
 
 
-def _item_checks(item: dict, validations: list[dict], confidence: int | None) -> dict:
+def _item_checks(item: dict, validations: list[dict], confidence: int | None, lang: str = "ko") -> dict:
     """"구매 전 확인" — 코드가 아는 사실만: 이 슬롯에 걸린 세트 검증 쟁점, 리뷰 관측(상품 단위), 교체 여부.
     LLM 없음. 전에는 `pending` 하드코딩이라 화면이 영원히 "정리하는 중…"이었다."""
     from src.services import review_service
@@ -507,16 +515,21 @@ def _item_checks(item: dict, validations: list[dict], confidence: int | None) ->
     if hit:
         parts += [f"[{v['rule_key']}] {v['message']}" for v in hit]
     else:
-        parts.append("이 부품에 걸린 세트 검증 쟁점 없음" + (f" (세트 신뢰도 {confidence}점)" if confidence is not None else ""))
+        parts.append(L(lang, "이 부품에 걸린 세트 검증 쟁점 없음", "No set-verification issue on this part")
+                     + (L(lang, f" (세트 신뢰도 {confidence}점)", f" (set confidence {confidence})") if confidence is not None else ""))
     try:
         summary = review_service.get_summary(item["product"]["product_key"])
         obs = [x["text"] for x in summary.summaries]
-        parts.append(("리뷰 관측: " + " / ".join(obs) + " — 상품 단위 신호이며 개별 리뷰의 진위가 아닙니다")
-                     if obs else "리뷰 관측 없음 — 리뷰 수 문턱 미만이거나 데이터 기간 밖")
+        parts.append((L(lang, "리뷰 관측: ", "Review observations (Korean, product-level): ") + " / ".join(obs)
+                      + L(lang, " — 상품 단위 신호이며 개별 리뷰의 진위가 아닙니다", " — a product-level signal, not the authenticity of any single review"))
+                     if obs else L(lang, "리뷰 관측 없음 — 리뷰 수 문턱 미만이거나 데이터 기간 밖",
+                                   "No review observation — below the review-count threshold or outside the data period"))
     except NotFound:
-        parts.append("리뷰 관측 없음")
-    if ((item.get("reason") or {}).get("text") or "").startswith(_SWAP_REASON_PREFIX):
-        parts.append("교체한 부품 — 호환·검증은 재실행되지 않았습니다 (재계산은 '다른 구성 보기')")
+        parts.append(L(lang, "리뷰 관측 없음", "No review observation"))
+    reason_text = (item.get("reason") or {}).get("text") or ""
+    if reason_text.startswith(_SWAP_REASON_PREFIX) or reason_text.startswith(_SWAP_REASON_PREFIX_EN):
+        parts.append(L(lang, "교체한 부품 — 호환·검증은 재실행되지 않았습니다 (재계산은 '다른 구성 보기')",
+                       "Swapped part — compatibility/verification were not re-run (use 'See another build' to recompute)"))
     return {"status": "ready", "text": " · ".join(parts)}
 
 
@@ -604,7 +617,7 @@ def get_stored_result(conn, revision_id: UUID) -> dict | None:
     penalty = sum((v["measured_values"] or {}).get("penalty", 0) for v in validations)
     confidence = max(0, 100 - penalty)
     for item in items:
-        item["checks"] = _item_checks(item, validations, confidence)
+        item["checks"] = _item_checks(item, validations, confidence, lang_of(values))
     result["verification"] = {
         "status": "ready", "confidence": confidence,
         "issues": [
@@ -710,12 +723,17 @@ def swap_item(conn, revision_id: UUID, item_id: UUID, candidate_id: UUID) -> dic
     # 있었다) 코드가 아는 사실만으로 한 줄 적는다 — 판단이 아니라 교체 기록이다.
     old_price = int(current["price"]) if current["price"] is not None else 0
     new_price = int(target["price"]) if target.get("price") is not None else 0
-    erepo.update_candidate_reason(item_id, (
+    lang = lang_of({r["condition_key"]: r["value"].get("value") for r in PlanRepo(conn).load_full(revision_id)["conditions"]})
+    erepo.update_candidate_reason(item_id, L(lang,
         f"사용자 요청으로 교체한 부품입니다 — 자동 추천은 '{current['product_name']}'({old_price:,}원)였고 "
-        f"이 후보는 {new_price - old_price:+,}원입니다. 순위·검증 점수는 교체 전 구성 기준입니다."))
+        f"이 후보는 {new_price - old_price:+,}원입니다. 순위·검증 점수는 교체 전 구성 기준입니다.",
+        f"Swapped at your request — the automatic pick was '{current['product_name']}' ({old_price:,}원); "
+        f"this one is {new_price - old_price:+,}원. Ranking and verification scores refer to the build before the swap."))
     # 요약(explanation)도 교체 전 구성 기준이다. [5] 를 다시 돌릴 수 없으니 그 사실을 본문 끝에 적는다.
     if run.get("explanation_status") == "ready" and run.get("explanation_text"):
-        note = f"※ 이후 {current['slot']}를 '{target['name']}'(으)로 교체했습니다({new_price - old_price:+,}원). 이 요약은 교체 전 구성 기준입니다."
+        note = L(lang,
+                 f"※ 이후 {current['slot']}를 '{target['name']}'(으)로 교체했습니다({new_price - old_price:+,}원). 이 요약은 교체 전 구성 기준입니다.",
+                 f"※ {current['slot']} was later swapped to '{target['name']}' ({new_price - old_price:+,}원). This summary describes the build before the swap.")
         erepo.set_explanation(run["id"], headline=run.get("explanation_headline") or "",
                               text=run["explanation_text"].rstrip() + "\n\n" + note,
                               reasoning_log=run.get("reasoning_log") or [])

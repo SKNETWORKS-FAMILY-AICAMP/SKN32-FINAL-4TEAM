@@ -10,6 +10,8 @@ verify_branch: set            # [4] 세트 최적화 → [3-C] 세트 검증
 slot_schema:
   purpose:         { type: enum, values: [game, creation, office, study, other] }
   budget_max:      { type: int, nullable: true }
+  currency:        { type: enum, values: [KRW, USD], nullable: true }   # 사용자가 말한 통화. 저장 금액은 항상 원화
+  language:        { type: enum, values: [ko, en], nullable: true }   # 사용자가 쓰는 언어 (02 가 감지). 문장 언어만 바뀐다
   priority:        { type: enum, values: [performance, value, quiet], nullable: true }
   games:           { type: list }
   resolution:      { type: enum, values: [FHD_144, QHD_165, "4K"], nullable: true }
@@ -30,15 +32,19 @@ defaults:                      # 동적 기본값 실패 시 fallback
 
 # ConditionState.fields 순서·표시 라벨 (§D-4-1 "카테고리별 필드")
 fields:
-  - { key: mode, label: "구성 방식", display: { build: "새 컴퓨터", upgrade: "업그레이드" } }
+  - { key: mode, label: "구성 방식", display: { build: "새 컴퓨터", upgrade: "업그레이드" },
+      display_en: { build: "New build", upgrade: "Upgrade" } }
   - { key: spec_file_name, label: "첨부 사양 파일", mode_only: upgrade }
   - { key: current_specs, label: "현재 사양", mode_only: upgrade }
   - { key: upgrade_parts, label: "업그레이드 부품", mode_only: upgrade }
   - { key: purpose, label: "주요 용도",
-      display: { game: "게임", creation: "창작", office: "사무", study: "학습", other: "기타" } }
+      display: { game: "게임", creation: "창작", office: "사무", study: "학습", other: "기타" },
+      display_en: { game: "Gaming", creation: "Creative work", office: "Office", study: "Study", other: "Other" } }
   - { key: budget_max, label: "예산" }
+  - { key: currency, label: "통화", display: { KRW: "원화", USD: "달러" }, display_en: { KRW: "KRW", USD: "USD" } }
   - { key: priority, label: "우선순위",
-      display: { performance: "성능 우선", value: "가성비", quiet: "저소음" } }
+      display: { performance: "성능 우선", value: "가성비", quiet: "저소음" },
+      display_en: { performance: "Performance first", value: "Value for money", quiet: "Quiet" } }
 
 question_sets:
   - { id: q_purpose, select: single, maps_to: purpose,
