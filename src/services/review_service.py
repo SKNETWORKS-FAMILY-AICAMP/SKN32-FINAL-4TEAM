@@ -14,7 +14,7 @@ from src.errors import NotFound, ValidationFailed
 from src.db import get_conn
 from src.repo.review_repo import ReviewRepo, ReviewSubjectRepo
 from src.repo.review_repo import (OBS_LABEL, SUSPECT_SOURCE, ReviewSummaryDemoFile,
-                                 default_risk_store, default_suspect_counts)
+                                 default_risk_store, default_suspect_counts, resolve_risk_store)
 from src.schemas import ProductRiskOut, ReviewSummaryOut, ReviewTelemetry, SyntheticDemoOut
 from src.services import review_plain
 
@@ -94,15 +94,18 @@ def get_summary(product_key: str, lang: str = "ko") -> ReviewSummaryOut:
       distribution_refined를 실제 값으로 낸다 — 검수 승인된 sample+label에서 계산된 값이다
     - 항목별 평가·요약 3건은 지금 합성 데모뿐이라 `synthetic_demo` 에 표지와 함께 둔다
     """
-    store, demo = _stores()
-    key, facts, d, db = product_key, None, None, None
-    for cand in candidate_keys(product_key):
-        facts = store.get(cand) if store else None
-        d = demo.get(cand) if demo else None
-        db = _db_backed_analysis(cand)
-        if facts is not None or d is not None or db is not None:
-            key = cand
+    _, demo = _stores()
+    all_keys = candidate_keys(product_key)
+    store, facts_key, facts = resolve_risk_store(all_keys)
+    key, d, db = product_key, None, None
+    for cand in all_keys:
+        cand_d = demo.get(cand) if demo else None
+        cand_db = _db_backed_analysis(cand)
+        if cand_d is not None or cand_db is not None:
+            key, d, db = cand, cand_d, cand_db
             break
+    if facts is not None:
+        key = facts_key
     if facts is None and d is None and db is None:
         raise NotFound(f"리뷰 요약 없음: {product_key}", field="product_key")
 
@@ -110,7 +113,10 @@ def get_summary(product_key: str, lang: str = "ko") -> ReviewSummaryOut:
     if facts is not None:
         auth = store.get_review_authenticity(key, lang)
         risk = auth["product_manipulation_risk"]
-        ref = risk.get("product_ref")
+        # 유아용품 합성 산출물은 ASIN 매핑이 없다 — resolve()가 키를 그대로 돌려주는데, 이걸
+        # "아마존에서 확인 가능한 참조"로 내면 존재하지 않는 상품 링크가 나간다. PC 산출물일 때만 낸다.
+        is_pc = store is default_risk_store()
+        ref = risk.get("product_ref") if is_pc else None
         risk_out = ProductRiskOut(
             evidence=risk["evidence"], reliable_range=risk["reliable_range"],
             controls=risk.get("controls", {}), control_scope=store.meta.get("control_scope"),
@@ -188,15 +194,7 @@ def _review_signals(product_key: str) -> dict | None:
     그대로 숫자로만 옮긴다. 새로 계산하는 값은 없다. 산출물에 상품이 없으면 None 전체,
     개별 신호(예: 다작 계정 연결)만 없으면 그 키만 None — 있는 척 채우지 않는다.
     """
-    store = default_risk_store()
-    if store is None:
-        return None
-    key = f = None
-    for cand in candidate_keys(product_key):
-        found = store.get(cand)
-        if found is not None:
-            key, f = cand, found
-            break
+    store, key, f = resolve_risk_store(candidate_keys(product_key))
     if f is None:
         return None
 

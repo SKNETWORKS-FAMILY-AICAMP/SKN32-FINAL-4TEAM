@@ -17,7 +17,7 @@ import re
 from src.config import REVIEW_AXIS_EXCESS
 from src.engine.lang import L
 from src.repo.review_repo import (ProductRiskStore, SuspectCountFile, default_risk_store,
-                                 default_suspect_counts)
+                                 default_suspect_counts, resolve_risk_store)
 
 # 규칙 집계 지표(SuspectCountFile.method.indicators 의 키) → 유저용 이름
 _TRAIT = {
@@ -148,16 +148,10 @@ def render(product_key: str, lang: str = "ko") -> dict:
     """ReviewPlainOut 모양의 dict. 산출물이 없거나 상품이 없으면 headline 이 사유 한 줄, reason 에 코드."""
     from src.services.review_service import candidate_keys   # 순환 import 회피
 
-    store = default_risk_store()
     keys = candidate_keys(product_key)
+    store, key, f = resolve_risk_store(keys)
     if store is None:
         return _no_data(None, keys, lang)
-    key = f = None
-    for cand in keys:
-        found = store.get(cand)
-        if found is not None:
-            key, f = cand, found
-            break
     if f is None:
         return _no_data(store, keys, lang)
 
@@ -201,5 +195,6 @@ def render(product_key: str, lang: str = "ko") -> dict:
     else:
         headline = L(lang, f"리뷰 {_n(n)}건 · 비슷한 부품들과 다른 점 없음",
                      f"{_n(n)} reviews · nothing stands out compared with similar parts")
-    return _plain(headline, points=points, details=details, sources=sources,
-                  verify_url=f"https://www.amazon.com/dp/{store.resolve(key)}")
+    # 유아용품 합성 산출물은 ASIN 매핑이 없다 — "아마존에서 확인" 링크는 PC 산출물일 때만 낸다.
+    verify_url = f"https://www.amazon.com/dp/{store.resolve(key)}" if store is default_risk_store() else None
+    return _plain(headline, points=points, details=details, sources=sources, verify_url=verify_url)

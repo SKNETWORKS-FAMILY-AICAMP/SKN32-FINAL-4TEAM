@@ -143,9 +143,13 @@ def test_slug_form_of_key_is_resolved(stores):
 
 
 def test_store_unavailable(monkeypatch):
+    """PC·유아용품 산출물이 둘 다 없을 때만 '불러오지 못함' — 하나라도 있으면 그쪽을 본다
+    (resolve_risk_store, review_repo.py)."""
     monkeypatch.setattr(review_repo, "_default_store", None)
     monkeypatch.setattr(review_repo, "_default_store_tried", True)
     monkeypatch.setattr(review_repo, "_default_store_reason", review_repo.RISK_STORE_MISSING)
+    monkeypatch.setattr(review_repo, "_default_baby_store", None)
+    monkeypatch.setattr(review_repo, "_default_baby_store_tried", True)
     ko, en = review_plain.render("x", "ko"), review_plain.render("x", "en")
     assert ko["reason"] == en["reason"] == "unavailable"
     assert ko["headline"] == "리뷰 분석을 불러오지 못했어요." and en["headline"] == "Could not load the review analysis."

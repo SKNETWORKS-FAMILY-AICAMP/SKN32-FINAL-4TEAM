@@ -406,6 +406,47 @@ def default_risk_store() -> ProductRiskStore | None:
     return _default_store
 
 
+_default_baby_store: ProductRiskStore | None = None
+_default_baby_store_tried = False
+
+
+def default_baby_risk_store() -> ProductRiskStore | None:
+    """config.BABY_REVIEW_RISK_JSON 산출물 — PC와 같은 스키마의 유아용품 합성 데모.
+
+    PC 산출물과 달리 ASIN alias가 없다(product_key를 그대로 키로 쓴다) — 매핑표가 필요 없다.
+    control_scope 일치 검사도 안 한다 — REVIEW_RISK_CONTROL_SCOPE는 PC 전용 값이라 여기 대면 안 된다.
+    """
+    global _default_baby_store, _default_baby_store_tried
+    if not _default_baby_store_tried:
+        _default_baby_store_tried = True
+        from src.config import BABY_REVIEW_RISK_JSON
+        if BABY_REVIEW_RISK_JSON.exists():
+            try:
+                _default_baby_store = ProductRiskStore(BABY_REVIEW_RISK_JSON)
+            except (ValueError, OSError, json.JSONDecodeError):
+                _default_baby_store = None
+    return _default_baby_store
+
+
+def resolve_risk_store(keys: list[str]) -> tuple[ProductRiskStore | None, str | None, dict | None]:
+    """PC 산출물을 먼저, 없으면 유아용품 합성 산출물을 본다 — 매칭된 (store, key, feature dict).
+
+    아무 산출물에도 없으면 (첫 번째로 로드된 store 또는 None, None, None) — store가 있으면
+    호출자가 `store.coverage(key)`로 "왜 없는지" 이유를 낼 수 있다. 산출물 자체가 하나도 없으면 None.
+    지금까지 `default_risk_store()` 하나만 보던 세 자리(review_service.get_summary·_review_signals,
+    review_plain.render)가 이 함수로 유아용품도 같이 보게 됐다.
+    """
+    stores = [s for s in (default_risk_store(), default_baby_risk_store()) if s is not None]
+    if not stores:
+        return None, None, None
+    for store in stores:
+        for k in keys:
+            f = store.get(k)
+            if f is not None:
+                return store, k, f
+    return stores[0], None, None
+
+
 def risk_store_reason() -> str:
     """산출물 상태 — RISK_STORE_OK 또는 이유 문자열. 적재를 아직 시도 안 했으면 시도한다."""
     default_risk_store()
