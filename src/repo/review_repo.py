@@ -460,15 +460,21 @@ class ReviewSummaryDemoFile:
     여기서 읽은 `cleaned_rating`·`cleanse_ratio` 는 계약의 최상위 필드로 올리지 않고
     `synthetic_demo` 블록에 그대로 둔다 — 화면이 표지를 붙여 보여주는 용도다.
     키는 요약 키(slugify)와 엔진 키(공백→하이픈) 둘 다 받는다.
+
+    `path`에 리스트를 주면 여러 파일(PC·유아용품처럼 카테고리별로 나뉜 산출물)을 합쳐 읽는다 —
+    같은 product_key가 둘 이상의 파일에 있으면 나중 파일이 이긴다. 없는 파일은 조용히 건너뛴다.
     """
 
-    def __init__(self, path: str | Path):
-        self.path = Path(path)
-        rows = json.loads(self.path.read_text(encoding="utf-8")) if self.path.exists() else []
+    def __init__(self, path: str | Path | list[str | Path]):
+        paths = path if isinstance(path, list) else [path]
+        self.paths = [Path(p) for p in paths]
         self.rows: dict[str, dict] = {}
-        for r in rows:
-            self.rows[r["product_key"]] = r
-            self.rows[r["product_name"].lower().replace(" ", "-")] = r
+        for p in self.paths:
+            if not p.exists():
+                continue
+            for r in json.loads(p.read_text(encoding="utf-8")):
+                self.rows[r["product_key"]] = r
+                self.rows[r["product_name"].lower().replace(" ", "-")] = r
 
     def get(self, product_key: str) -> dict | None:
         return self.rows.get(product_key)

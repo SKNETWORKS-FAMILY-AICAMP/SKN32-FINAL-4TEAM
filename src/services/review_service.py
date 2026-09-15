@@ -9,7 +9,7 @@ import os
 from typing import TYPE_CHECKING
 from uuid import UUID
 
-from src.config import REVIEW_SUMMARIES_DEMO
+from src.config import BABY_REVIEW_SUMMARIES_DEMO, REVIEW_SUMMARIES_DEMO
 from src.errors import NotFound, ValidationFailed
 from src.db import get_conn
 from src.repo.review_repo import ReviewRepo, ReviewSubjectRepo
@@ -34,7 +34,7 @@ def _stores():
     """파일 기반 산출물 — DB 연결 전까지의 자리. 산출 JSON 이 없으면 관측 없이 데모 블록만."""
     global _demo_file
     if _demo_file is None:
-        _demo_file = ReviewSummaryDemoFile(REVIEW_SUMMARIES_DEMO)
+        _demo_file = ReviewSummaryDemoFile([REVIEW_SUMMARIES_DEMO, BABY_REVIEW_SUMMARIES_DEMO])
     return default_risk_store(), _demo_file
 
 
