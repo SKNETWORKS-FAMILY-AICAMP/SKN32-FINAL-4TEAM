@@ -1,0 +1,267 @@
+# Baby product verification rule registry (P3_full_catalog_verification_execution.md).
+#
+# This is the SAFETY VERDICT registry — distinct from
+# config/baby_requirement_rules.yaml (which need maps to which slot). A `pass` here
+# means only "the claims this rule requires were found, verified and unrevoked in
+# this candidate's own scope" — never a general product-safety guarantee
+# (docs/baby-verification-rule-design-2026-09-14.md).
+#
+# scope=synthetic_demo entries are the only ones in this file. No real official or
+# manufacturer safety document has been collected in this session — adding a
+# scope=production entry without one would mean asserting an official/manufacturer
+# source that does not exist, which docs/agent-tasks/baby/P3_full_catalog_verification_execution.md
+# explicitly forbids ("금지 사항"). production_readiness is reported blocked
+# (see docs/reports/baby-verification-rules-*.md) until that collection happens.
+#
+# optional_condition_claims is populated only for `stroller`, reusing the existing
+# manual-backed age/weight/independent_sitting check
+# (src/rag/verification.py::verify_seat). Building an equivalent condition-threshold
+# checker for the other 13 slots would require a real regulatory or manufacturer
+# numeric threshold per category that this session does not have — declaring one
+# would be fabrication, so the other slots carry required_claims only (identity,
+# route, document, recall), never invented age/weight cutoffs.
+
+schema_version: 1
+
+rules:
+  - rule_id: baby.bottle.evidence.v1
+    rule_version: v1
+    slot_key: bottle
+    scopes: [synthetic_demo]
+    applies_when: {market: KR}
+    required_claims: [product_identity, safety_route, manufacturer_document, recall_status]
+    optional_condition_claims: []
+    pass_when: all_required_claims_verified
+    unknown_when: [missing_rule_evidence, missing_product_identity, evidence_provider_unavailable, scope_mismatch, missing_verification_input]
+    fail_when: [active_recall, certificate_mismatch, condition_out_of_range, identity_mismatch]
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/bottle
+      version: baby-demo-v1
+      retrieved_on: '2026-09-14'
+
+  - rule_id: baby.formula.evidence.v1
+    rule_version: v1
+    slot_key: formula
+    scopes: [synthetic_demo]
+    applies_when: {market: KR}
+    required_claims: [product_identity, safety_route, manufacturer_document, recall_status]
+    optional_condition_claims: []
+    pass_when: all_required_claims_verified
+    unknown_when: [missing_rule_evidence, missing_product_identity, evidence_provider_unavailable, scope_mismatch, missing_verification_input]
+    fail_when: [active_recall, certificate_mismatch, condition_out_of_range, identity_mismatch]
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/formula
+      version: baby-demo-v1
+      retrieved_on: '2026-09-14'
+
+  - rule_id: baby.high_chair.evidence.v1
+    rule_version: v1
+    slot_key: high_chair
+    scopes: [synthetic_demo]
+    applies_when: {market: KR}
+    required_claims: [product_identity, safety_route, manufacturer_document, recall_status]
+    optional_condition_claims: []
+    pass_when: all_required_claims_verified
+    unknown_when: [missing_rule_evidence, missing_product_identity, evidence_provider_unavailable, scope_mismatch, missing_verification_input]
+    fail_when: [active_recall, certificate_mismatch, condition_out_of_range, identity_mismatch]
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/high_chair
+      version: baby-demo-v1
+      retrieved_on: '2026-09-14'
+
+  - rule_id: baby.baby_food.evidence.v1
+    rule_version: v1
+    slot_key: baby_food
+    scopes: [synthetic_demo]
+    applies_when: {market: KR}
+    required_claims: [product_identity, safety_route, manufacturer_document, recall_status]
+    optional_condition_claims: []
+    pass_when: all_required_claims_verified
+    unknown_when: [missing_rule_evidence, missing_product_identity, evidence_provider_unavailable, scope_mismatch, missing_verification_input]
+    fail_when: [active_recall, certificate_mismatch, condition_out_of_range, identity_mismatch]
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/baby_food
+      version: baby-demo-v1
+      retrieved_on: '2026-09-14'
+
+  - rule_id: baby.crib.evidence.v1
+    rule_version: v1
+    slot_key: crib
+    scopes: [synthetic_demo]
+    applies_when: {market: KR}
+    required_claims: [product_identity, safety_route, manufacturer_document, recall_status]
+    optional_condition_claims: []
+    pass_when: all_required_claims_verified
+    unknown_when: [missing_rule_evidence, missing_product_identity, evidence_provider_unavailable, scope_mismatch, missing_verification_input]
+    fail_when: [active_recall, certificate_mismatch, condition_out_of_range, identity_mismatch]
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/crib
+      version: baby-demo-v1
+      retrieved_on: '2026-09-14'
+
+  - rule_id: baby.sleepwear.evidence.v1
+    rule_version: v1
+    slot_key: sleepwear
+    scopes: [synthetic_demo]
+    applies_when: {market: KR}
+    required_claims: [product_identity, safety_route, manufacturer_document, recall_status]
+    optional_condition_claims: []
+    pass_when: all_required_claims_verified
+    unknown_when: [missing_rule_evidence, missing_product_identity, evidence_provider_unavailable, scope_mismatch, missing_verification_input]
+    fail_when: [active_recall, certificate_mismatch, condition_out_of_range, identity_mismatch]
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/sleepwear
+      version: baby-demo-v1
+      retrieved_on: '2026-09-14'
+
+  - rule_id: baby_seat_v1  # kept stable: tests/test_baby_recommendation_http.py asserts this literal rule_key
+    rule_version: v1
+    slot_key: stroller
+    scopes: [synthetic_demo]
+    applies_when: {market: KR}
+    required_claims: [product_identity, safety_route, manufacturer_document, recall_status]
+    # Reuses src.rag.verification.verify_seat's existing manual-backed age/weight/
+    # independent_sitting check (S01 seat-mode eligibility text) as the condition layer.
+    optional_condition_claims: [age_months, weight_kg, independent_sitting]
+    pass_when: all_required_claims_verified
+    unknown_when: [missing_rule_evidence, missing_product_identity, evidence_provider_unavailable, scope_mismatch, missing_verification_input]
+    fail_when: [active_recall, certificate_mismatch, condition_out_of_range, identity_mismatch]
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/stroller
+      version: baby-demo-v1
+      retrieved_on: '2026-09-14'
+
+  - rule_id: baby.car_seat.evidence.v1
+    rule_version: v1
+    slot_key: car_seat
+    scopes: [synthetic_demo]
+    applies_when: {market: KR}
+    required_claims: [product_identity, safety_route, manufacturer_document, recall_status]
+    optional_condition_claims: []
+    pass_when: all_required_claims_verified
+    unknown_when: [missing_rule_evidence, missing_product_identity, evidence_provider_unavailable, scope_mismatch, missing_verification_input]
+    fail_when: [active_recall, certificate_mismatch, condition_out_of_range, identity_mismatch]
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/car_seat
+      version: baby-demo-v1
+      retrieved_on: '2026-09-14'
+
+  - rule_id: baby.bath.evidence.v1
+    rule_version: v1
+    slot_key: bath
+    scopes: [synthetic_demo]
+    applies_when: {market: KR}
+    required_claims: [product_identity, safety_route, manufacturer_document, recall_status]
+    optional_condition_claims: []
+    pass_when: all_required_claims_verified
+    unknown_when: [missing_rule_evidence, missing_product_identity, evidence_provider_unavailable, scope_mismatch, missing_verification_input]
+    fail_when: [active_recall, certificate_mismatch, condition_out_of_range, identity_mismatch]
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/bath
+      version: baby-demo-v1
+      retrieved_on: '2026-09-14'
+
+  - rule_id: baby.skincare.evidence.v1
+    rule_version: v1
+    slot_key: skincare
+    scopes: [synthetic_demo]
+    applies_when: {market: KR}
+    required_claims: [product_identity, safety_route, manufacturer_document, recall_status]
+    optional_condition_claims: []
+    pass_when: all_required_claims_verified
+    unknown_when: [missing_rule_evidence, missing_product_identity, evidence_provider_unavailable, scope_mismatch, missing_verification_input]
+    fail_when: [active_recall, certificate_mismatch, condition_out_of_range, identity_mismatch]
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/skincare
+      version: baby-demo-v1
+      retrieved_on: '2026-09-14'
+
+  - rule_id: baby.diaper.evidence.v1
+    rule_version: v1
+    slot_key: diaper
+    scopes: [synthetic_demo]
+    applies_when: {market: KR}
+    required_claims: [product_identity, safety_route, manufacturer_document, recall_status]
+    optional_condition_claims: []
+    pass_when: all_required_claims_verified
+    unknown_when: [missing_rule_evidence, missing_product_identity, evidence_provider_unavailable, scope_mismatch, missing_verification_input]
+    fail_when: [active_recall, certificate_mismatch, condition_out_of_range, identity_mismatch]
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/diaper
+      version: baby-demo-v1
+      retrieved_on: '2026-09-14'
+
+  - rule_id: baby.wipes.evidence.v1
+    rule_version: v1
+    slot_key: wipes
+    scopes: [synthetic_demo]
+    applies_when: {market: KR}
+    required_claims: [product_identity, safety_route, manufacturer_document, recall_status]
+    optional_condition_claims: []
+    pass_when: all_required_claims_verified
+    unknown_when: [missing_rule_evidence, missing_product_identity, evidence_provider_unavailable, scope_mismatch, missing_verification_input]
+    fail_when: [active_recall, certificate_mismatch, condition_out_of_range, identity_mismatch]
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/wipes
+      version: baby-demo-v1
+      retrieved_on: '2026-09-14'
+
+  - rule_id: baby.mat.evidence.v1
+    rule_version: v1
+    slot_key: mat
+    scopes: [synthetic_demo]
+    applies_when: {market: KR}
+    required_claims: [product_identity, safety_route, manufacturer_document, recall_status]
+    optional_condition_claims: []
+    pass_when: all_required_claims_verified
+    unknown_when: [missing_rule_evidence, missing_product_identity, evidence_provider_unavailable, scope_mismatch, missing_verification_input]
+    fail_when: [active_recall, certificate_mismatch, condition_out_of_range, identity_mismatch]
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/mat
+      version: baby-demo-v1
+      retrieved_on: '2026-09-14'
+
+  - rule_id: baby.gate.evidence.v1
+    rule_version: v1
+    slot_key: gate
+    scopes: [synthetic_demo]
+    applies_when: {market: KR}
+    required_claims: [product_identity, safety_route, manufacturer_document, recall_status]
+    optional_condition_claims: []
+    pass_when: all_required_claims_verified
+    unknown_when: [missing_rule_evidence, missing_product_identity, evidence_provider_unavailable, scope_mismatch, missing_verification_input]
+    fail_when: [active_recall, certificate_mismatch, condition_out_of_range, identity_mismatch]
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/gate
+      version: baby-demo-v1
+      retrieved_on: '2026-09-14'
+
+  - rule_id: baby.thermometer.evidence.v1
+    rule_version: v1
+    slot_key: thermometer
+    scopes: [synthetic_demo]
+    applies_when: {market: KR}
+    required_claims: [product_identity, safety_route, manufacturer_document, recall_status]
+    optional_condition_claims: []
+    pass_when: all_required_claims_verified
+    unknown_when: [missing_rule_evidence, missing_product_identity, evidence_provider_unavailable, scope_mismatch, missing_verification_input]
+    fail_when: [active_recall, certificate_mismatch, condition_out_of_range, identity_mismatch]
+    source:
+      authority: synthetic_fixture
+      url: synthetic://baby-demo-v1/thermometer
+      version: baby-demo-v1
+      retrieved_on: '2026-09-14'

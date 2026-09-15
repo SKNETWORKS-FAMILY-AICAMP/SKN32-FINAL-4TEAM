@@ -1,0 +1,92 @@
+[
+  {
+    "id": "gpu_power",
+    "text": "그래픽카드는 시스템에서 가장 많은 전력을 소비하는 부품입니다. 파워서플라이 정격 용량이 그래픽카드 권장 전력보다 최소 20% 이상 여유가 있는지 확인하세요.",
+    "text_en": "The graphics card draws the most power in the system. Make sure the PSU's rated capacity has at least 20% headroom over the card's recommended power."
+  },
+  {
+    "id": "gpu_thermal",
+    "text": "그래픽카드는 고사양 게임 구동 시 온도가 80도 이상 올라갈 수 있습니다. 케이스 내부 공기 흐름을 확보하고 흡기·배기 팬 배치를 확인하세요.",
+    "text_en": "Under demanding games the graphics card can exceed 80°C. Ensure airflow inside the case and check the intake/exhaust fan layout."
+  },
+  {
+    "id": "cpu_cooler_socket",
+    "text": "CPU 쿨러를 장착하기 전에 소켓 규격(예: LGA1700, AM5)이 메인보드와 일치하는지 반드시 확인하세요. 규격이 다르면 장착 자체가 불가능합니다.",
+    "text_en": "Before fitting a CPU cooler, confirm its socket spec (e.g. LGA1700, AM5) matches the motherboard. A mismatch cannot be installed at all."
+  },
+  {
+    "id": "cpu_thermal_paste",
+    "text": "CPU와 쿨러 사이에는 서멀 페이스트(열전도 그리스)를 적정량 도포해야 합니다. 너무 많거나 적으면 냉각 효율이 떨어집니다.",
+    "text_en": "Apply the right amount of thermal paste between the CPU and cooler. Too much or too little reduces cooling efficiency."
+  },
+  {
+    "id": "ram_dual_channel",
+    "text": "메모리는 2개 이상 장착 시 메인보드 설명서의 듀얼 채널 슬롯 순서(보통 A2/B2)를 지켜야 성능을 온전히 활용할 수 있습니다.",
+    "text_en": "With two or more memory sticks, follow the motherboard manual's dual-channel slot order (usually A2/B2) to get full performance."
+  },
+  {
+    "id": "ram_xmp",
+    "text": "메모리 정격 속도보다 높은 속도를 쓰려면 바이오스에서 XMP(인텔) 또는 EXPO(AMD) 프로필을 활성화해야 합니다. 기본 설정으로는 정격 속도로만 동작합니다.",
+    "text_en": "To run memory above its base speed, enable the XMP (Intel) or EXPO (AMD) profile in the BIOS. By default it runs at the base speed only."
+  },
+  {
+    "id": "mainboard_bios",
+    "text": "새로 출시된 CPU를 사용하려면 메인보드 바이오스가 해당 CPU를 지원하는 버전으로 업데이트돼 있어야 할 수 있습니다. 구매 전 제조사 지원 목록을 확인하세요.",
+    "text_en": "A newly released CPU may require a motherboard BIOS version that supports it. Check the manufacturer's support list before buying."
+  },
+  {
+    "id": "mainboard_esd",
+    "text": "메인보드를 다룰 때는 정전기 방지 장갑을 착용하거나 접지된 금속을 먼저 만져 정전기를 방전한 뒤 작업하는 것이 안전합니다.",
+    "text_en": "When handling the motherboard, wear an anti-static strap or touch grounded metal first to discharge static electricity."
+  },
+  {
+    "id": "storage_thermal",
+    "text": "고성능 NVMe SSD는 대용량 파일 전송 시 발열로 인해 속도가 저하(서멀 스로틀링)될 수 있습니다. 방열판(히트싱크) 장착을 권장합니다.",
+    "text_en": "High-performance NVMe SSDs can slow down (thermal throttling) during large transfers. A heatsink is recommended."
+  },
+  {
+    "id": "storage_backup",
+    "text": "SSD는 물리적 충격에는 강하지만 갑작스러운 전원 차단 시 데이터 손상 위험이 있습니다. 중요 데이터는 별도로 백업하세요.",
+    "text_en": "SSDs tolerate shock well but can lose data on sudden power loss. Keep separate backups of important data."
+  },
+  {
+    "id": "psu_rating",
+    "text": "80 PLUS 인증 등급(브론즈·골드·플래티넘 등)이 높을수록 변환 효율이 좋아 발열과 전기료가 줄어듭니다. 등급별 차이를 확인하고 선택하세요.",
+    "text_en": "A higher 80 PLUS rating (Bronze, Gold, Platinum…) means better conversion efficiency, less heat and lower electricity cost. Compare the tiers."
+  },
+  {
+    "id": "psu_cabling",
+    "text": "모듈러 파워서플라이는 필요한 케이블만 연결해 케이스 내부 공간과 통풍을 확보할 수 있습니다. 비모듈러 제품은 케이블 정리에 더 신경 써야 합니다.",
+    "text_en": "A modular PSU lets you connect only the cables you need, freeing space and airflow. Non-modular units need more cable management."
+  },
+  {
+    "id": "case_airflow",
+    "text": "케이스를 고를 때는 전면·후면·상단 팬 장착 가능 개수와 먼지 필터 유무를 확인하세요. 통풍이 나쁘면 전체 부품 온도가 함께 올라갑니다.",
+    "text_en": "When choosing a case, check how many front/rear/top fans it takes and whether it has dust filters. Poor airflow raises every component's temperature."
+  },
+  {
+    "id": "gpu_length_clearance",
+    "text": "그래픽카드를 장착하기 전 카드 길이가 케이스가 허용하는 최대 그래픽카드 길이를 넘지 않는지 확인하세요. 대형 쿨러가 달린 카드는 여유를 넉넉히 두는 것이 안전합니다.",
+    "text_en": "Before installing the graphics card, confirm its length is within the case's maximum GPU length. Cards with large coolers need extra margin."
+  },
+  {
+    "id": "cooler_height_clearance",
+    "text": "공랭 CPU 쿨러를 선택할 때는 쿨러 높이가 케이스가 허용하는 최대 쿨러 높이를 넘지 않는지 확인하세요. 넘으면 케이스 옆판을 닫을 수 없습니다.",
+    "text_en": "For an air CPU cooler, confirm its height is within the case's maximum cooler height — otherwise the side panel won't close."
+  },
+  {
+    "id": "case_spec_clearance",
+    "text": "케이스 스펙에 적힌 최대 그래픽카드 길이·CPU 쿨러 높이·파워서플라이 길이 허용치를 조립 전에 미리 확인하면 부품 간 간섭을 피할 수 있습니다.",
+    "text_en": "Check the case spec's maximum GPU length, CPU cooler height and PSU length before assembly to avoid part interference."
+  },
+  {
+    "id": "build_connectors",
+    "text": "모든 부품을 조립하기 전 메인보드 설명서에 표시된 각 커넥터(전원·팬·프론트 패널) 위치를 먼저 확인하면 조립 시간을 줄일 수 있습니다.",
+    "text_en": "Before assembling, locate each connector (power, fans, front panel) in the motherboard manual to save build time."
+  },
+  {
+    "id": "noise_level",
+    "text": "쿨러·파워서플라이 팬 소음이 걱정되면 제품 스펙의 소음 수준(dBA) 항목을 비교하세요. 낮을수록 조용합니다.",
+    "text_en": "If fan noise matters, compare the noise level (dBA) in the cooler and PSU specs. Lower is quieter."
+  }
+]

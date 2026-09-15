@@ -1,0 +1,11 @@
+{
+ "status": "not_evaluated",
+ "reason": "insufficient_independent_labels",
+ "corpus": "synthetic",
+ "is_synthetic_only": true,
+ "required_independent_units_per_class": 5,
+ "actual_independent_positive_units": 1,
+ "actual_independent_negative_units": 2,
+ "n_samples": 3,
+ "note": "독립 leakage 단위가 문턱 미만이라 confusion matrix/FPR을 내지 않는다 — 표본이 적을 때 낸 숫자는 그럴듯해 보일 뿐 아무 것도 검증하지 않는다."
+}

@@ -5,15 +5,19 @@ python-dotenv>=1.0.0    # .env 주입
 
 # === DB ===
 boto3>=1.34,<2          # Bedrock Titan text embeddings
-psycopg[binary]>=3.1    # PostgreSQL + pgvector (db/migrate.py, 이후 repo 계층)
+psycopg[binary,pool]>=3.1  # PostgreSQL + pgvector + 커넥션 풀 (src/db, db/migrate.py)
 
 # === 백엔드 API ===
 fastapi>=0.110.0
 uvicorn[standard]>=0.29.0
+argon2-cffi>=23.1.0    # 비밀번호 해시 (src/auth/passwords.py)
 
 # === 개발/테스트 ===
 pytest>=8.0.0
 
+# === LLM ===
+openai>=1.40.0          # LLM_PROVIDER=openai
+strands-agents[openai]>=1.0   # 조건 대화 에이전트 (src/agent/, AWS Strands Agents SDK)
+
 # === 나중에 (실제 구현 시) ===
-# 관리형 LLM API SDK      : LLM_PROVIDER 확정 후
 # httpx                   : 제휴 커머스 API 호출

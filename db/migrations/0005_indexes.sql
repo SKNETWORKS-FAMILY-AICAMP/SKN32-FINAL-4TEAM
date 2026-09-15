@@ -2,7 +2,7 @@
 -- PK/UNIQUE 선두 컬럼과 겹치는 것은 생략. 벡터 ANN 인덱스는 §10대로 초기엔 미적용.
 
 -- ── identity ──
-CREATE INDEX conversation_user_updated_idx   ON identity.conversation (user_id, updated_at DESC);
+CREATE INDEX conversation_user_created_idx   ON identity.conversation (user_id, created_at DESC);
 CREATE INDEX message_conv_created_idx        ON identity.message (conversation_id, created_at);
 
 -- ── planning ──

@@ -7,7 +7,7 @@ DECLARE
   t text;
   tables text[] := ARRAY[
     'config.domain',
-    'identity.app_user','identity.user_preference','identity.conversation',
+    'identity.user_preference',
     'shared.unit',
     'planning.plan','planning.plan_revision','planning.plan_condition','planning.plan_node',
     'planning.requirement','planning.owned_item','planning.purchase_line','planning.fulfillment_allocation',

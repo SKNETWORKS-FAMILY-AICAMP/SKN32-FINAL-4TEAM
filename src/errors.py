@@ -12,10 +12,12 @@ class TruefitError(Exception):
     code = "internal_error"
     http_status = 500
 
-    def __init__(self, message: str, *, field: str | None = None):
+    def __init__(self, message: str, *, field: str | None = None, code: str | None = None):
         super().__init__(message)
         self.message = message
         self.field = field
+        if code is not None:
+            self.code = code
 
     def to_envelope(self) -> dict:
         return {"error": {"code": self.code, "message": self.message, "field": self.field}}
@@ -49,3 +51,13 @@ class Conflict(TruefitError):
 class RateLimited(TruefitError):
     code = "rate_limited"
     http_status = 429
+
+
+class AccountLocked(TruefitError):
+    code = "account_locked"
+    http_status = 423
+
+
+class FileTooLarge(TruefitError):
+    code = "file_too_large"
+    http_status = 413

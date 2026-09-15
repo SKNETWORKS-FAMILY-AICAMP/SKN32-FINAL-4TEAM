@@ -1,0 +1,73 @@
+{
+  "errors": [],
+  "requests": [
+    {
+      "url": "http://127.0.0.1:8002/auth/me",
+      "status": 401
+    },
+    {
+      "url": "http://127.0.0.1:8002/auth/me",
+      "status": 401
+    },
+    {
+      "url": "http://127.0.0.1:8002/lists",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:8002/session",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:8002/session/ec48c3ea-04b5-4577-a12a-74c67f8d2c17/category",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:8002/auth/me",
+      "status": 401
+    },
+    {
+      "url": "http://127.0.0.1:8002/session/ec48c3ea-04b5-4577-a12a-74c67f8d2c17",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:8002/lists",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:8002/session/ec48c3ea-04b5-4577-a12a-74c67f8d2c17/answer",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:8002/session/ec48c3ea-04b5-4577-a12a-74c67f8d2c17/answer",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:8002/session/ec48c3ea-04b5-4577-a12a-74c67f8d2c17/answer",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:8002/session/ec48c3ea-04b5-4577-a12a-74c67f8d2c17/answer",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:8002/session/ec48c3ea-04b5-4577-a12a-74c67f8d2c17/message",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:8002/session/ec48c3ea-04b5-4577-a12a-74c67f8d2c17/recommend",
+      "status": 202
+    },
+    {
+      "url": "http://127.0.0.1:8002/auth/me",
+      "status": 401
+    },
+    {
+      "url": "http://127.0.0.1:8002/lists",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:8002/session/ec48c3ea-04b5-4577-a12a-74c67f8d2c17/result",
+      "status": 200
+    }
+  ]
+}

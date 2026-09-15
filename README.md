@@ -1,236 +1,225 @@
-# TrueFit — 목적성 쇼핑 플래너
+# TrueFit — Purpose-Driven Shopping Planner
 
-사용자의 목적·예산·조건에 맞춰 필요한 물품을 구성하고, 선택 근거와 외부 구매 링크를 제공하는 프로젝트입니다. 설계 범위는 **PC 본체 조립과 유아용품 준비**이며 요리 도메인은 제외합니다.
+**English** · [한국어](README.ko.md)
 
-**현재는 PC 추천 시나리오 데모, 가상 설명서 생성기, 설명서 RAG, 화면 목업을 개발한 단계입니다.** 일반 사용자 API·인증·계획 저장·알림까지 연결된 서비스는 아직 아닙니다. 아래는 2026-09-11
-저장소의 코드와 산출물 기준입니다.
+> *"A quiet gaming PC for around $1,500."* — *"Everything an 8-month-old needs for going out."*
+> TrueFit turns a goal like that into a budget-checked shopping list, with the reasons, the open checks, and what the review data actually shows — and leaves the decision to the person.
 
-![](docs/service-flow/슬라이드1.PNG)
-![](docs/service-flow/슬라이드2.PNG)
-![](docs/service-flow/슬라이드3.PNG)
+Built with the **Strands Agents SDK** for the AWS *Agents for Humans* hackathon, **Everyday Agents** track (home, money, family). MIT licensed.
 
-## 개발 현황
+## The problem
 
-| 영역             | 구현된 내용                                                                                          | 현재 한계                                                                               |
-|------------------|------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------|
-| PC 추천 데모     | 조건 정리 → 요구사양 → 후보 → 필터·순위 → 구성 → 검증·재탐색 → 설명의 콘솔 실행                      | LLM·가격·성능값·검증 점수에 목(mock) 데이터 사용. 실제 호환성·예산 준수 보장 없음       |
-| 화면 목업        | `frontend/TrueFit.html`의 PC·유아용품 화면 흐름, 장바구니 전환·이름 변경·삭제, 브라우저 저장         | 백엔드 미연결. 로그인·회원가입·회원정보 링크의 대상 파일은 현재 저장소에 없음           |
-| API              | FastAPI 앱, 요청·응답 모델, 공통 오류 처리, 상태 확인·개발용 시나리오 API                            | 일반 사용자용 20개 작업은 미구현이며 호출 시 501 등 오류 반환                           |
-| 데이터베이스     | 12개 스키마·58개 업무 테이블의 DDL, FK·UNIQUE·CHECK·인덱스·갱신 시각 트리거, 활성 임베딩 프로필 제약 | 공통 연결 풀과 대부분의 repo 미구현. 전체 업무 무결성·권한·상태 전이 구현은 남아 있음   |
-| 설명서 생성      | 유모차·젖병·기저귀·컵의 규칙 기반 부분 설명서, 사실 원장·인용 위치·해시·검증 파일                    | 모든 출력은 `partial`. 입력에 없는 조작법과 전체 안전 지침을 생성하지 않음              |
-| 설명서 RAG       | Markdown 청크화, DB 적재·게시, pgvector+키워드 검색, 검색·인용 기록, 권한·철회 검사                  | 관리자 CLI 중심. 단일 가상 유모차 자료로 회귀 평가. PDF/OCR·S3·전체 추천 UI 연결 미구현 |
-| 임베딩           | Bedrock Titan v2 어댑터와 명시적 `local-test` 1024차원 벡터                                          | Bedrock 실모델 품질 평가는 미수행. local-test는 어휘 해시 벡터                          |
-| 리뷰·데이터 도구 | PC 합성 리뷰 요약 생성, 공식 스펙 수집 스크립트, 유아용품 상품 생성 코드                             | 운영 리뷰 작성·집계·학습 파이프라인 미구현. 상품 생성 기본 사전 파일 누락               |
+Buying for a purpose is a research chore that repeats every time: a PC build is eight parts that must fit each other (socket, power, size) and a budget; baby gear is a dozen items whose safety depends on the child's age and weight and on recalls and certifications. The two sources people rely on are the least trustworthy — review scores that can be gamed, and recommendation sites that hand out a number without saying why.
 
-## 빠른 시작
+TrueFit is built on three refusals:
 
-프로젝트 루트에서 실행합니다. Python **3.11**과 `uv`를 사용합니다. DB 없이 PC 콘솔 데모와 기본 테스트를 실행할 수 있습니다.
+1. **No verdict without a method.** It never says a review is fake or a part is "the best". It reports what can be checked, in plain words — *"60 reviews (about 29%) were posted within the same week; for similar parts, usually only about 5% are"* — with the source figures one click away, and lets the reader decide.
+2. **Numbers from code, words from the model.** Ranking, verification, budget math and every value that gets stored are computed; the language model only turns free text into structured conditions and turns stored facts into sentences.
+3. **The agent proposes, the person decides.** Every recommendation is editable, every edit is a tool call on the same persisted plan, and nothing is purchased — links go to sellers.
 
-```powershell
+## What it does
+
+Category → conditions chat → recommendation → confirm → report, in one browser flow. No login is needed until you save.
+
+| Step | What happens |
+|---|---|
+| **Conditions** | Chips for required fields, free text for everything else. A Strands agent turns *"quiet gaming PC, around $1,500, Elden Ring, white case if possible"* into typed, validated conditions and asks for whatever is still missing |
+| **Recommendation** | The engine builds candidates per slot, filters, ranks (review observations demote, never exclude), optimizes the set, verifies it and re-searches once if confidence is low. Each item carries a reason, *before-you-buy* checks that cite a care guide, and plain-language review observations — what stands out against similar parts, never a verdict |
+| **Edit by talking** | *"Swap the CPU for a cheaper one and tell me why the GPU was picked"* — a second Strands agent looks up alternatives, swaps, changes quantity or timing, or explains from stored evidence only |
+| **Confirm & report** | Name, purchase date, target amount, memo; the confirmed snapshot keeps seller links and an optional target-price watch |
+
+Two domains share the engine: **PC builds** (optimize the set, then verify it as a whole) and **baby products** (verify each item against manual, recall and certification rules first, then allocate the budget). The UI and the server both speak Korean and English; English sessions read unit-less budgets as US dollars.
+
+## See it
+
+<table>
+<tr>
+<td width="50%"><img src="docs/screenshots/02-conditions.png" alt="Conditions chat: one free-text sentence becomes typed conditions"><br><sub>One sentence → purpose, budget ($1,500 → USD), priority, game title, and a free-form extra ("white case") — all set by the conditions agent through validated tool calls.</sub></td>
+<td width="50%"><img src="docs/screenshots/03-results.png" alt="Recommendation summary"><br><sub>The explanation is generated from stored facts only, and says what it could not do: the extra request was not applied automatically.</sub><br><br><img src="docs/screenshots/04-result-chat.png" alt="Result chat: swap the CPU and explain the GPU"><br><sub>The result agent swaps through the same service the buttons use, then explains the GPU from the stored reason.</sub></td>
+</tr>
+</table>
+
+Screenshots are from a real session on 2026-09-14 (`gpt-4o-mini`, synthetic catalog). Prices in the demo are **synthetic** and the UI says so.
+
+## Built on Strands Agents
+
+Two agents, both opt-in, both constructed per request with the plan's current state in their tools.
+
+| Agent | Turn | Tools | What the code enforces |
+|---|---|---|---|
+| **Conditions agent** — [`src/agent/conditions_agent.py`](src/agent/conditions_agent.py) | `POST /session/{id}/message` | `set_condition` · `add_extra_condition` · `clear_condition` | Only fields in `config/categories/<cat>.yaml`'s `slot_schema` exist. Enum, type, range and currency are checked in the tool; a bad value comes back as an error string the model must correct. Which fields are required and what to ask next is computed by the service after every tool call and fed back. The agent never touches the database — its patches are applied by `session_service` with the same origin tag as the rule-based path |
+| **Result agent** — [`src/agent/result_agent.py`](src/agent/result_agent.py) | `POST /session/{id}/result-message` | `list_alternatives` · `swap` · `set_qty` · `set_timing` · `remove_or_restore` · `explain` | Every tool wraps an existing service call, so ownership checks and totals recomputation are the same as for the buttons. `swap` only accepts a candidate the service knows for that item — a forged id is rejected. `explain` returns the stored reason, budget share, verification issues and review observation — it cannot rate a part or a review |
+
+```python
+@tool
+def set_condition(field: str, value: str) -> str:
+    """Set one condition field. Amounts keep the unit the user said ("$1,500", "150만원") — code converts."""
+    return draft.set(field, value)        # validates against the category schema; returns an error string on failure
+
+agent = Agent(
+    model=OpenAIModel(client_args={"api_key": OPENAI_API_KEY}, model_id=LLM_MODEL, params={"temperature": 0.2}),
+    system_prompt=system_prompt(draft, text, history),   # field list, chip→value map, remaining required fields
+    tools=make_tools(draft),
+    messages=_history(history),
+    tool_executor=SequentialToolExecutor(),                # tools mutate one draft in order
+)
+result = agent(text)                                       # reply for the person; draft.patches for the service
+```
+
+What is non-obvious about the setup:
+
+- **Tools are the only way to change state, and they are validated like an API.** `"$1,500"` becomes `budget_max=2,100,000 KRW` + `currency=USD`; `"purple"` for the priority field comes back as an error listing the allowed values (`performance`, `value`, `quiet`) and the model retries. Every call and its outcome is logged per turn.
+- **The service, not the agent, decides what is required.** After each tool call the tool result carries the recomputed missing-field list and the next question, so the model asks exactly what the rule engine would have asked — and stops when `can_recommend` flips.
+- **The result agent operates on the persisted plan, not on a transcript.** Swaps and edits go through the same code path as the UI buttons and are visible there immediately. A swap does not silently re-verify the build; the tool result says so and the agent relays it.
+- **Same model, two jobs, one rule.** The engine uses the same OpenAI client for the verification-issue sentences and the explanation, but only ever with facts it computed. Turning the model off (`MOCK_MODE=1`) leaves every number unchanged and replaces the prose with placeholders.
+
+Enable: `MOCK_MODE=0 · LLM_PROVIDER=openai · LLM_MODEL · OPENAI_API_KEY` plus `CONDITIONS_AGENT=1` / `RESULT_AGENT=1`. The model provider is one function (`_model()`); Strands' Bedrock model class drops in there. Design notes *(Korean)*: [conditions agent](docs/조건대화_에이전트_strands.md) · [result agent](docs/결과화면_에이전트_strands.md).
+
+## How it works
+
+![Architecture](docs/architecture.png)
+
+<details>
+<summary>Mermaid source</summary>
+
+```mermaid
+flowchart LR
+  U["Person<br/>browser, Korean or English"]
+  subgraph App["TrueFit — FastAPI, one origin, 38 operations"]
+    direction TB
+    SVC["Services<br/>session · recommendation · lists · auth · reviews"]
+    subgraph Strands["Strands Agents SDK"]
+      CA["Conditions agent<br/>set_condition · add_extra_condition · clear_condition"]
+      RA["Result agent<br/>list_alternatives · swap · set_qty · set_timing<br/>remove_or_restore · explain"]
+    end
+    ENG["Recommendation engine<br/>requirement → candidates → hard filter → rank<br/>→ optimize ⇄ verify → explain"]
+  end
+  subgraph Ev["Evidence"]
+    RX["Review relation axis<br/>Amazon Reviews'23 → per-product facts"]
+    CG["Care-guide RAG<br/>18 guides, in-memory embeddings"]
+    MR["Manual search provider<br/>local-file, outside the RDB"]
+  end
+  DB[("PostgreSQL 16<br/>10 schemas · 38 tables")]
+  LLM["OpenAI via Strands OpenAIModel<br/>chat + embeddings"]
+  U -- "free text, chips, edits" --> SVC
+  SVC --> CA
+  SVC --> RA
+  SVC --> ENG
+  CA -- "schema-validated patches" --> SVC
+  RA -- "existing service calls only" --> SVC
+  ENG --> RX
+  ENG --> CG
+  ENG --> MR
+  ENG -- "issue sentences · explanation" --> LLM
+  CA --> LLM
+  RA --> LLM
+  SVC --> DB
+```
+
+</details>
+
+- **Engine** (`src/engine`): intent → requirement → candidates → hard filter → rank → *(PC)* optimize the set ⇄ verify, re-search once below the confidence threshold / *(baby)* verify each item → allocate budget → explain. `POST …/recommend` answers `202` at once; the run persists requirements, candidates, checks and explanation and `GET …/result` polls.
+- **Review evidence** (`src/workers/relation_axis.py`): without reading a single review text, a batch over Amazon Reviews'23 (43.9 M reviews, 18.3 M accounts) computes per-product observations — share of reviews in the busiest 7-day window, reviewers shared with other products, one-off accounts, verified-purchase rate — each against the median of the same product category (11,457 PC-part products with ≥30 reviews; 7-day burst median 5.5%, 99th percentile 20.5%). No manipulation labels exist, so there is **no detection rate and no "cleaned" rating** ([decision 0001](docs/decisions/0001-정제-후-평점을-판정기-없이-내지-않는다.md) *(Korean)*). Observations demote a candidate in ranking; they never exclude it. On screen they are rendered from the numbers as plain sentences in both languages, and when the server has no figure — review count, set confidence — nothing is shown in its place ([decision 0003](docs/decisions/0003-데모-화면에서-세트-신뢰도·회색축·표시용-리뷰-수를-뺀다.md) *(Korean)*).
+- **Before-you-buy checks** (`src/rag/care_guides.py`): 18 synthetic part care guides embedded in memory at start-up; the closest passage is quoted per item.
+- **Baby manuals** (`src/rag/provider.py`): manuals are published to a search provider *outside* PostgreSQL (the `rag` schema was dropped after mentor review); a local-file implementation ships, a hosted store is the next step. Seat conditions (≥6 months, ≤22 kg, sits unaided) are checked only against reviewed sentences; with no provider configured the item is *unknown*, never silently accepted.
+- **Frontend** (`frontend/`): ten static pages served by the API on the same origin; every value comes from the API, cookies are httpOnly, a Korean/English toggle switches both UI and server language.
+
+## Run it
+
+Python **3.11** and [`uv`](https://docs.astral.sh/uv/). Configuration comes from environment variables, with `.env` as fallback (`.env.example` lists them).
+
+**A. Console, no database, no key**
+
+```bash
 uv sync --locked
-uv run python main.py --list
-uv run python main.py computer_pass
-uv run python main.py computer_research
-uv run python -m pytest -q
+uv run python main.py computer_pass        # 8 slots, verified in one round (mock LLM, injected scores)
+uv run python main.py computer_research    # score 72 → swap a candidate → 86
 ```
 
-- `computer_pass`: 8개 PC 슬롯을 구성하고 1회 검증으로 통과하는 목 시나리오입니다.
-- `computer_research`: 주입된 점수 72 → 후보 교체·재탐색 → 86 흐름을 보여줍니다.
-- `stage4_optimize.py`는 현재 슬롯별 후보를 고르는 근사 구현입니다. 로그의 조합 수는 실제 완전탐색 수행량이 아니며, 재탐색 후 예산을 초과할 수 있습니다.
-- 검증 점수·고정 기여도·합성 가격을 실제 상품의 품질·시세·호환성 평가로 해석하지 않습니다.
+**B. Web UI with PostgreSQL**
 
-설정은 **프로세스 환경변수**로 전달합니다. [`.env.example`](.env.example)은 설정 항목 참고용이며 현재 코드가 `.env` 파일을 자동으로 읽지는 않습니다. PC 데모는 기본
-`MOCK_MODE=1`로 동작합니다. 설명서 RAG CLI의 `--provider`는 이 값과 별개입니다.
-
-### API 실행
-
-```powershell
-uv run uvicorn src.api:app --reload --host 127.0.0.1 --port 8000
-```
-
-- API 문서: [Swagger UI](http://127.0.0.1:8000/docs)
-- 상태 확인: [GET /health](http://127.0.0.1:8000/health)
-
-```powershell
-Invoke-RestMethod http://127.0.0.1:8000/dev/scenarios
-Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/dev/run -ContentType 'application/json' -Body '{"scenario":"computer_pass"}'
-```
-
-`/dev/*`는 DB를 사용하지 않는 개발용 목 실행 경로입니다. `/health`의 성공은 DB 연결이나 전체 서비스 준비 완료를 뜻하지 않습니다. 현재 앱에는 개발 라우터가 포함되어 있으므로 배포 전에 노출
-정책을 적용해야 합니다.
-
-### 화면 목업 보기
-
-API와 별도 터미널에서 정적 파일 서버를 실행합니다.
-
-```powershell
-uv run python -m http.server 8080 --bind 127.0.0.1 --directory frontend
-```
-
-[TrueFit 화면 목업](http://127.0.0.1:8080/TrueFit.html)을 엽니다. 입력과 장바구니 상태는 현재 브라우저의 `localStorage`에 저장하며 서버 계정에 저장하지 않습니다.
-인증 화면 연결은 후속 작업입니다.
-
-`frontend/mockup.html`은 이전 목업이고, `frontend/index.html`은 이전 임시 GUI입니다. 임시 GUI는 `/run`을 호출하지만 현재 FastAPI 경로는 `/dev/run`이므로
-그대로 연결되지 않습니다. FastAPI 앱 자체도 정적 HTML을 제공하지 않습니다.
-
-## 데이터베이스와 구조 문서
-
-PostgreSQL과 pgvector를 같은 DB에서 사용합니다. 설계상 파일 원본은 별도 객체 저장소에 두며, 현재 설명서 RAG는 관리자용 로컬 `.rag-files/`를 사용합니다.
-
-![데이터베이스 → 스키마 → 테이블 구조도](docs/db/database-structure-overview.png)
-
-- [테이블 명세서 v4](docs/db/table_spec.md): 설계 기준, 58개 테이블·컬럼·제약·수용 기준
-- [데이터 구조 설계 근거](데이터_구조_설계_근거.md): 업무별 분리 이유, 초기 범위, 리뷰·학습 데이터 정책
-- [확대 가능한 SVG](docs/db/database-structure-overview.svg)
-- [항목을 편집할 수 있는 PPTX](docs/db/pptx/database-structure-overview.pptx): 가로형 1장, 텍스트·도형·선 개별 편집
-- [DB 마이그레이션 설명](db/README.md)
-
-### 로컬 DB 준비
-
-Docker를 사용할 수 있는 환경에서 실행합니다.
-
-```powershell
+```bash
+cp .env.example .env                        # MOCK_MODE=1, agents off
 docker compose up -d db
-$env:DATABASE_URL='postgresql://truefit:truefit@localhost:5432/truefit'
-uv run python db/migrate.py up
-uv run python db/migrate.py status
+export DATABASE_URL=postgresql://truefit:truefit@localhost:5432/truefit
+uv run python db/setup_all.py                                # 15 migrations · domains · 51 PC parts · review summaries
+uv run python scripts/generate_and_seed_baby_catalog.py      # 188 synthetic baby products
+uv run uvicorn src.api:app --reload --port 8000              # http://127.0.0.1:8000 · API docs at /docs
 ```
 
-컨테이너는 `pgvector/pgvector:pg16`을 사용합니다. DB가 연결 가능한 상태가 된 뒤 마이그레이션을 적용합니다.
+[`db/README.md`](db/README.md) *(Korean)* is the canonical DB guide (includes a conda route without Docker).
 
-| 마이그레이션                  | 내용                                   |
-|-------------------------------|----------------------------------------|
-| `0000_prereq.sql`             | vector 확장·12개 스키마·갱신 시각 함수 |
-| `0001_tables.sql`             | 58개 업무 테이블·PK·CHECK·기본값       |
-| `0002_unique.sql`             | 단순·복합·부분·표현식 UNIQUE           |
-| `0003_foreign_keys.sql`       | 스키마 간 FK와 소속 일치 복합 FK       |
-| `0004_triggers.sql`           | updated_at 갱신 트리거                 |
-| `0005_indexes.sql`            | 조회·조인·검색 인덱스                  |
-| `0006_rag_active_profile.sql` | 활성 임베딩 프로필 하나만 허용         |
+**C. Real model and agents** — in `.env`: `MOCK_MODE=0`, `LLM_PROVIDER=openai`, `LLM_MODEL=gpt-4o-mini`, `OPENAI_API_KEY=…`, `CONDITIONS_AGENT=1`, `RESULT_AGENT=1`. Run tests with `MOCK_MODE=1 uv run python -m pytest -q`, since the suite reads `.env` too.
 
-벡터 컬럼은 현재 `vector(1024)`입니다. 명세의 차원 D와 달리 실행 코드에는 초기 차원이 정해져 있으므로 모델·차원 변경 시 재임베딩과 마이그레이션을 검토해야 합니다. DDL 제공이나 RAG 통합 테스트
-통과가 모든 업무 규칙 구현을 뜻하지는 않습니다.
+**D. Docker** — `docker compose up -d --build` (db + api), then `docker compose exec api python db/setup_all.py`. Set `JWT_SECRET` (the dev default is refused when `APP_ENV=production`), `COOKIE_SECURE=1` behind HTTPS, `ALLOWED_ORIGINS` only if the UI lives on another origin. The image omits `scripts/`; seed the baby catalog from the host.
 
-## 가상 사용설명서 생성
+## Status — measured 2026-09-14
 
-예제 유모차 입력에서 별도의 새 출력 폴더로 부분 설명서를 생성합니다. API 키·LLM 호출은 필요 없습니다.
+| | Works | Not yet |
+|---|---|---|
+| PC | Full flow: conditions → run → reasons, checks, review observations, alternatives, swap, qty/timing, result chat → confirm → report → price watch, all persisted | Synthetic prices; compatibility is approximate (socket, power, size); a swap does not re-verify |
+| Baby | Conditions → run → per-item candidates with safety checks → allocation | The shipped synthetic catalog has no reviewed safety rules, so **no candidate passes gating** and the basket ends *done* with 0 items — the mechanism runs, the data does not let it choose |
+| Agents | Both agents in real sessions (screenshots above); English and Korean | Need an OpenAI key; dictionary-based UI translation leaves a few dynamic strings Korean |
+| Accounts | Email + password, httpOnly JWT, guest → account merge, withdrawal | Email verification and password reset deferred; `/auth/request-code`, `/auth/verify` are stubs |
+| Reviews | Relation-axis facts for 25 of 51 demo parts in ranking, explanation and `GET /reviews/summary` | Review *writing* is out of demo scope; no collector for live sources yet |
+| Data | 10 schemas / 38 tables, one-shot setup, RDS-compatible SQL | No live price or spec feed; notification and learning workers are stubs |
 
-```powershell
-uv run python scripts/generate_baby_manual.py --input data/synthetic_manuals/stroller_example.json --output generated/synthetic_manuals/stroller_readme_run
-```
+Tests on a fresh seeded DB, mock model: **402 passed, 17 failed, 8 skipped** (8 s); without a DB: 264 passed, 162 skipped, 1 failed. Failure breakdown below. Verified by hand the same day: PC and baby flows over HTTP, console scenarios, `rag_manual.py` 21/21, and the English session in the screenshots.
 
-출력 폴더가 이미 있으면 덮어쓰기를 거절합니다. 재실행할 때 새 경로를 지정합니다. 저장소에는 `generated/synthetic_manuals/stroller_example/` 예시가 이미 있습니다.
+<details>
+<summary>The 17 failures, by cause</summary>
 
-출력은 `manual.md`, `facts.jsonl`, `mapping.json`, 상품·참조·프로필 스냅샷, `validation.json`, `manifest.json`입니다. 생성기의 검증 통과는 데이터
-일관성 검사이며 실제 제품 안전 인증이나 사람 검수 완료를 뜻하지 않습니다.
+- 6 — baby-track HTTP tests written against a pre-merge result shape (`status` per item)
+- 7 — auth-hardening acceptance tests not yet satisfied: rate limit on `email-availability`, lock-counter reset, JWT invalidation right after a password change, consent-timestamp erasure on withdrawal
+- 2 — double-confirm / lock-version conflict expected but not raised
+- 1 — baby requirement shape; 1 — migration list pinned to an older `develop` commit (flags `0014_candidate_checks.sql`; the test is stale, not the schema)
+- Skips: pandas not installed (2), tests that demand their own throwaway DB (6)
+</details>
 
-[생성기 구현·입력 계약·테스트](docs/synthetic_manual_generator.md)
+<details>
+<summary>API surface (38 operations, <code>/docs</code>)</summary>
 
-## 설명서 RAG 실행
+| Group | Operations | State |
+|---|---|---|
+| `/session` (14) | create, get, category, slot, message, answer, reset, spec-file, recommend (202), result, item patch, alternatives, swap, result-message | Working, no login |
+| `/lists` (6) | list, rename, delete, confirm (`If-Match`), report, alert | Working; confirm/report/alert need login |
+| `/auth` (10) | signup, login, logout, me (GET/PATCH), password, withdraw, email-availability | Working; request-code, verify → 501 |
+| `/reviews` (5) | summary/{product_key} (engine key, summary key or ASIN); pending, part, publish | Working; build → 501 |
+| `/dev` (2), `/health` | scenario runs without a DB; liveness | Guard `/dev` before public exposure |
 
-마이그레이션을 적용한 개발 DB와 저장소의 설명서 예시를 사용합니다. 다음은 AWS 호출 없는 가상 코퍼스 회귀 실행입니다.
+Errors share one envelope `{"error": {"code", "message", "field"}}`. Frontend contract: [`docs/frontend_외부수정요청.md`](docs/frontend_외부수정요청.md) *(Korean)*.
+</details>
 
-```powershell
-$env:DATABASE_URL='postgresql://truefit:truefit@localhost:5432/truefit'
-uv run python scripts/rag_manual.py ingest --provider local-test
-uv run python scripts/rag_manual.py query --provider local-test --new-test-run --query '바구니 최대 하중은?'
-uv run python scripts/rag_manual.py evaluate --provider local-test --new-test-run --report generated/rag/stroller_readme_evaluation.json
-```
+## Next
 
-- `manual.md`만 검색합니다. 사실 원장·상품 스냅샷·평가 정답은 검색·임베딩에서 제외합니다.
-- 절 단위 청크와 원문 해시·문자 범위·줄 번호를 보존하고 검색 실행·결과·인용을 DB에 기록합니다.
-- 정확 코사인 검색과 한국어 문자 bigram/모델명 키워드를 RRF로 결합합니다.
-- 검색과 인용 반환 시 권한·자료 상태·상품/옵션·언어·시장·도메인·모델 프로필을 검사합니다.
-- 근거 부족과 오류를 구분하며, 장애 시 목 결과나 local-test로 자동 대체하지 않습니다.
-- `--new-test-run`은 가상 평가용 실행 문맥을 만듭니다. 실제 소비처는 권한을 확인한 추천 실행 ID를 전달해야 합니다.
-- `--reviewed`는 관리자의 검수 완료 표시입니다. 생성기 검증 결과로 자동 설정하지 않습니다.
+1. A baby catalog that can pass its own gates — reviewed safety rules per category, certification and recall data on the synthetic products.
+2. A hosted vector store behind `src/rag/provider.py`, then manual evidence in PC checks too.
+3. Auth hardening the tests already describe; email verification and password reset.
+4. Re-verify after a swap; real spec and price feeds; exact compatibility rules.
+5. A review collector that captures author hash, posting time and variant subject from the first record ([what to capture](docs/review_collector.md) *(Korean)*), then a labeling protocol — only after that, a cleaned rating.
+6. Price tracking and notifications (workers are stubs).
 
-Bedrock 경로는 `--provider bedrock`, AWS 자격증명·리전, 기본 `amazon.titan-embed-text-v2:0`을 사용합니다. local-test 모델이 이미 활성인 DB에 다른
-모델을 바로 게시할 수 없습니다. 별도 DB 또는 명시적 프로필 전환이 필요합니다. `RAG_TEST_DATABASE_URL`이 설정돼 있으면 CLI는 `DATABASE_URL`보다 그 값을 우선 사용합니다.
-
-[상세 실행법·PGlite 테스트 DB·Bedrock 설정·제한](docs/rag_implementation.md) · [기존 회귀 평가 산출물](generated/rag/README.md)
-
-## API 계약과 구현 상태
-
-OpenAPI에는 업무·개발용 22개 작업과 `/health` 1개가 등록되어 있습니다. 인증 표시는 구현 목표이며 현재 인증 기능은 미구현입니다.
-
-| 그룹   | 경로                                                                                                                                                       | 현재 상태                          |
-|--------|------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------|
-| 상태   | `GET /health`                                                                                                                                              | 동작                               |
-| 개발   | `GET /dev/scenarios`, `POST /dev/run`                                                                                                                      | 목 시나리오 실행                   |
-| 인증   | `POST /auth/request-code`, `/auth/verify`, `/auth/logout`, `GET /auth/me`                                                                                  | 이메일 코드·JWT·세션 병합 미구현   |
-| 세션   | `POST /session`, `POST /session/{list_id}/category`, `/message`, `/answer`, `/recommend`, `PATCH /session/{list_id}/slot`, `GET /session/{list_id}/result` | 계약·진입점 중심, 서비스 구현 필요 |
-| 리스트 | `POST /lists/{list_id}/confirm`, `/alert`, `GET /lists/{list_id}/report`, `GET /lists`                                                                     | 확정·저장·리포트·알림 미구현       |
-| 리뷰   | `GET /reviews/pending`, `POST /reviews/part`, `/reviews/build`, `/reviews/{review_id}/publish`, `GET /reviews/summary/{product_key}`                       | 작성·게시·운영 집계 미구현         |
-
-설명서 RAG는 CLI·서비스 함수로 구현되어 있으며 별도 HTTP 엔드포인트를 제공하지 않습니다. 공통 `src/db` 연결 풀은 미구현이지만 RAG CLI·검색 함수는 psycopg 직접 연결과 `RagRepo`
-를 사용합니다.
-
-## 데이터 준비 도구
-
-| 도구                                | 용도와 실행 조건                                                                                                                                                                              |
-|-------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `scripts/build_specs.py`            | PC 공식 스펙 수집, 출처·실패 목록 저장. `requests`, `beautifulsoup4`, `lxml` 추가 설치 필요. 코드에는 Chrome/Edge를 이용한 `--render` 재시도 경로도 있음. 추출되지 않은 규격은 수동 확인 필요 |
-| `scripts/gen_review_summaries.py`   | `data/parts_list.csv`에서 데모용 합성 리뷰 요약·평점 생성. 실행하면 기존 출력 파일을 다시 작성함. 운영 후기나 실제 조작 판정 데이터가 아님                                                    |
-| `scripts/generate_baby_products.py` | 23개 유아용품 품목군의 가상 상품 생성 코드. 기본 입력인 `scripts/유아용품_가상제품_스펙사전_v1.json`은 현재 저장소에 없어 기본 실행 불가. 호환 사전을 `--dictionary`로 제공해야 함            |
-
-[스펙 수집기 설명](scripts/README.md)과 [상품 생성기 기존 사용법](가상제품_생성기_사용법.md)은 참고 문서입니다. 기존 문서의 일부 경로·`--render` 구현 상태·상품 생성 테스트/사전
-목록은 현재 배치와 다르므로 코드 및 위 표를 함께 확인합니다. 부분 설명서 생성은 별도 예제 입력을 사용하므로 누락된 상품 사전 없이 실행할 수 있습니다.
-
-## 저장소 구성
+<details>
+<summary>Repository layout</summary>
 
 ```text
-main.py                        PC 콘솔 데모 진입점
-src/
-  api.py, routers/, schemas.py  FastAPI 라우트와 API 계약
-  pipeline.py, engine/         추천 단계·재탐색·설명, 일부 목/근사
-  rag/                        설명서 청크화·임베딩·검색·검증·설명
-  repo/rag_repo.py             RAG SQL 적재·게시·검색·인용
-  repo/catalog_repo.py         CSV 기반 PC 데모 후보
-  repo/                       그 외 업무 저장소는 대부분 미구현
-  db/, auth/, services/        공통 연결·인증·업무 서비스 뼈대
-  workers/                    추출·리뷰·가격·알림·학습 작업 진입점
-config/categories/            computer 정의, baby 추천 정의 stub
-frontend/                     TrueFit.html 및 이전 화면 목업
-scripts/                      스펙 수집·합성 데이터·설명서·RAG CLI
-data/                        PC 부품·리뷰 예시·시나리오·설명서 입력
-generated/                   설명서 예시·RAG 평가 산출물
-db/                          마이그레이션 러너와 SQL
-docs/                        RAG·설명서 생성·DB 명세와 구조도
-tests/                       파이프라인·설명서·RAG·SQL 통합 테스트
+main.py                       console pipeline (scenario files, mock LLM)
+src/api.py, routers/          FastAPI app, 5 routers, serves frontend/
+src/services/                 session · recommendation · list · auth · review · feedback
+src/agent/                    Strands agents: conditions_agent.py, result_agent.py
+src/engine/                   stages [1]–[6], slot_rules (keyword path), prompts, lang
+src/rag/                      care_guides (in-memory RAG) · provider (search boundary) · verification
+src/repo/, src/db/, src/auth/ SQL repositories · psycopg pool · JWT/argon2/origin check
+src/workers/                  review_cleanse_worker + relation_axis (batch); other workers are stubs
+config/categories/            computer.yaml · baby.yaml (slots, questions, modes) + baby rules
+frontend/                     10 pages, css/, js/ (api.js · core.js · planner-shell.js · i18n.js · pages/)
+db/                           migrate.py · 15 migrations · seed*.py · setup_all.py · README.md
+scripts/                      catalog/manual generators · rag_manual.py · Amazon'23 batch · spec scraper
+data/, generated/, docs/      parts list, care guides, scenarios · example outputs · specs, contracts, decisions
+tests/                        pipeline · agents · HTTP flows · services · SQL/migration checks
 ```
+</details>
 
-## 테스트와 확인 범위
+## Documents & license
 
-```powershell
-# DB 없이 실행. DB 통합 테스트는 환경변수 미설정 시 건너뜀
-uv run python -m pytest -q
-
-# 별도 임시 테스트 DB를 준비하고 마이그레이션한 경우
-$env:RAG_TEST_DATABASE_URL='postgresql://postgres:postgres@127.0.0.1:55432/postgres?sslmode=disable'
-uv run python -m pytest -q tests/test_rag_postgres.py
-```
-
-두 번째 명령은 전용 테스트 DB가 필요합니다. Docker 없는 환경의 PGlite 서버 실행·마이그레이션 순서는 [RAG 문서](docs/rag_implementation.md)를 따릅니다.
-
-| 확인 구분                       | 결과                                                                                                          |
-|---------------------------------|---------------------------------------------------------------------------------------------------------------|
-| 이번 README 갱신 시 기본 테스트 | 31 passed, 27 skipped, 3 subtests passed. DB 통합 환경변수 미설정으로 27건 건너뜀                             |
-| 이번 PC 콘솔 확인               | `computer_pass`, `computer_research` 모두 종료 성공                                                           |
-| 기존 저장된 RAG 통합 결과       | PGlite/pgvector에서 58 passed, 3 subtests passed, 설명서 질의 21/21. 이번 갱신에서 DB 통합 재실행은 하지 않음 |
-| 미확인 영역                     | Bedrock 실모델 검색 품질, 운영 PostgreSQL 부하·동시성, 실제 제품 안전성, 브라우저와 백엔드 전체 연결          |
-
-기본 테스트 실행에는 pytest 캐시 디렉터리 쓰기 권한 경고 1건이 있었으며 테스트 자체는 통과했습니다. 기존 결과 파일은 [generated/rag](generated/rag/README.md)에서 확인할 수
-있습니다.
-
-## 다음 구현 과제
-
-1. 공통 DB 연결 풀과 계획·사용자·상품 등 저장소 구현, 명세의 교차 무결성·불변성·동시 수정 검사 적용
-2. 이메일 코드·JWT·소유권 확인, 일반 사용자 API와 화면 목업 연결
-3. 실제 상품 규격·가격 연동, PC 하드필터·호환 검사·예산 준수 최적화 구현
-4. 설명서 RAG의 실제 Bedrock 평가, PDF/OCR·이미지·객체 저장소·비동기 처리 확장
-5. 유아용품 사전 복원·입력 검증, `baby.yaml`과 품목별 추천·예산 분기 구현
-6. 실제 PC 리뷰·운영 집계, 단일 부모 리뷰 증강·라벨 검수·내보내기 구현
-7. 가격 추적·알림·사용자 행동 기록 구현. 자동 학습 배치는 현재 명세에서 보류
-
-[프로젝트 기획서](프로젝트_기획서_v2.md) · [기술 기획서](기술기획서_데모+최종.md)
+MIT — [`LICENSE`](LICENSE). Team documents are in Korean: [DB setup](db/README.md) · [table spec](docs/db/table_spec.md) · [schema reduction](docs/db/db_schema_reduction_proposal_2026-09-12.md) · [API contract](docs/frontend_외부수정요청.md) · [frontend rules](frontend/CLAUDE.md) · [decisions](docs/decisions/README.md) · [review analysis contract](docs/review_analysis_contract.md) · [baby work packages](docs/agent-tasks/baby/README.md) · [manual generator](docs/synthetic_manual_generator.md). [`docs/rag_implementation.md`](docs/rag_implementation.md) describes the removed pgvector design and is kept for history.

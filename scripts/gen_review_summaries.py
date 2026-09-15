@@ -243,6 +243,10 @@ def gen_one(part: dict) -> dict:
         "sources": sources,
         "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
         "collected_at": COLLECT_BASE.isoformat(),
+        # 화면이 이 두 필드를 읽어 "합성 데모값" 을 표시한다. cleaned_rating·cleanse_ratio 는
+        # 판정기 없이 만든 값이라 실측이 아니고, 실사용자에게 노출하지 않는다 (docs/decisions/0001).
+        "is_synthetic": True,
+        "cleaned_rating_note": "합성 데모값 — 리뷰 진위 판정기가 없어 실측이 아니다. 실사용자 노출 금지.",
     }
 
 

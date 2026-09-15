@@ -1,0 +1,189 @@
+{
+  "revision_id": "79d22656-d231-4062-8cff-1e22219414c9",
+  "run_id": "958d3695-714b-4061-91a4-26aa6ad95c11",
+  "requirements": [
+    {
+      "id": "79179f3c-96e2-4674-94e3-9e0060213433",
+      "slot_key": "car_seat",
+      "required_qty": 1.0,
+      "mandatory": true,
+      "timing": "now",
+      "fulfilled_by_item_id": null
+    },
+    {
+      "id": "e2bf7775-4669-40b0-b46c-59901a7de550",
+      "slot_key": "diaper",
+      "required_qty": 1.0,
+      "mandatory": true,
+      "timing": "now",
+      "fulfilled_by_item_id": null
+    },
+    {
+      "id": "23c3b6df-2546-47c4-b759-b053c8546682",
+      "slot_key": "stroller",
+      "required_qty": 1.0,
+      "mandatory": true,
+      "timing": "now",
+      "fulfilled_by_item_id": "53535cf2-8ca7-4e07-abe5-3ab4d9985b21"
+    },
+    {
+      "id": "d459a9d1-c412-4ad2-8fe0-cf574ac108ea",
+      "slot_key": "wipes",
+      "required_qty": 1.0,
+      "mandatory": false,
+      "timing": "now",
+      "fulfilled_by_item_id": null
+    }
+  ],
+  "candidates_per_requirement": {
+    "79179f3c-96e2-4674-94e3-9e0060213433": 5,
+    "e2bf7775-4669-40b0-b46c-59901a7de550": 3,
+    "23c3b6df-2546-47c4-b759-b053c8546682": 5,
+    "d459a9d1-c412-4ad2-8fe0-cf574ac108ea": 1
+  },
+  "checks": [
+    {
+      "candidate_id": "0e301a22-4976-4709-89e4-2ded74255690",
+      "eligibility": "pass",
+      "selection_allowed": true,
+      "coverage": "none"
+    },
+    {
+      "candidate_id": "deaee81f-5998-4479-814b-00cce78ab150",
+      "eligibility": "pass",
+      "selection_allowed": true,
+      "coverage": "none"
+    },
+    {
+      "candidate_id": "057f3119-639d-4cb9-9fb9-df57431610c7",
+      "eligibility": "pass",
+      "selection_allowed": true,
+      "coverage": "none"
+    },
+    {
+      "candidate_id": "2ab32d42-f3ef-414a-ad5f-5b4b8a9c7865",
+      "eligibility": "unknown",
+      "selection_allowed": false,
+      "coverage": "none"
+    },
+    {
+      "candidate_id": "bdad07ed-b7ac-46a0-982e-4cbb331b1b17",
+      "eligibility": "pass",
+      "selection_allowed": true,
+      "coverage": "none"
+    },
+    {
+      "candidate_id": "bbc3c1a9-a5c6-44b3-8014-84e7e6147935",
+      "eligibility": "pass",
+      "selection_allowed": true,
+      "coverage": "none"
+    },
+    {
+      "candidate_id": "66e4016a-6c52-46b2-aacc-1ebf39e9ff7a",
+      "eligibility": "pass",
+      "selection_allowed": true,
+      "coverage": "none"
+    },
+    {
+      "candidate_id": "f35827fc-6113-4e5c-ad2a-58ba84ce234d",
+      "eligibility": "pass",
+      "selection_allowed": true,
+      "coverage": "none"
+    },
+    {
+      "candidate_id": "a4ba1ffe-ef98-4896-a9d2-040fbe55ffcc",
+      "eligibility": "unknown",
+      "selection_allowed": false,
+      "coverage": "none"
+    },
+    {
+      "candidate_id": "130d0f51-e1f4-408f-9faf-c5979b7e59f4",
+      "eligibility": "unknown",
+      "selection_allowed": false,
+      "coverage": "none"
+    },
+    {
+      "candidate_id": "68bee83f-e60a-4d9c-bfeb-b4237de7a257",
+      "eligibility": "pass",
+      "selection_allowed": true,
+      "coverage": "partial"
+    },
+    {
+      "candidate_id": "b42deff3-d371-41ea-8f70-f8d359a95bb4",
+      "eligibility": "unknown",
+      "selection_allowed": false,
+      "coverage": "none"
+    },
+    {
+      "candidate_id": "af812c12-59c3-4e5f-9044-eceadbe9f930",
+      "eligibility": "unknown",
+      "selection_allowed": false,
+      "coverage": "none"
+    },
+    {
+      "candidate_id": "14e91abd-8bb1-4879-90ec-7b53584c9bc1",
+      "eligibility": "pass",
+      "selection_allowed": true,
+      "coverage": "none"
+    }
+  ],
+  "ranked_excluded": [],
+  "decision": {
+    "items": [
+      {
+        "item_id": "f4034111-95f9-4791-b337-14e0bd0ba7ac",
+        "requirement_id": "23c3b6df-2546-47c4-b759-b053c8546682",
+        "group_key": "stroller",
+        "candidate_id": null,
+        "variant_id": null,
+        "status": "owned",
+        "selected": false,
+        "qty": 1.0,
+        "unit_code": "each",
+        "unit_qty": 1.0,
+        "timing": "now",
+        "unit_price": null,
+        "offer_observation_id": null,
+        "validation": {
+          "source": "requirement_fulfilled_by_item_id"
+        }
+      }
+    ],
+    "totals": {
+      "selected_price": 0,
+      "selected_units": 0,
+      "budget_remaining": 200000,
+      "over_budget": true,
+      "soon_price": 0,
+      "later_price": 0,
+      "cheapest_feasible_subtotal": 318000,
+      "budget_shortfall": 118000
+    },
+    "missing_requirements": [
+      {
+        "requirement_id": "79179f3c-96e2-4674-94e3-9e0060213433",
+        "slot_key": "car_seat",
+        "required_qty": 1.0,
+        "cheapest_feasible_subtotal": 300000,
+        "shortfall": null,
+        "reason": "over_budget"
+      },
+      {
+        "requirement_id": "e2bf7775-4669-40b0-b46c-59901a7de550",
+        "slot_key": "diaper",
+        "required_qty": 1.0,
+        "cheapest_feasible_subtotal": 18000,
+        "shortfall": null,
+        "reason": "over_budget"
+      }
+    ],
+    "feasible": false,
+    "alternatives": {
+      "search": "exact_branch_and_bound",
+      "nodes_visited": 1,
+      "search_seconds": 2e-06,
+      "mandatory_now_requirements": 2,
+      "bounded_requirements": []
+    }
+  }
+}

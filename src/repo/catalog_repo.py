@@ -14,6 +14,9 @@ from src.config import DATA_DIR
 from src.dto import Candidate
 
 _CSV = DATA_DIR / "parts_list.csv"
+# 데모 촬영용 가격·성능 등급·호환 속성 override (docs 개발요청_데모영상_데이터정비.md 요청 R2).
+# 없는 product_key 는 그대로 해시 기반 값을 쓴다 — 이 표는 선택적 보정일 뿐이다.
+_OVERRIDES_CSV = DATA_DIR / "demo_part_overrides.csv"
 
 # 부품군 → 리스트 패널 슬롯 이름
 TYPE_TO_SLOT = {
@@ -32,14 +35,56 @@ def _seed(key: str) -> int:
     return int(hashlib.sha256(key.encode("utf-8")).hexdigest()[:8], 16)
 
 
+@lru_cache(maxsize=1)
+def _load_overrides() -> dict[str, dict]:
+    """demo_part_overrides.csv → product_key 별 override dict. 파일이 없으면 빈 dict."""
+    if not _OVERRIDES_CSV.exists():
+        return {}
+    out: dict[str, dict] = {}
+    with _OVERRIDES_CSV.open(encoding="utf-8-sig") as f:
+        for row in csv.DictReader(f):
+            key = (row.get("product_key") or "").strip()
+            if key:
+                out[key] = row
+    return out
+
+
 def _mock_price(product_key: str, slot: str) -> int:
+    override = _load_overrides().get(product_key)
+    if override and (override.get("price") or "").strip():
+        return int(override["price"])
     base = _BASE_PRICE.get(slot, 100_000)
     jitter = (_seed(product_key) % 60) - 25          # -25% ~ +34%
     return int(base * (1 + jitter / 100) // 1000 * 1000)
 
 
 def _mock_tier(product_key: str) -> int:
+    override = _load_overrides().get(product_key)
+    if override and (override.get("perf_tier") or "").strip():
+        return int(override["perf_tier"])
     return 3 + _seed(product_key + "tier") % 7        # 3~9
+
+
+def _compat_specs(product_key: str) -> dict:
+    """override 표의 socket/mem_type/form_factor/supports_form_factors — 있는 것만.
+
+    [4] 세트 최적화가 이 값으로 소켓·메모리 타입·폼팩터 호환을 비교한다(요청 R1).
+    override 에 없는 부품은 빈 dict — "호환 정보 없음"이지 "호환 안 됨"이 아니다.
+    """
+    override = _load_overrides().get(product_key)
+    if not override:
+        return {}
+    out: dict = {}
+    if (override.get("socket") or "").strip():
+        out["socket"] = override["socket"].strip()
+    if (override.get("mem_type") or "").strip():
+        out["mem_type"] = override["mem_type"].strip()
+    if (override.get("form_factor") or "").strip():
+        out["form_factor"] = override["form_factor"].strip()
+    supports = (override.get("supports_form_factors") or "").strip()
+    if supports:
+        out["supports_form_factors"] = [x.strip() for x in supports.split(",") if x.strip()]
+    return out
 
 
 @lru_cache(maxsize=1)
@@ -71,7 +116,7 @@ def load_candidates_by_slot() -> dict[str, list[Candidate]]:
             name=row["name"],
             brand=row["brand"],
             price=_mock_price(pk, slot),
-            specs={"perf_tier": _mock_tier(pk)},   # TODO: 실제 스펙으로 교체
+            specs={"perf_tier": _mock_tier(pk), **_compat_specs(pk)},   # TODO: 실제 스펙으로 교체
         )
         out.setdefault(slot, []).append(cand)
     return out

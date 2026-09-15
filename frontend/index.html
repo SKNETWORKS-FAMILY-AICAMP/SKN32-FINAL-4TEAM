@@ -1,243 +1,47 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>목적성 쇼핑 파이프라인 — 임시 GUI</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<style>
-  :root {
-    --bg: #0f1117; --panel: #1a1d27; --panel2: #232734; --line: #2f3444;
-    --text: #e6e8ee; --dim: #99a0b3; --accent: #6ea8fe;
-    --ok: #3fb950; --bad: #f85149; --warn: #d29922;
-  }
-  * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--text);
-    font: 14px/1.6 system-ui, "Segoe UI", "Malgun Gothic", sans-serif; }
-  header { padding: 18px 24px; border-bottom: 1px solid var(--line); }
-  header h1 { margin: 0; font-size: 17px; }
-  header p { margin: 4px 0 0; color: var(--dim); font-size: 12px; }
-  main { max-width: 980px; margin: 0 auto; padding: 24px; }
-  .row { display: flex; gap: 8px; }
-  textarea { flex: 1; background: var(--panel2); color: var(--text);
-    border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px;
-    font: inherit; resize: vertical; min-height: 52px; }
-  button { background: var(--accent); color: #0b1020; border: 0; border-radius: 8px;
-    padding: 0 20px; font-weight: 700; font-size: 14px; cursor: pointer; }
-  button:disabled { opacity: .5; cursor: default; }
-  .panel { background: var(--panel); border: 1px solid var(--line);
-    border-radius: 12px; padding: 16px 18px; margin-top: 18px; }
-  .panel h2 { margin: 0 0 10px; font-size: 13px; letter-spacing: .04em;
-    text-transform: uppercase; color: var(--dim); }
-  pre.log { margin: 0; background: #0b0d13; border: 1px solid var(--line);
-    border-radius: 8px; padding: 12px; max-height: 260px; overflow: auto;
-    font: 12px/1.55 "Cascadia Mono", Consolas, monospace; color: #c6cbd9; white-space: pre-wrap; }
-  .kv { display: grid; grid-template-columns: 90px 1fr; gap: 4px 12px; }
-  .kv dt { color: var(--dim); }
-  .kv dd { margin: 0; }
-  .tag { display: inline-block; background: var(--panel2); border: 1px solid var(--line);
-    border-radius: 999px; padding: 1px 9px; margin: 2px 4px 2px 0; font-size: 12px; }
-  .item { border: 1px solid var(--line); border-radius: 10px; padding: 14px;
-    margin-top: 12px; background: var(--panel2); }
-  .item > h3 { margin: 0 0 8px; font-size: 15px; }
-  .cands { list-style: none; margin: 0 0 10px; padding: 0; }
-  .cands li { display: flex; justify-content: space-between; padding: 3px 0;
-    border-bottom: 1px dashed var(--line); font-size: 13px; }
-  .cands li:last-child { border-bottom: 0; }
-  .attempts { display: flex; flex-direction: column; gap: 6px; margin: 8px 0 12px; }
-  .attempt { display: flex; align-items: center; gap: 8px; font-size: 13px;
-    padding: 6px 10px; border-radius: 8px; background: #0b0d13; border: 1px solid var(--line); }
-  .badge { font-size: 11px; font-weight: 700; padding: 1px 8px; border-radius: 999px; }
-  .badge.ok { background: rgba(63,185,80,.15); color: var(--ok); border: 1px solid var(--ok); }
-  .badge.bad { background: rgba(248,81,73,.15); color: var(--bad); border: 1px solid var(--bad); }
-  .retry-note { color: var(--warn); font-size: 12px; margin: 2px 0 10px; }
-  .chosen { border-left: 3px solid var(--ok); padding-left: 12px; margin: 10px 0; }
-  .chosen a { color: var(--accent); }
-  .chart-wrap { max-width: 460px; }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th, td { text-align: right; padding: 7px 10px; border-bottom: 1px solid var(--line); }
-  th:first-child, td:first-child { text-align: left; }
-  tfoot td { font-weight: 700; }
-  .neg { color: var(--ok); }
-  .muted { color: var(--dim); font-size: 12px; }
-  .err { color: var(--bad); }
-</style>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" type="image/png" href="./assets/truefit-icon.png">
+<!-- TF-DEV: 배경 이미지(base64)와 로고를 assets/ 파일 참조로 교체 -->
+<!-- TF-DEV: API 주소. auto = 5500 개발 서버에서는 같은 호스트의 8000, 그 외에는 같은 도메인 -->
+<meta name="truefit-api-base" content="auto">
+<title>TrueFit — 잘 고르는 시작</title>
+<link rel="stylesheet" href="./css/base.css">
+<link rel="stylesheet" href="./css/planner.css">
+<link rel="stylesheet" href="./css/theme.css">
 </head>
 <body>
-<header>
-  <h1>목적성 쇼핑 파이프라인 — 임시 GUI</h1>
-  <p>의도분해 → 비교매칭 → 검증(+재탐색) → 설명생성 → 리포트 &nbsp;·&nbsp; 전부 MOCK 데이터 (백엔드 <code>/run</code> 호출)</p>
-</header>
+<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" aria-hidden="true" style="position:absolute;pointer-events:none"><defs><filter id="first-scene-soft-blue" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values="1 0 0 0 0  0 1 0 0 0  0.05 0.05 0.90 0 0  0 0 0 1 0"/></filter></defs></svg>
+
+<header><a class="brand" href="index.html" aria-label="TrueFit 홈"><img class="brand-logo" src="./assets/truefit-logo.png" alt="TrueFit"></a><nav class="account-nav" aria-label="회원 메뉴"><button type="button" data-auth="로그인">로그인</button><button type="button" data-auth="회원가입">회원가입</button></nav></header>
 <main>
-  <div class="row">
-    <textarea id="q">가을에 4인 가족이랑 캠핑 가려고 하는데 장비 좀 챙겨줘. 예산은 40만원 정도.</textarea>
-    <button id="go">실행</button>
-  </div>
-  <p class="muted" id="status"></p>
+<section class="hero">
 
-  <section class="panel" id="logPanel" hidden>
-    <h2>단계 로그</h2>
-    <pre class="log" id="log"></pre>
-  </section>
+<div class="content"><div class="eyebrow">LESS SEARCHING. BETTER CHOOSING.</div><h1><strong>잘 고르는 시작,</strong><span class="english"><strong>TrueFit</strong></span></h1><p class="description">Your needs, perfectly matched.<br>진짜 나에게 맞는 조합을 찾아드립니다.</p><div class="actions"><button class="primary" data-start>나의 장바구니 만들기 <span>↗</span></button></div><p class="small-note">무엇을 살지 막막할 땐, 대화부터 시작해 보세요.</p></div>
+<div class="visual"><img src="./assets/hero-1.webp" alt="블루와 퍼플 조명이 비추는 집 안의 데스크톱 컴퓨터 공간"><img class="scene-secondary" src="./assets/hero-2.webp" alt="" aria-hidden="true"></div>
 
-  <section class="panel" id="slotPanel" hidden>
-    <h2>[1/5] 의도 분해 · 슬롯</h2>
-    <div id="slot"></div>
-  </section>
 
-  <section class="panel" id="itemsPanel" hidden>
-    <h2>[2~4/5] 품목별 매칭 · 검증 · 설명</h2>
-    <div id="items"></div>
-  </section>
 
-  <section class="panel" id="reportPanel" hidden>
-    <h2>[5/5] 리포트</h2>
-    <div id="report"></div>
-  </section>
+</section>
+<div class="home-info" id="how">
+<section class="about-section about-opening"><span class="section-kicker">ABOUT TrueFit</span><div class="about-columns"><h2>검색은 줄이고,<br>내게 맞는 선택에 가까이.</h2><div><p class="about-lead">무엇을 사야 할지보다,<br>어떤 생활을 원하는지부터 시작해요.</p><p>TrueFit은 예산과 사용 목적을 바탕으로 필요한 제품을 함께 정리하는 구매 계획 서비스입니다. 컴퓨터 한 대를 구성할 때도, 아이를 위한 용품을 준비할 때도 선택의 이유와 확인할 점을 한곳에서 살펴볼 수 있어요.</p><a class="about-text-link" href="category.html">나의 계획 시작하기 ↗</a></div></div></section>
+<section class="about-section"><span class="section-kicker">TWO WAYS TO BUILD YOUR BASKET</span><h2>서로 다른 준비, 그에 맞는 기준.</h2><div class="about-category-grid"><article class="about-category"><div class="about-card-top"><span>01 / COMPUTER</span><span>↗</span></div><h3>컴퓨터</h3><p class="about-lead">부품 하나보다,<br>함께 작동하는 한 대를 봅니다.</p><p>게임·작업·학습 등 주로 하는 일과 예산을 알려주세요. 프로세서부터 케이스까지 필요한 구성을 모으고, 부품 간 호환성과 전체 조합의 확인 사항을 살펴보는 흐름입니다.</p><ul><li>용도·해상도·예산에 맞는 구성</li><li>소켓·메모리 규격과 전력 여유 검토</li><li>대체 후보 비교와 세트 가격 확인</li></ul><a class="about-text-link" href="category.html" data-category="컴퓨터">컴퓨터 구성 시작하기 →</a></article><article class="about-category baby-category"><div class="about-card-top"><span>02 / BABY CARE</span><span>↗</span></div><h3>유아용품</h3><p class="about-lead">아이의 지금과,<br>다가올 일상을 준비합니다.</p><p>아이의 월령과 필요한 품목, 생활 환경을 알려주세요. 제품마다 확인할 안전 정보와 사용 조건을 구분하고, 지금 필요한 것과 나중에 준비할 것을 나눠봅니다.</p><ul><li>월령·생활 환경에 따른 품목 정리</li><li>인증·리콜·사용 조건 확인 항목</li><li>품목별 예산과 구매 시점 배분</li></ul><a class="about-text-link" href="category.html" data-category="유아용품">유아용품 준비 시작하기 →</a></article></div></section>
+<section class="about-section"><span class="section-kicker">HOW IT WORKS</span><h2>이야기에서 시작해, 나만의 리스트로.</h2><p class="about-intro">조건을 바꾸고 후보를 비교하면서, 납득할 수 있는 장바구니를 만들어보세요.</p><div class="about-process"><article><span class="process-number">01</span><h3>계획 이야기하기</h3><p>카테고리를 고르고 예산·사용 목적·월령 등 필요한 조건을 입력해요.</p></article><article><span class="process-number">02</span><h3>추천 살펴보기</h3><p>후보별 가격과 선택 이유를 살펴보고, 원하는 제품으로 바꿔봐요.</p></article><article><span class="process-number">03</span><h3>확인하고 비교하기</h3><p>리뷰 요약과 검증 과정을 읽고, 아직 확인되지 않은 정보도 함께 체크해요.</p></article><article><span class="process-number">04</span><h3>리스트로 남기기</h3><p>구매 시점과 목표 가격을 정해 저장하고, 리포트로 다시 확인해요.</p></article></div></section>
+<section class="about-section"><span class="section-kicker">A CLEARER REASON TO CHOOSE</span><div class="about-columns"><div><h2>추천의 이유도,<br>모르는 부분도 함께.</h2><p>좋아 보이는 결과만 보여주기보다, 선택을 뒷받침할 정보가 무엇인지 구분하는 것을 목표로 합니다.</p></div><div class="about-principles"><article><span>01</span><div><h3>조건에 맞는지 먼저</h3><p>컴퓨터는 조합 전체를, 유아용품은 각 품목을 기준으로 필요한 조건을 살펴봅니다.</p></div></article><article><span>02</span><div><h3>근거를 확인할 수 있게</h3><p>문서 출처와 조회 시점을 함께 제공합니다. 정보가 없으면 검증 불가로 표시합니다.</p></div></article><article><span>03</span><div><h3>리뷰는 어떻게 클렌징하나요?</h3><p>조작이 의심되거나 중복된 리뷰를 제외하고, 클렌징 전후 평점과 평점 분포를 비교해 보여드립니다.</p></div></article></div></div></section>
+<section class="about-section about-faq" id="faq"><span class="section-kicker">BEFORE YOU START</span><h2>자주 묻는 질문</h2><details><summary>로그인해야 이용할 수 있나요?</summary><p>로그인 없이도 조건을 입력하고 추천 결과를 확인할 수 있습니다. 최종 리스트를 저장하고 리포트를 확인하려면 로그인이 필요합니다.</p></details><details><summary>추천받은 제품을 다른 제품으로 바꿀 수 있나요?</summary><p>네. 추천 결과에서 다른 후보를 확인하고 원하는 제품으로 교체할 수 있습니다. 예산이나 원하는 조건을 변경해 다시 추천받을 수도 있습니다.</p></details><details><summary>최종 리스트에 담은 제품은 어떻게 구매하나요?</summary><p>각 제품의 상품 페이지 링크를 통해 판매 페이지로 이동할 수 있습니다. 최종 가격과 제품 정보를 확인한 뒤 해당 판매처에서 구매해 주세요.</p></details></section>
+
+</div>
 </main>
 
-<script>
-const $ = (id) => document.getElementById(id);
-const won = (n) => (n ?? 0).toLocaleString("ko-KR") + "원";
-const esc = (s) => String(s ?? "").replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
-let charts = [];
 
-$("go").addEventListener("click", run);
 
-async function run() {
-  const message = $("q").value.trim();
-  if (!message) return;
-  $("go").disabled = true;
-  $("status").textContent = "파이프라인 실행 중...";
-  charts.forEach(c => c.destroy());
-  charts = [];
-  try {
-    const res = await fetch("/run", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message }),
-    });
-    if (!res.ok) throw new Error("HTTP " + res.status);
-    const data = await res.json();
-    render(data);
-    $("status").textContent = "완료.";
-  } catch (e) {
-    $("status").innerHTML = '<span class="err">에러: ' + esc(e.message) + " — 백엔드(uvicorn src.api:app)가 떠 있는지 확인하세요.</span>";
-  } finally {
-    $("go").disabled = false;
-  }
-}
-
-function render(d) {
-  // 단계 로그
-  $("log").textContent = (d.logs || []).join("\n");
-  $("logPanel").hidden = false;
-
-  // 슬롯
-  const s = d["슬롯"] || {};
-  let slotHtml = `<dl class="kv">
-    <dt>목적</dt><dd>${esc(s["목적"])}</dd>
-    <dt>인원수</dt><dd>${esc(s["인원수"] ?? "-")}</dd>
-    <dt>예산</dt><dd>${s["예산"] ? won(s["예산"]) : "-"}</dd>
-    <dt>이미 보유</dt><dd>${(s["이미_보유한_품목"] || []).map(x => `<span class="tag">${esc(x)}</span>`).join("") || "-"}</dd>
-    <dt>체크리스트</dt><dd>${(s["체크리스트"] || []).map(x => `<span class="tag">${esc(x)}</span>`).join("")}</dd>
-  </dl>`;
-  if (d["후속질문"]) {
-    slotHtml = `<p class="retry-note">슬롯 부족 → 후속 질문: "${esc(d["후속질문"])}" &nbsp;(데모 답변: "${esc(d["시뮬레이션_답변"])}")</p>` + slotHtml;
-  }
-  $("slot").innerHTML = slotHtml;
-  $("slotPanel").hidden = false;
-
-  // 품목별
-  const box = $("items");
-  box.innerHTML = "";
-  (d["품목결과"] || []).forEach((it, idx) => {
-    const el = document.createElement("div");
-    el.className = "item";
-
-    const cands = (it["후보들"] || []).map(c =>
-      `<li><span>${c["순위"]}. ${esc(c["상품명"])}</span><span>${won(c["가격"])} · ${esc(c["업체"])}</span></li>`
-    ).join("");
-
-    const attempts = (it["검증_시도"] || []).map(a => {
-      const ok = a["통과"];
-      return `<div class="attempt">
-        <span class="badge ${ok ? "ok" : "bad"}">${ok ? "통과" : "실패"}</span>
-        <span>후보 ${a["순번"]} · 신뢰도 <b>${a["신뢰도"]}</b>점</span>
-        <span class="muted">${esc(a["상품명"])}</span>
-      </div>`;
-    }).join("");
-
-    const retry = it["재탐색_횟수"] > 0
-      ? `<p class="retry-note">↻ 재탐색 ${it["재탐색_횟수"]}회 발생 — 첫 후보가 신뢰도 기준 미달로 탈락, 다음 후보로 재시도</p>`
-      : "";
-
-    let chosenHtml, chartHtml = "";
-    if (it["채택"]) {
-      const c = it["채택"];
-      chosenHtml = `<div class="chosen">
-        <div><b>채택:</b> ${esc(c["상품명"])}</div>
-        <div class="muted">${won(c["가격"])} · ${esc(c["업체"])} · 신뢰도 ${c["신뢰도"]}점 · <a href="${esc(c["링크"])}" target="_blank" rel="noopener">상품 링크</a></div>
-        <div style="margin-top:6px">${esc(it["종합_요약"])}</div>
-      </div>`;
-      chartHtml = `<div class="chart-wrap"><canvas id="chart-${idx}" height="150"></canvas></div>`;
-    } else {
-      chosenHtml = `<div class="retry-note">모든 후보 신뢰도 미달 → 리포트에서 제외</div>`;
-    }
-
-    el.innerHTML = `<h3>품목 ${idx + 1}. ${esc(it["품목"])}</h3>
-      <div class="muted" style="margin-bottom:4px">비교매칭 후보 (상위 ${(it["후보들"] || []).length}개)</div>
-      <ul class="cands">${cands}</ul>
-      <div class="muted" style="margin-bottom:4px">검증 · 재탐색 루프</div>
-      <div class="attempts">${attempts}</div>
-      ${retry}
-      ${chosenHtml}
-      ${chartHtml}`;
-    box.appendChild(el);
-
-    if (it["채택"] && it["기여도"]) {
-      const k = it["기여도"];
-      const labels = Object.keys(k);
-      const ctx = document.getElementById(`chart-${idx}`);
-      charts.push(new Chart(ctx, {
-        type: "bar",
-        data: {
-          labels,
-          datasets: [{
-            label: "속성 기여도 (%)",
-            data: labels.map(l => k[l]),
-            backgroundColor: "#6ea8fe",
-          }],
-        },
-        options: {
-          indexAxis: "y",
-          plugins: { legend: { display: false }, title: { display: true, text: "속성 기여도 (%)", color: "#99a0b3" } },
-          scales: {
-            x: { ticks: { color: "#99a0b3" }, grid: { color: "#2f3444" } },
-            y: { ticks: { color: "#e6e8ee" }, grid: { display: false } },
-          },
-        },
-      }));
-    }
-  });
-  $("itemsPanel").hidden = false;
-
-  // 리포트
-  const r = d["리포트"] || {};
-  const rows = (r.items || []).map(x =>
-    `<tr><td>${esc(x["품목"])}</td><td>${esc(x["업체"])}</td><td>${won(x["가격"])}</td>
-     <td>${x["신뢰도"]}점</td><td class="${x["절감액"] < 0 ? "neg" : ""}">${won(x["절감액"])}</td></tr>`
-  ).join("");
-  $("report").innerHTML = `<table>
-    <thead><tr><th>품목</th><th>업체</th><th>가격</th><th>신뢰도</th><th>절감액</th></tr></thead>
-    <tbody>${rows}</tbody>
-    <tfoot>
-      <tr><td colspan="2">총액</td><td>${won(r["총액"])}</td><td colspan="2"></td></tr>
-      <tr><td colspan="2">평균 신뢰도</td><td colspan="3" style="text-align:left">${r["평균_신뢰도"]}점</td></tr>
-    </tfoot>
-  </table>`;
-  $("reportPanel").hidden = false;
-}
-</script>
-</body>
-</html>
+<footer class="site-footer"><div class="footer-menu-bar"><div class="footer-container footer-nav"><nav aria-label="하단 메뉴"><a href="index.html#how">서비스 소개</a><a href="category.html">서비스 시작하기</a><button type="button" data-footer-info="이용약관">이용약관</button><button type="button" class="footer-bold" data-footer-info="개인정보 처리방침">개인정보 처리방침</button><a href="index.html#faq">자주 묻는 질문</a><button type="button" data-footer-info="제휴 문의">제휴 문의</button><button type="button" data-footer-info="고객센터">고객센터</button></nav><label class="footer-select-label"><span class="sr-footer">서비스 바로가기</span><select aria-label="서비스 바로가기" id="footer-service"><option value="">서비스 바로가기</option><option value="pc">컴퓨터</option><option value="baby">유아용품</option><option value="report">내 리포트</option></select></label></div></div><div class="footer-container footer-main"><div class="footer-brand"><img class="footer-brand-logo" src="./assets/truefit-logo.png" alt="TrueFit"><p>Your needs, perfectly matched.<br>진짜 나에게 맞는 조합을 찾아드립니다.</p></div><section class="footer-company"><h2>TrueFit 서비스 정보</h2><p>컴퓨터 구성과 유아용품 준비를 돕는 구매 계획 서비스</p><p>운영사 · 대표자 · 사업자등록번호 : 미등록<br>사업장 주소 · 통신판매업 신고번호 : 미등록</p><span class="footer-caption">정식 운영 정보는 서비스 출시 시 안내됩니다.</span></section><section class="footer-support"><h2>고객센터</h2><p>문의 채널 · 운영시간 : 준비 중</p><a href="index.html#faq">자주 묻는 질문 보기 →</a><p class="footer-caption">현재는 화면 체험용 목업입니다.</p></section></div><div class="footer-container footer-bottom"><p>현재 제공되는 상품·가격·리뷰는 가상의 예시입니다. 실제 상품 판매, 결제, 인증 조회 및 이메일 발송은 이루어지지 않습니다.</p><p>입력한 리스트는 로그인 계정에는 서버에, 비로그인 상태에서는 이 브라우저에 임시로 저장됩니다.</p><div class="footer-bottom-row"><span>© 2026 TrueFit.</span><span>PLAN YOUR PURCHASE. BUILD YOUR BASKET.</span></div></div></footer>
+<dialog id="footer-info-dialog"><button type="button" class="close" id="footer-info-close" aria-label="닫기">×</button><h2 id="footer-info-title"></h2><p id="footer-info-body"></p></dialog>
+<script src="./js/locale.js" defer></script>
+<script src="./js/api.js" defer></script>
+<script src="./js/core.js" defer></script>
+<script src="./js/footer.js" defer></script>
+<script src="./js/pages/landing.js?v=20260914-15" defer></script>
+<script src="./js/i18n.js" defer></script>
+</body></html>

@@ -1,0 +1,196 @@
+{
+  "missing_certificate_fact": {
+    "candidate_id": "cert-missing",
+    "eligibility": "pass",
+    "verification": "unknown",
+    "coverage": "none",
+    "selection_allowed": true,
+    "issues": [
+      {
+        "schema_version": 1,
+        "rule_key": "baby_rule_inventory_v1",
+        "rule_version": "v1",
+        "target": {
+          "candidate_id": "cert-missing",
+          "requirement_id": "r",
+          "item_id": null
+        },
+        "status": "pass",
+        "severity": "info",
+        "measured": {},
+        "threshold": {},
+        "reason": "no_manual_safety_condition_documented",
+        "penalty": null,
+        "evidence_ids": []
+      }
+    ],
+    "explanation_evidence": [],
+    "error_code": null
+  },
+  "selected_without_candidate_or_check": {
+    "items": [
+      {
+        "item_id": "i",
+        "requirement_id": "r",
+        "group_key": null,
+        "candidate_id": null,
+        "variant_id": null,
+        "status": "to_purchase",
+        "selected": true,
+        "qty": 1,
+        "unit_code": "each",
+        "unit_qty": 1,
+        "timing": "now",
+        "unit_price": 10,
+        "offer_observation_id": null,
+        "validation": {}
+      }
+    ],
+    "totals": {
+      "selected_price": 10,
+      "selected_units": 1,
+      "budget_remaining": 90,
+      "over_budget": false,
+      "soon_price": 0,
+      "later_price": 0
+    },
+    "missing_requirements": [],
+    "feasible": true,
+    "alternatives": {}
+  },
+  "recalculate_wrong_unit": {
+    "items": [
+      {
+        "item_id": "i2",
+        "requirement_id": "r",
+        "group_key": null,
+        "candidate_id": null,
+        "variant_id": null,
+        "status": "owned",
+        "selected": false,
+        "qty": 1.0,
+        "unit_code": "kg",
+        "unit_qty": 1,
+        "timing": "now",
+        "unit_price": null,
+        "offer_observation_id": null,
+        "validation": {}
+      }
+    ],
+    "totals": {
+      "selected_price": 0,
+      "selected_units": 0,
+      "budget_remaining": 100,
+      "over_budget": false,
+      "soon_price": 0,
+      "later_price": 0
+    },
+    "missing_requirements": [],
+    "feasible": true,
+    "alternatives": {}
+  },
+  "partial_owned_after_persistence": {
+    "requirements": [
+      {
+        "id": "807c8d82-d78b-4d7a-b580-acee95c0fa45",
+        "revision_id": "62e2ff72-805b-4dbd-858e-7428dd1d106f",
+        "slot_key": "bottle",
+        "group_key": "bottle",
+        "required_qty": 1.0,
+        "unit_code": "each",
+        "mandatory": true,
+        "timing": "now",
+        "constraints": {
+          "rule_key": "feeding_bottle_v1",
+          "source_kind": "synthetic_demo",
+          "review_status": "unreviewed",
+          "rule_set_version": "baby-rules-v1",
+          "rule_set_hash": "35d4d3ab01d9d6b6d0ebf38e22f214852a921cf367dcf40ddba0e199589498fe",
+          "rule_set_pinned": true,
+          "age_months": 8,
+          "age_exact": true,
+          "owned": true
+        },
+        "fulfilled_by_item_id": "e5fff49a-7fc7-4848-9f51-23e5670156dc"
+      },
+      {
+        "id": "807c8d82-d78b-4d7a-b580-acee95c0fa45",
+        "revision_id": "62e2ff72-805b-4dbd-858e-7428dd1d106f",
+        "slot_key": "bottle",
+        "group_key": "bottle",
+        "required_qty": 1.0,
+        "unit_code": "each",
+        "mandatory": true,
+        "timing": "now",
+        "constraints": {
+          "rule_key": "feeding_bottle_v1",
+          "source_kind": "synthetic_demo",
+          "review_status": "unreviewed",
+          "rule_set_version": "baby-rules-v1",
+          "rule_set_hash": "35d4d3ab01d9d6b6d0ebf38e22f214852a921cf367dcf40ddba0e199589498fe",
+          "rule_set_pinned": true,
+          "age_months": 8,
+          "age_exact": true
+        },
+        "fulfilled_by_item_id": null
+      }
+    ],
+    "decision": {
+      "items": [
+        {
+          "item_id": "ae3d452d-51d8-4df7-ba91-5809f79f6ac0",
+          "requirement_id": "807c8d82-d78b-4d7a-b580-acee95c0fa45",
+          "group_key": "bottle",
+          "candidate_id": null,
+          "variant_id": null,
+          "status": "owned",
+          "selected": false,
+          "qty": 1.0,
+          "unit_code": "each",
+          "unit_qty": 1.0,
+          "timing": "now",
+          "unit_price": null,
+          "offer_observation_id": null,
+          "validation": {
+            "source": "requirement_fulfilled_by_item_id"
+          }
+        },
+        {
+          "item_id": "95485a39-dba3-41b7-8fa6-d358295d2880",
+          "requirement_id": "807c8d82-d78b-4d7a-b580-acee95c0fa45",
+          "group_key": "bottle",
+          "candidate_id": null,
+          "variant_id": null,
+          "status": "owned",
+          "selected": false,
+          "qty": 1.0,
+          "unit_code": "each",
+          "unit_qty": 1.0,
+          "timing": "now",
+          "unit_price": null,
+          "offer_observation_id": null,
+          "validation": {
+            "source": "requirement_fulfilled_by_item_id"
+          }
+        }
+      ],
+      "totals": {
+        "selected_price": 0,
+        "selected_units": 0,
+        "budget_remaining": 100,
+        "over_budget": false,
+        "soon_price": 0,
+        "later_price": 0
+      },
+      "missing_requirements": [],
+      "feasible": true,
+      "alternatives": {
+        "search": "exact_branch_and_bound",
+        "nodes_visited": 0,
+        "search_seconds": 2e-06,
+        "mandatory_now_requirements": 0,
+        "bounded_requirements": []
+      }
+    }
+  }
+}

@@ -1,8 +1,32 @@
-# 테이블 명세서 v4
+# 테이블 명세서 v6
 
-개정일: 2026년 9월 10일 · 상태: 구현 전 설계 명세 · 대상: PostgreSQL + pgvector + 객체 저장소
+개정일: 2026년 9월 11일 · 상태: 구현 전 설계 명세 · 대상: PostgreSQL + pgvector + 객체 저장소
 
-이 명세서를 데이터베이스 설계 기준으로 한다. v4는 v3의 58개 테이블 중 sample_lineage를 단일 부모 참조로 대체하고 engine.feedback_event를 추가한다. 총 58개이며 리뷰 판정과 초기 구현 범위를 이번 합의에 맞춰 조정했다. 기존 설계 근거·2D/3D mockup·schema-v2.json은 이전 버전의 참고 자료이며, 이 문서와 차이가 있으면 이 문서를 우선한다.
+> **P0 v4 갱신 (2026-09-13)**: 이 문서는 축소 이전 58개 테이블 설계 입력이며, 실제 적용된 목표
+> 스키마가 아니다. `db/migrations/0010`~`0012`가 이 문서의 58개 테이블을 35개(스키마 12→8:
+> `notification`·`dataset`·`shared` 삭제, `config`/`identity`/`catalog`/`assets`/`community`/
+> `evidence`/`engine`/`planning` 병합, `rag` 6개 테이블은 유지)로 축소했고, `0013`이 축소된
+> JSON 컬럼·리비전 스코프·스냅샷 불변을 DB 제약으로 강제한다. 실제 물리 컬럼 매핑과
+> 실행 증거는 [`docs/agent-tasks/baby/schema-v1.md`](../agent-tasks/baby/schema-v1.md)를 우선
+> 참조한다. 아래 본문은 축소 전 설계 근거로만 유효하다.
+>
+> `0013`이 추가한 것 중 이 문서에 없는 항목:
+> - `engine.recommendation_candidate.revision_id` (`NOT NULL`) — run 에서 트리거로 파생되며,
+>   `recommendation_run(id, revision_id)` · `planning.requirement(id, revision_id)` 두 복합 FK 로
+>   다른 리비전의 요구를 가리키지 못하게 한다. 애플리케이션이 직접 설정/변경할 수 없다.
+> - `evidence_refs.refs[]` 는 `evidence_id`·`claim_key`·`material_id`·`material_version`·
+>   `file_sha256`·`locator`(object) 를 모두 요구하고 `(evidence_id, claim_key)` 중복을 금지한다
+>   (`recommendation_candidate_evidence_refs_items_check`). `validation_result.issues[]` 도 같은
+>   항목 규칙 + `schema_version=1`/`rule_key`/`rule_version`/`status`/`target` 을 요구한다.
+> - `evidence_id` 는 실재해야 하고 `kind='material'` 근거는 이 candidate 의 run 에 속한
+>   `rag.retrieval_run` 에서 나와야 한다 (`candidate_evidence_scope` 트리거).
+> - `planning.plan_revision.domain_snapshot` / `engine.recommendation_run.domain_snapshot` 은
+>   비어 있을 수 없고(`app.domain_snapshot_v1_valid`) 생성 이후 바뀌지 않는다
+>   (`freeze_domain_snapshot`; 리비전은 draft + run 없음일 때의 카테고리 재바인딩만 허용).
+> - `config.domain` 은 `status='active'` 이면 실제 정의와 0 이 아닌 `content_hash` 를 가져야 한다
+>   (`domain_published_definition_check`). 두 카테고리 도메인은 모두 `active` 로 seed 된다.
+
+이 명세서를 데이터베이스 설계 기준으로 한다. v6는 v5의 58개 테이블을 유지하면서 변경된 프론트 요구에 따라 이메일 인증 예정 상태, 계정 수정 시각과 UI 설정을 복원한다. 기존 설계 근거·2D/3D mockup·schema-v2.json은 이전 버전의 참고 자료이며, 이 문서와 차이가 있으면 이 문서를 우선한다.
 
 ## 1. 개발 범위와 변경 내용
 
@@ -15,6 +39,7 @@
 | 리뷰 원문 보관 정책 | 외부 수집 리뷰는 원문을 저장하지 않는다. 사용자가 서비스에 직접 작성한 리뷰는 본문을 저장하고 편집 버전을 관리한다. |
 | 리뷰 데이터셋 증강 | 실제 리뷰에서 만든 표본과 합성 표본을 구분하고, 생성 실행·원천 표본·학습 분할을 추적한다. 합성 본문은 데이터셋 전용으로 저장한다. |
 | 정답 라벨 | 표본별 복수 과제의 정답값, 라벨 정의 버전, 부여 방식, 검수 상태와 수정 이력을 저장한다. |
+| 프론트 API 계약 | 비밀번호 인증·약관 동의·소프트 탈퇴, 리스트 소프트 삭제, 확정 목표금액·메모, 추천과 분리된 비동기 설명 상태를 기존 테이블에 저장한다. 화면 단계·예산 비율·합계는 파생값으로 저장하지 않는다. |
 
 자료 파일과 사용자 작성 리뷰는 최신 요구로 추가된 데이터다. ‘외부 리뷰 원문 미보관’ 정책을 상품 설명서나 내부 작성 리뷰까지 확대 적용하지 않는다. 상품 자료는 수집·보관·검색·표시 권한이 확인된 자료를 처리한다.
 
@@ -235,14 +260,13 @@ erDiagram
 | `definition` | `jsonb` | N | — | — | 질문·슬롯·validator 참조·평가 축·표시 정의 |
 | `attribute_schema` | `jsonb` | N | — | — | 속성 자료형·단위·범위 정의 |
 | `content_hash` | `text` | N | — | — | 정규화한 정의의 SHA-256 |
-| `published_at` | `timestamptz` | Y | — | — | 미게시 시 NULL |
 | `created_at` | `timestamptz` | N | now() | — | 최초 생성 시각 |
 
 **제약·업무 규칙**
 
 - UNIQUE(domain_id,version_no)
 - CHECK(version_no>0)
-- 게시 후 내용 불변. 현재 PC 슬롯은 CPU/GPU/RAM/메인보드/저장장치/파워/케이스/쿨러. recipe·인분·재료 계산 정의는 생성하지 않는다.
+- DB에는 검증을 마친 게시 버전만 등록하고 정의를 덮어쓰지 않는다. 변경은 새 version_no로 등록한다. 게시 전 초안은 버전 관리 저장소에서 관리한다. 현재 PC 슬롯은 CPU/GPU/RAM/메인보드/저장장치/파워/케이스/쿨러이며 recipe·인분·재료 계산 정의는 생성하지 않는다.
 
 **인덱스 제안**
 
@@ -262,16 +286,29 @@ erDiagram
 | `email_normalized` | `text` | N | — | — | 정규화 이메일 |
 | `auth_subject` | `text` | N | — | — | 인증 서비스의 고유 사용자 키 |
 | `display_name` | `text` | N | — | — | 표시 이름 |
-| `email_verified_at` | `timestamptz` | Y | — | — | 이메일 확인 시각 |
 | `status` | `text` | N | 'active' | — | active/suspended/deleted |
+| `email_verified_at` | `timestamptz` | Y | — | — | 현재 이메일의 소유 확인 시각; 미인증이면 NULL |
+| `password_hash` | `text` | Y | — | — | argon2id 인코딩 문자열; 평문 금지, 탈퇴 시 NULL |
+| `password_updated_at` | `timestamptz` | Y | — | — | 비밀번호 설정·변경 시각과 이전 토큰 무효화 기준 |
+| `failed_login_count` | `integer` | N | 0 | — | 연속 로그인 실패 횟수 |
+| `locked_until` | `timestamptz` | Y | — | — | 일시 잠금 해제 시각 |
+| `last_login_at` | `timestamptz` | Y | — | — | 마지막 로그인 성공 시각 |
+| `terms_version` | `text` | Y | — | — | 동의한 이용약관 버전 |
+| `terms_agreed_at` | `timestamptz` | Y | — | — | 이용약관 동의 시각 |
+| `privacy_agreed_at` | `timestamptz` | Y | — | — | 개인정보 처리방침 동의 시각 |
+| `marketing_agreed_at` | `timestamptz` | Y | — | — | 현재 마케팅 수신 동의 시각; 미동의·철회 시 NULL |
+| `deleted_at` | `timestamptz` | Y | — | — | 소프트 탈퇴 시각 |
 | `created_at` | `timestamptz` | N | now() | — | 최초 생성 시각 |
-| `updated_at` | `timestamptz` | N | now() | — | 변경 트리거가 갱신하는 시각 |
+| `updated_at` | `timestamptz` | N | now() | — | 프로필·인증·보안 상태의 마지막 변경 시각 |
 
 **제약·업무 규칙**
 
 - UNIQUE(email_normalized)
 - UNIQUE(auth_subject)
-- 탈퇴 시 참조를 유지하는 익명 계정 처리와 개인정보 제거를 별도 정책으로 실행. 비밀번호 평문을 저장하지 않는다.
+- CHECK(failed_login_count>=0), password_hash가 있으면 password_updated_at이 필수이고 terms_version/terms_agreed_at은 함께 NULL이거나 함께 값이 있다. 탈퇴 시 비밀번호 해시는 지워도 이전 토큰 차단 기준인 password_updated_at은 유지한다.
+- status='deleted'와 deleted_at 존재 여부는 일치해야 한다. 가입 시 비밀번호·필수 동의는 API 트랜잭션에서 검사하며 탈퇴 시 이메일·표시 이름을 익명화하고 비밀번호·선택 동의를 제거한다.
+- 해커톤 가입은 email_verified_at=NULL을 허용한다. 이메일 인증 완료 시 기록하고 이메일 변경 시 다시 NULL로 만든다. 인증 조회는 password_hash를 제외한 명시적 컬럼만 선택하고 SELECT *를 금지한다.
+- updated_at은 행의 일반 변경 시각이며 password_updated_at·last_login_at·동의·탈퇴 시각을 대신하지 않는다.
 
 **인덱스 제안**
 
@@ -281,21 +318,21 @@ erDiagram
 
 ### 04. `identity.user_preference` — 사용자 설정
 
-패널과 알림 설정을 사용자별로 보존한다.
+알림 설정을 사용자별로 보존한다.
 
 **PK:** `user_id`. **공통 FK 삭제 정책:** RESTRICT; 물리 삭제는 별도 정리 절차.
 
 | 컬럼 | PostgreSQL 타입 | NULL 허용 | 기본값 | FK 참조 | 설명 |
 |---|---|:---:|---|---|---|
 | `user_id` | `uuid` | N | — | identity.app_user.id | PK 겸 사용자 FK |
-| `ui_settings` | `jsonb` | N | '{}'::jsonb | — | 패널 폭·접힘 상태 |
+| `ui_settings` | `jsonb` | N | '{}'::jsonb | — | 패널 폭·접힘 등 사용자별 화면 설정 |
 | `notification_settings` | `jsonb` | N | '{}'::jsonb | — | 알림 수신 설정 |
 | `created_at` | `timestamptz` | N | now() | — | 최초 생성 시각 |
 | `updated_at` | `timestamptz` | N | now() | — | 변경 트리거가 갱신하는 시각 |
 
 **제약·업무 규칙**
 
-- JSON 스키마 검증. 인증·권한 판단값을 UI 설정에 저장하지 않는다.
+- 두 JSON의 스키마를 각각 검증한다. ui_settings는 표시 편의만 저장하고 인증·권한 판단값을 넣지 않는다.
 
 **인덱스 제안**
 
@@ -316,7 +353,6 @@ erDiagram
 | `guest_session_hash` | `text` | Y | — | — | 비로그인 접근 토큰의 해시 |
 | `expires_at` | `timestamptz` | Y | — | — | 임시 대화 만료 |
 | `created_at` | `timestamptz` | N | now() | — | 최초 생성 시각 |
-| `updated_at` | `timestamptz` | N | now() | — | 변경 트리거가 갱신하는 시각 |
 
 **제약·업무 규칙**
 
@@ -326,7 +362,7 @@ erDiagram
 **인덱스 제안**
 
 - PK/UNIQUE 인덱스 및 각 FK 선두 인덱스를 기본으로 한다. 중복 인덱스는 합친다.
-- (user_id,updated_at DESC)
+- (user_id,created_at DESC)
 
 <a id="table-06"></a>
 
@@ -396,6 +432,8 @@ erDiagram
 | `owner_user_id` | `uuid` | Y | — | identity.app_user.id | 확정 전에는 비로그인 가능 |
 | `name` | `text` | N | — | — | 현재 이름 |
 | `current_revision_id` | `uuid` | Y | — | planning.plan_revision.id | 현재 표시 버전 |
+| `status` | `text` | N | 'active' | — | active/deleted |
+| `deleted_at` | `timestamptz` | Y | — | — | 목록에서 숨긴 소프트 삭제 시각 |
 | `created_at` | `timestamptz` | N | now() | — | 최초 생성 시각 |
 | `updated_at` | `timestamptz` | N | now() | — | 변경 트리거가 갱신하는 시각 |
 
@@ -403,6 +441,7 @@ erDiagram
 
 - UNIQUE(conversation_id)
 - current_revision은 같은 plan 소속. 계정 귀속 시 conversation.user_id와 owner_user_id를 함께 맞춘다.
+- status='deleted'와 deleted_at 존재 여부는 일치한다. 참조 이력을 보존하므로 리스트 삭제 API는 물리 삭제하지 않으며 삭제된 계획은 일반 조회·추천·알림 대상에서 제외한다.
 
 **인덱스 제안**
 
@@ -428,6 +467,8 @@ erDiagram
 | `name_snapshot` | `text` | N | — | — | 해당 버전의 이름 |
 | `confirmed_at` | `timestamptz` | Y | — | — | 확정 시각 |
 | `planned_purchase_at` | `timestamptz` | Y | — | — | 구매 예정 시각 |
+| `target_amount` | `numeric(18,2)` | Y | — | — | 확정 당시 사용자가 정한 목표금액 |
+| `memo` | `text` | N | '' | — | 확정 메모, 최대 1000자 |
 | `confirmed_total` | `numeric(18,2)` | Y | — | — | 확정 금액 |
 | `currency` | `char(3)` | N | 'KRW' | — | 통화 |
 | `pricing_policy` | `jsonb` | N | '{}'::jsonb | — | 배송비·할인·유효 시각 기준 |
@@ -440,7 +481,7 @@ erDiagram
 - UNIQUE(id,plan_id)
 - confirmed이면 소유자·confirmed_at·confirmed_total 필수이며 하위 조건·구성 변경 금지. 수정하기는 새 초안을 생성한다.
 - CHECK(revision_no>0 AND lock_version>=0)
-- 금액은 0 이상.
+- confirmed_total과 target_amount는 0 이상이고 memo는 1000자 이하이다. 목표금액은 확정 스냅샷이며 notification.price_watch.target_amount는 실제 추적 설정이므로 역할이 다르다.
 
 **인덱스 제안**
 
@@ -1466,6 +1507,8 @@ PC 전체 리뷰를 작성할 때 장착된 부품을 고정한다.
 | `summary` | `text` | N | — | — | 대표 요약 |
 | `normalized_rating` | `numeric(3,2)` | Y | — | — | 공통 5점 척도로 변환한 값 |
 | `collected_at` | `timestamptz` | N | — | — | 수집·처리 시각 |
+| `author_ref` | `text` | Y | — | — | 외부 작성자 식별자의 **소스별 솔트 해시**. 원식별자 미저장. 관계·행동 축(공유 리뷰어·신규성·간격)용 (0010) |
+| `review_posted_at` | `timestamptz` | Y | — | — | 리뷰가 원 소스에 게시된 시각. `collected_at`(수집 시각)과 다르다. 7일 몰림·간격 계산용 (0010) |
 | `processing_version` | `text` | N | — | — | 요약·정제 버전 |
 | `cleaning_status` | `text` | N | — | — | retained/excluded/pending |
 | `exclusion_reason` | `text` | Y | — | — | 제외 사유 |
@@ -1479,11 +1522,15 @@ PC 전체 리뷰를 작성할 때 장착된 부품을 고정한다.
 - 외부 원문 본문 컬럼 없음. 내부 리뷰 대상과 subject 일치. active 내부 요약은 현재 공개·승인된 본문에만 허용. normalized_rating은 NULL 또는 0~5.
 - origin은 수집 경로 구분이다. 합성 여부를 origin에 추가하지 않는다. 합성 리뷰는 dataset.review_sample에만 저장하고, 실제 리뷰의 자동 요약은 기존 origin을 유지한다.
 - 부분 UNIQUE(source_id,external_review_key,processing_version) 및 UNIQUE(review_revision_id,processing_version).
+- `author_ref`·`review_posted_at`은 소스가 제공하지 않으면 NULL로 둔다. 기본값이나 `collected_at`으로 채우지 않는다 — 채우면 한 번에 수집한 리뷰가 전부 "같은 날 몰림"으로 보인다. 둘 중 하나라도 NULL이면 그 행은 관계·행동 축 계산에서 "정의되지 않음"이다. `review_posted_at`은 `dataset.review_sample.review_posted_at`과 같은 이름·같은 의미다(원 시간대·정밀도 기록 규칙도 같다 — 날짜만 있으면 일 단위 몰림만 보고 시간대 집중 분석은 하지 않는다).
+- `origin='first_party'` 행은 `author_ref`를 `review_revision_id → community.review.author_user_id`의 솔트 해시(소스 = first_party)로, `review_posted_at`을 `community.review_revision.published_at`으로 채운다. 관계·행동 축이 origin을 가르지 않고 한 컬럼으로 잇기 위해서다.
+- 관계·행동 축은 **상품 단위 관측 사실**을 낸다. 그 값으로 이 테이블의 `cleaning_status`를 `excluded`로 바꾸지 않는다 — 상품이 의심스럽다는 이유로 개별 리뷰를 제외하지 않는다.
 
 **인덱스 제안**
 
 - PK/UNIQUE 인덱스 및 각 FK 선두 인덱스를 기본으로 한다. 중복 인덱스는 합친다.
 - (subject_id,status,cleaning_status)
+- 부분 (author_ref) WHERE author_ref IS NOT NULL · 부분 (subject_id,review_posted_at) WHERE review_posted_at IS NOT NULL (0010)
 
 <a id="table-43"></a>
 
@@ -1568,13 +1615,17 @@ RAG 검색과 후보 검사에 공통 실행 문맥을 제공한다.
 | `draft_lock_version` | `integer` | N | — | — | 초안 수정 번호 |
 | `engine_versions` | `jsonb` | N | — | — | 추천·생성·프롬프트·규칙 버전 |
 | `status` | `text` | N | 'queued' | — | queued/running/completed/failed/stale |
+| `explanation_status` | `text` | N | 'pending' | — | pending/ready/failed; 실행 상태와 독립인 설명 생성 상태 |
+| `explanation_headline` | `text` | Y | — | — | 결과 설명 제목 |
+| `explanation_text` | `text` | Y | — | — | 결과 설명 본문 |
+| `reasoning_log` | `jsonb` | N | [] | — | 화면에 공개할 단계별 처리 요약 배열 |
 | `completed_at` | `timestamptz` | Y | — | — | 종료 시각 |
 | `created_at` | `timestamptz` | N | now() | — | 최초 생성 시각 |
 | `updated_at` | `timestamptz` | N | now() | — | 변경 트리거가 갱신하는 시각 |
 
 **제약·업무 규칙**
 
-- domain_version은 계획과 일치. 결과 적용 시 현재 lock_version을 다시 확인한다.
+- domain_version은 계획과 일치. 결과 적용 시 현재 lock_version을 다시 확인한다. 상품·가격 결과가 완료되어도 설명 생성은 pending일 수 있다. explanation_status=ready일 때만 explanation_text가 있으며 reasoning_log는 배열이다.
 
 **인덱스 제안**
 
@@ -1600,12 +1651,13 @@ RAG 검색과 후보 검사에 공통 실행 문맥을 제공한다.
 | `score` | `numeric(8,4)` | Y | — | — | 정의된 계산 점수 |
 | `score_method_version` | `text` | Y | — | — | 계산식 버전 |
 | `reason` | `text` | Y | — | — | 사용자에게 보여줄 추천 이유 |
+| `reason_status` | `text` | N | 'pending' | — | pending/ready/failed; 후보 판정과 독립인 이유 문장 생성 상태 |
 | `created_at` | `timestamptz` | N | now() | — | 최초 생성 시각 |
 | `updated_at` | `timestamptz` | N | now() | — | 변경 트리거가 갱신하는 시각 |
 
 **제약·업무 규칙**
 
-- requirement는 실행과 같은 계획 버전. 가격의 offer.variant와 variant 일치. 점수 사용 시 계산식 버전 필수.
+- requirement는 실행과 같은 계획 버전. 가격의 offer.variant와 variant 일치. 점수 사용 시 계산식 버전 필수. reason_status=ready일 때만 reason이 있으며, 문장 생성 실패가 후보 판정 결과를 실패로 바꾸지 않는다.
 
 **인덱스 제안**
 
@@ -2034,6 +2086,7 @@ RAG 자료 인용을 후보의 설명에도 명시적으로 연결한다.
 | pc_build_component.component_snapshot | brand, model, variant_key, product_type, hardware_revision | 게시 시 variant에서 복사. 개인 시리얼 번호는 요구하지 않음 |
 | pc_build_version.environment | BIOS·OS·팬 구성·측정 온도 등 사용자가 확인한 문맥 | 모르는 값은 NULL/미확인. 데이터가 없는 실측값을 추정해 채우지 않음 |
 | review_revision.axis_scores | 도메인의 component 또는 build 평가 축과 1~5 점수 | 대상 수준별 축 검증. 전체 PC 소음 점수를 CPU 소음 평점으로 전파 금지 |
+| review_revision.usage_context.telemetry | 작성 폼 계측: paste_count, paste_chars, typing_ms, edit_count, compose_ms — 전부 0 이상 정수. 선택 키이며 없으면 만들지 않는다 | 정수 외 값·모르는 키 거부(본문·키 입력 내용 저장 금지). 양성 신호로만 쓴다 — 붙여넣기 없음은 무죄 증거가 아니고, 키가 없는 것은 "미계측" 이지 0 이 아니다. 소급 수집 불가라 폼이 생기는 시점에 넣는다 |
 | review_aggregate.ratings | 정제 전후 평점, 분포, source_counts, 정규화 방법 | 같은 분석 집합·척도 기준. 통계와 aggregate_member 수를 맞춤 |
 | price_watch_evaluation.breakdown | purchase_line_id, offer_observation_id, pack_count, amount, shipping, discount | 실재 관측·대상·시각·통화 검증. 전체 배송비 중복 합산 방지 |
 | generation_run.generation_config | template_text 또는 템플릿 참조·해시, parameters, random_seed(미지원 시 null), requested_labels(선택) | 원문·비밀정보 제외; requested_labels는 생성 의도이며 승인 정답이 아님 |
@@ -2193,8 +2246,10 @@ FK는 참조 무결성을 보장하지만 조회에 필요한 인덱스를 자�
 | 버전 | 일자 | 변경 | 영향 |
 |---|---|---|---|
 | v2 | 2026-09-09 | 요리 제외·상품 자료 RAG·부품 및 전체 PC 리뷰 | 기존 53개 테이블 |
-| v4 | 2026-09-10 | 세 가지 근거 라벨·실구매 표시 분리, 단일 부모 증강, 학습 표본 검수/평가 전수 검수, 외부 데이터 수입, 최소 행동 기록, 초기 범위 제한 | dataset 4개 + engine 7개, 총 58개 |
 | v3 | 2026-09-10 | 이 명세서를 설계 기준으로 지정. 합성 표시·생성 계보·정답 라벨 정의 및 검수·분할/철회 규칙 추가 | dataset 5개 추가, 총 58개. 기존 mockup·schema-v2.json은 이전 버전 참고 자료 |
+| v4 | 2026-09-10 | 세 가지 근거 라벨·실구매 표시 분리, 단일 부모 증강, 학습 표본 검수/평가 전수 검수, 외부 데이터 수입, 최소 행동 기록, 초기 범위 제한 | dataset 4개 + engine 7개, 총 58개 |
+| v5 | 2026-09-11 | 프론트 API 계약의 로컬 비밀번호 인증, 리스트 삭제·확정 메타데이터, 비동기 설명 상태 반영 | 새 테이블 없이 기존 58개 테이블 확장 |
+| v6 | 2026-09-11 | 변경된 프론트 요구에 따라 이메일 인증 예정 상태, 계정 updated_at, UI 설정 복원 | 0009 보정 마이그레이션, 테이블 수 불변 |
 
 ## 12. 수용 기준
 
@@ -2246,3 +2301,7 @@ FK는 참조 무결성을 보장하지만 조회에 필요한 인덱스를 자�
 | fact 교체 뒤 표시 attributes가 오래됨 | 표시 캐시 갱신/무효화, 검증은 유효 fact 기준, 과거 결과 보존 |
 
 이 기준은 구현 시 검증해야 할 요구이며, 현재 실제 DB·RAG 서비스에 대해 통과했다고 보고하는 결과는 아니다.
+
+## P0 reduced schema v1 transition (2026-09-12)
+
+The physical transition is `db/migrations/0010_schema_reduction_v1.sql`. It stages the v1 mappings documented in `docs/agent-tasks/baby/schema-v1.md`, retains pgvector RAG, and rejects ambiguous category/fulfilment source data before a destructive phase. Legacy source tables remain audited compatibility inputs pending a seeded mapping rehearsal; this section supersedes neither their historical definitions nor the forward-only migration record.

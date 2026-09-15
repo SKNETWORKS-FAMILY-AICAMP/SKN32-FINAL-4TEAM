@@ -19,7 +19,6 @@ CREATE TABLE config.domain_version (
   definition        jsonb NOT NULL,
   attribute_schema  jsonb NOT NULL,
   content_hash      text NOT NULL,
-  published_at      timestamptz,
   created_at        timestamptz NOT NULL DEFAULT now()
 );
 
@@ -29,15 +28,12 @@ CREATE TABLE identity.app_user (
   email_normalized   text NOT NULL,
   auth_subject       text NOT NULL,
   display_name       text NOT NULL,
-  email_verified_at  timestamptz,
   status             text NOT NULL DEFAULT 'active' CHECK (status IN ('active','suspended','deleted')),
-  created_at         timestamptz NOT NULL DEFAULT now(),
-  updated_at         timestamptz NOT NULL DEFAULT now()
+  created_at         timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE TABLE identity.user_preference (
   user_id                uuid PRIMARY KEY,
-  ui_settings            jsonb NOT NULL DEFAULT '{}'::jsonb,
   notification_settings  jsonb NOT NULL DEFAULT '{}'::jsonb,
   created_at             timestamptz NOT NULL DEFAULT now(),
   updated_at             timestamptz NOT NULL DEFAULT now()
@@ -49,7 +45,6 @@ CREATE TABLE identity.conversation (
   guest_session_hash   text,
   expires_at           timestamptz,
   created_at           timestamptz NOT NULL DEFAULT now(),
-  updated_at           timestamptz NOT NULL DEFAULT now(),
   CHECK (user_id IS NOT NULL OR guest_session_hash IS NOT NULL)
 );
 

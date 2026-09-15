@@ -1,0 +1,333 @@
+{
+  "schema_version": 1,
+  "kind": "agent_implementation_work_orders",
+  "baseline_commit": "da798393850c03866374b05c01eed568fbc84f71",
+  "status": "develop_alignment_documented_implementation_pending",
+  "excluded_authority": "개발_역할_분담.md",
+  "tasks": [
+    {
+      "id": "P0",
+      "file": "P0_schema_contracts.md",
+      "title": "develop DB·공통 계약·저장소 전환",
+      "depends_on": [],
+      "status": "develop_alignment_required",
+      "entry_gate": "ready_after_dependencies",
+      "contract": "CONTRACTS.md",
+      "report": "reports/P0.md",
+      "integration_depends_on": [],
+      "contract_version": 3,
+      "rework_required": true,
+      "execution_policy": "fresh_develop_database_no_legacy_data_migration",
+      "historical_record": {
+        "status": "partial_rework_required",
+        "verified_acceptance_cases": [
+          "SR01",
+          "SR02",
+          "SR03",
+          "SR04",
+          "SR05",
+          "SR06",
+          "SR07",
+          "SR08",
+          "SR09"
+        ],
+        "verification_note": "v4 closed the SR07 domain-snapshot binding and the SR08 JSON/scope enforcement gaps that v3 did not list as remaining. Behavioral regressions now live in tests/test_schema_reduction_db.py (29 cases). Status stays partial until the CONTRACTS.md owner reviews reports/P0.md against the SR01-SR09 table.",
+        "baseline_audit": "reports/sync-2026-09-13.md",
+        "latest_implementation_record": "reports/P0.md#2026-09-13-v4",
+        "acceptance_policy": "replacement_SR01_SR09_in_P0_work_order",
+        "downstream_blockers": [
+          "baby recommendation rules (P2/P5)",
+          "review authoring logic (P8)"
+        ],
+        "commit_delta": "30af559..d96ccd2"
+      },
+      "baseline_audit": "DEVELOP_DB_TRANSITION.md",
+      "acceptance_policy": "ACTIVE_DB_CONTRACT_D0_in_work_order",
+      "verified_acceptance_cases": [],
+      "verification_note": "2026-09-14 develop-review fix: R1-R3 from reports/P0-develop-review-2026-09-14.md resolved (cross-revision candidate/domain_version rejection in EngineRepo.add_candidate/start_run, material_applicability+hash/locator checks in _validated_evidence_ref, full ValidationIssue storage, restored develop POST /lists/{id}/alert route). Verified: tests/test_p0_list_item_integrity.py 7 passed; full suite 306 passed/2 skipped/0 failed on a fresh disposable DB (created+seeded twice for idempotency). See reports/P0.md fix section.",
+      "rework_scope": "see individual ACTIVE DB CONTRACT; reuse unaffected implementation and test evidence"
+    },
+    {
+      "id": "P1",
+      "file": "P1_sessions_conditions.md",
+      "title": "DB 접속·게스트 세션·조건 수집",
+      "depends_on": [
+        "P0"
+      ],
+      "status": "develop_alignment_required",
+      "entry_gate": "ready_after_dependencies",
+      "contract": "CONTRACTS.md",
+      "report": "reports/P1.md",
+      "integration_depends_on": [],
+      "contract_version": 3,
+      "rework_required": true,
+      "historical_record": {
+        "status": "partial_upstream",
+        "baseline_audit": "reports/sync-2026-09-13.md",
+        "commit_delta": "30af559..d96ccd2"
+      },
+      "baseline_audit": "DEVELOP_DB_TRANSITION.md",
+      "acceptance_policy": "ACTIVE_DB_CONTRACT_D1_in_work_order",
+      "verified_acceptance_cases": [],
+      "verification_note": "2026-09-14 develop-review fix: R1-R3 from reports/P1-develop-review-2026-09-14.md resolved (PlanRepo.published_domain_version now filters d.status='active'; db/seed.py seeds baby as active, no longer a draft stub; bind_domain_version keeps a draft revision's already-pinned version instead of re-pinning to latest on repeat category choice; owned_items dedup removed so repeated labels carry quantity; attach_spec_file now rejects non-computer/upgrade uploads server-side). Verified: tests/test_p1_d1_develop_db.py + tests/test_baby_session_http.py 19 passed. See reports/P1.md fix section.",
+      "rework_scope": "see individual ACTIVE DB CONTRACT; reuse unaffected implementation and test evidence"
+    },
+    {
+      "id": "P2",
+      "file": "P2_catalog_requirements.md",
+      "title": "유아 카탈로그·단위·필요 품목 규칙",
+      "depends_on": [
+        "P0"
+      ],
+      "status": "develop_alignment_required",
+      "entry_gate": "ready_after_dependencies",
+      "contract": "CONTRACTS.md",
+      "report": "reports/P2.md",
+      "integration_depends_on": [],
+      "contract_version": 3,
+      "rework_required": true,
+      "historical_record": {
+        "status": "partial_shared_catalog",
+        "baseline_audit": "reports/sync-2026-09-13.md"
+      },
+      "baseline_audit": "DEVELOP_DB_TRANSITION.md",
+      "acceptance_policy": "ACTIVE_DB_CONTRACT_D2_in_work_order",
+      "verified_acceptance_cases": [],
+      "verification_note": "2026-09-14 develop-review fix: R1-R5 from reports/P2-develop-review-2026-09-14.md resolved (persist_baby_requirements validates owned qty against the real plan_condition value with cross-requirement allocation tracking, revision-lock serialization, stale-slot exclusion/revival, match_spec merge instead of clear-then-overwrite, load_persisted_baby_requirements reads id/revision_id/slot_key from relational columns not JSON; build_baby_requirements counts owned_items occurrences instead of set membership). Verified: tests/test_baby_requirements.py 24 passed. See reports/P2.md fix section.",
+      "rework_scope": "see individual ACTIVE DB CONTRACT; reuse unaffected implementation and test evidence"
+    },
+    {
+      "id": "P3",
+      "file": "P3_verification_rag.md",
+      "title": "후보 안전 조건·설명서 검증·근거 연결",
+      "depends_on": [
+        "P0",
+        "P2"
+      ],
+      "status": "develop_alignment_required",
+      "entry_gate": "ready_after_dependencies",
+      "contract": "CONTRACTS.md",
+      "report": "reports/P3.md",
+      "integration_depends_on": [],
+      "contract_version": 3,
+      "rework_required": true,
+      "historical_record": {
+        "status": "partial_implemented_awaiting_p5_wiring",
+        "verified_acceptance_cases": [
+          "VE01",
+          "VE02",
+          "VE03",
+          "VE04",
+          "VE05",
+          "VE06",
+          "VE07",
+          "VE08"
+        ],
+        "verification_note": "verify_baby_candidate/explain_baby_candidate/persist_candidate_check/resolve_public_evidence exist and are exercised against real PostgreSQL/pgvector with real evidence rows (tests/test_baby_verification.py, 18 tests). Manual-backed rule inventory covers only the one real manual this environment has (stroller); other categories are an explicit reviewed not-applicable decision authored by this task, not an external safety review. Not yet called from any HTTP/execute_recommendation path (P5's edit surface). Status stays partial until the CONTRACTS.md owner reviews reports/P3.md.",
+        "baseline_audit": "reports/sync-2026-09-13.md"
+      },
+      "baseline_audit": "DEVELOP_DB_TRANSITION.md",
+      "acceptance_policy": "ACTIVE_DB_CONTRACT_D3_in_work_order",
+      "verified_acceptance_cases": [
+        "D3-01",
+        "VE01",
+        "VE02",
+        "VE03",
+        "VE04",
+        "VE05",
+        "VE06",
+        "VE07",
+        "VE08"
+      ],
+      "verification_note": "2026-09-14 v3: PostgreSQL rag schema fully removed (confirmed absent via information_schema.schemata). RagService rewired onto a real SearchProvider Protocol (src/rag/provider.py) + MaterialRepo over develop's real (unmerged) assets.product_material/material_revision/material_applicability/evidence.source tables. D3-01 verified against a real disposable PostgreSQL + a real, non-mocked LocalFileSearchProvider: full suite 268 passed/2 skipped/0 failed (tests/test_baby_recommendation_http.py excluded — it fails on a pre-existing, unrelated P2 gate; see reports/P3.md remaining), VE01-VE08 all pass (tests/test_baby_verification.py, 19 tests), RAG evaluate 21/21. D3-02 (real third-party search backend) stays blocked: no vendor/connection available in this environment. See reports/P3.md '2026-09-14 v3' section for full evidence. 2026-09-14 develop-review fix: R1-R4 from reports/P3-develop-review-2026-09-14.md resolved (cross-product evidence scope, resolve_public_evidence applicability/hash re-check, provider hit product/variant/corpus validation, full ValidationIssue storage); full suite 306 passed/2 skipped/0 failed on a fresh disposable DB. See reports/P3.md fix section.",
+      "rework_scope": "see individual ACTIVE DB CONTRACT; reuse unaffected implementation and test evidence",
+      "external_gate": "D3-02 requires an actual external search backend and integration evidence"
+    },
+    {
+      "id": "P4",
+      "file": "P4_basket_optimizer.md",
+      "title": "필수품·예산·구매 시점 최적화",
+      "depends_on": [
+        "P0",
+        "P2",
+        "P3"
+      ],
+      "status": "develop_alignment_required",
+      "entry_gate": "ready_after_dependencies",
+      "contract": "CONTRACTS.md",
+      "report": "reports/P4.md",
+      "integration_depends_on": [],
+      "contract_version": 3,
+      "rework_required": true,
+      "historical_record": {
+        "status": "pending",
+        "baseline_audit": "reports/sync-2026-09-13.md",
+        "commit_delta": "30af559..d96ccd2"
+      },
+      "baseline_audit": "DEVELOP_DB_TRANSITION.md",
+      "acceptance_policy": "ACTIVE_DB_CONTRACT_D4_in_work_order",
+      "verified_acceptance_cases": [],
+      "verification_note": "2026-09-14 develop-review fix: R1-R4 from reports/P4-develop-review-2026-09-14.md resolved (CandidateCheck model_validator + stage3b/stage4 enforce eligibility=='pass' at every auto-selection boundary; deferred/soon/later purchase qty now range-checked like now/optional; owned BasketItem rows validated to sum to fulfilled_qty with no unit-code overwrite; pack/each unit conversion split by requirement.unit_code — 'pack' requirements keep factor 1 (fixed existing OP04/OP08 assumption), other unit codes convert via ceil(need/candidate.unit_qty)). Verified: tests/test_baby_optimizer.py + tests/test_baby_db_pipeline.py 37 passed. See reports/P4.md fix section.",
+      "rework_scope": "see individual ACTIVE DB CONTRACT; reuse unaffected implementation and test evidence"
+    },
+    {
+      "id": "P5",
+      "file": "P5_recommendation_http.md",
+      "title": "추천 실행·저장·결과·후보 편집 API",
+      "depends_on": [
+        "P1",
+        "P2",
+        "P3",
+        "P4"
+      ],
+      "status": "develop_alignment_required",
+      "entry_gate": "ready_after_dependencies",
+      "contract": "CONTRACTS.md",
+      "report": "reports/P5.md",
+      "integration_depends_on": [],
+      "contract_version": 3,
+      "rework_required": true,
+      "historical_record": {
+        "status": "partial_pc_only",
+        "baseline_audit": "reports/sync-2026-09-13.md",
+        "commit_delta": "30af559..d96ccd2"
+      },
+      "baseline_audit": "DEVELOP_DB_TRANSITION.md",
+      "acceptance_policy": "ACTIVE_DB_CONTRACT_D5_in_work_order",
+      "verified_acceptance_cases": [],
+      "verification_note": "2026-09-14 develop-review fix: R2-R4 from reports/P5-develop-review-2026-09-14.md resolved (R1 was already fixed by the time of review). Baby item_id is now the stable requirement UUID resolved via EngineRepo.get_selected_candidate_for_requirement; swap uses select_candidate_exclusive (never rewrites a verified row's product) instead of update_candidate_variant; _require_candidate_item checks the CURRENT run for both categories; PlanRepo.get_revision_locked + conditional bump_lock_version close the concurrent-edit race; update_item re-checks P3 eligibility before persisting selected=true; execute_recommendation/_execute_baby_recommendation now use run.input_snapshot.values/normalized_conditions instead of re-querying plan_condition fresh. Verified: tests/test_baby_recommendation_http.py 13 passed. See reports/P5.md fix section.",
+      "rework_scope": "see individual ACTIVE DB CONTRACT; reuse unaffected implementation and test evidence"
+    },
+    {
+      "id": "P6",
+      "file": "P6_authentication.md",
+      "title": "가입·비밀번호 인증·설정·게스트 인계",
+      "depends_on": [
+        "P1"
+      ],
+      "status": "develop_alignment_required",
+      "entry_gate": "ready_after_dependencies",
+      "contract": "CONTRACTS.md",
+      "report": "reports/P6.md",
+      "integration_depends_on": [],
+      "contract_version": 3,
+      "rework_required": true,
+      "historical_record": {
+        "status": "pending",
+        "baseline_audit": "reports/sync-2026-09-13.md"
+      },
+      "baseline_audit": "DEVELOP_DB_TRANSITION.md",
+      "acceptance_policy": "ACTIVE_DB_CONTRACT_D6_in_work_order",
+      "verified_acceptance_cases": [],
+      "verification_note": "2026-09-14 develop-review fix: R1-R3 from reports/P6-develop-review-2026-09-14.md resolved. R1: UserRepo.get_by_email_locked/get_by_id_locked (FOR UPDATE) + clock_timestamp() close the login-vs-password-change race; a real deadlock was found and fixed during implementation (locking the row at the start of login() self-deadlocked against the existing separate-connection failed-login bookkeeping — fixed by locking only for a final re-verify after an apparent password match, never around the failure path). R2: D6 boundary test now also calls /auth/me with the relogin cookie, and was rewritten to read password_updated_at back from the DB before signing the boundary token (avoiding a real float/timestamptz precision mismatch found during verification). R3: new OriginCheckMiddleware (src/auth/origin.py) rejects mismatched Origin on mutating requests, allowing absent Origin (CLI/tests) explicitly. Verified: tests/test_password_auth_http.py 33 passed (run twice on a fresh DB); full suite 306 passed/2 skipped/0 failed. See reports/P6.md fix section.",
+      "rework_scope": "see individual ACTIVE DB CONTRACT; reuse unaffected implementation and test evidence"
+    },
+    {
+      "id": "P7",
+      "file": "P7_lists_reports.md",
+      "title": "목록·확정 스냅샷·리포트·판매처 이동",
+      "depends_on": [
+        "P5",
+        "P6"
+      ],
+      "status": "develop_alignment_required",
+      "entry_gate": "ready_after_dependencies",
+      "contract": "CONTRACTS.md",
+      "report": "reports/P7.md",
+      "integration_depends_on": [],
+      "contract_version": 3,
+      "rework_required": true,
+      "historical_record": {
+        "status": "partial_upstream_integration_required",
+        "baseline_audit": "reports/sync-2026-09-13.md",
+        "commit_delta": "30af559..d96ccd2"
+      },
+      "baseline_audit": "DEVELOP_DB_TRANSITION.md",
+      "acceptance_policy": "ACTIVE_DB_CONTRACT_D7_in_work_order",
+      "verified_acceptance_cases": [],
+      "verification_note": "2026-09-14 develop-review fix: R1-R5 from reports/P7-develop-review-2026-09-14.md resolved. confirm() now recomputes full requirement coverage via recommendation_service._baby_items_and_totals (same P4 recalculation the result screen uses) and rejects on infeasible; rejects confirming a non-current-conditions run (compares live conditions against run.input_snapshot.values, not lock_version, to avoid false positives from candidate-only edits); frontend TF_PLAN.confirm now sends If-Match; baby_confirmation.owned is built from the full requirement set (dedup by requirement_id+source_condition_id) and unit_qty uses the real catalog.product_variant.pack_quantity; the safety verdict re-verifies cited evidence is still active/published/currently-applicable (MaterialRepo.has_current_applicability) rather than trusting a historical pass status alone. Verified: tests/test_p0_list_item_integrity.py 7 passed, tests/test_baby_recommendation_http.py 13 passed, full suite 306 passed/2 skipped/0 failed. See reports/P7.md fix section.",
+      "rework_scope": "see individual ACTIVE DB CONTRACT; reuse unaffected implementation and test evidence"
+    },
+    {
+      "id": "P8",
+      "file": "P8_reviews_feedback.md",
+      "title": "유아 후기·파일 기반 정제·요약/통계·행동 기록",
+      "depends_on": [
+        "P0",
+        "P6"
+      ],
+      "status": "develop_alignment_required",
+      "entry_gate": "ready_after_dependencies",
+      "contract": "CONTRACTS.md",
+      "report": "reports/P8.md",
+      "integration_depends_on": [
+        "P5",
+        "P7"
+      ],
+      "contract_version": 3,
+      "rework_required": true,
+      "historical_record": {
+        "status": "partial_pc_review_only",
+        "baseline_audit": "reports/sync-2026-09-13.md",
+        "commit_delta": "30af559..d96ccd2"
+      },
+      "baseline_audit": "DEVELOP_DB_TRANSITION.md",
+      "acceptance_policy": "ACTIVE_DB_CONTRACT_D8_in_work_order",
+      "verified_acceptance_cases": [],
+      "verification_note": "RV01-04 and FB01-03 all verified on a fresh disposable PostgreSQL DB. RV01-04: review authoring/publish ownership+idempotency, deterministic file-based analysis import (evidence.review_summary/review_aggregate/review_aggregate_member) with hash/dedup/consistency validation, and GET /reviews/summary DB-backed excluded_count/rating_refined/distributions (RV02 example: raw=11/3, refined=5.0, excluded=1/3). FB01/FB02: payload whitelist, event_key idempotency, no update path. FB03: emit_shown/emit_replaced/emit_removed/emit_confirmed all wired into execute_recommendation/patch_item/swap_item/list_service.confirm() and verified via a real computer-category HTTP flow (recommend->shown, swap->replaced, deselect->removed, confirm->confirmed, each exactly once; rejected/duplicate attempts emit nothing). evaluate_review_signals.py correctly reports not_evaluated on the tiny committed fixture (no real labeled corpus exists). 31/31 P8-authored tests pass; the wider suite has 28 unrelated failures (P0/P1/P5/P6/P7-era if_match/optimistic-locking on list_service.confirm(), baby swap/alternatives verification, password-auth concurrency, a missing db/compatibility/0009 file) that predate and are outside P8 changes.",
+      "rework_scope": "see individual ACTIVE DB CONTRACT; reuse unaffected implementation and test evidence"
+    },
+    {
+      "id": "P9",
+      "file": "P9_operational_validation.md",
+      "title": "운영 검증·develop DB·외부 검색 전환",
+      "depends_on": [
+        "P0",
+        "P3",
+        "P5",
+        "P7"
+      ],
+      "status": "develop_alignment_required",
+      "entry_gate": "O1_ready_after_dependencies; O2-O5_explicit_activation",
+      "contract": "CONTRACTS.md",
+      "report": "reports/P9.md",
+      "integration_depends_on": [],
+      "contract_version": 3,
+      "rework_required": true,
+      "historical_record": {
+        "status": "conditional",
+        "baseline_audit": "reports/sync-2026-09-13.md",
+        "commit_delta": "30af559..d96ccd2"
+      },
+      "baseline_audit": "DEVELOP_DB_TRANSITION.md",
+      "acceptance_policy": "ACTIVE_DB_CONTRACT_D9_in_work_order",
+      "verified_acceptance_cases": [],
+      "verification_note": "Documentation updated only; no develop-alignment acceptance case newly verified.",
+      "rework_scope": "see individual ACTIVE DB CONTRACT; reuse unaffected implementation and test evidence"
+    }
+  ],
+  "contract_version": 3,
+  "sync_audit": "DEVELOP_DB_TRANSITION.md",
+  "previous_baseline_commit": "d96ccd2",
+  "commit_delta_scope": [
+    "P0",
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6",
+    "P7",
+    "P8",
+    "P9"
+  ],
+  "integration_blockers": [
+    "current baby storage targets full reduction rather than develop retained tables",
+    "PostgreSQL rag removal requires external search adapter; backend unverified",
+    "develop target fresh install and affected HTTP persistence paths not yet validated"
+  ],
+  "target_db_branch": "develop",
+  "inspected_source_commit": "421b7eab5825c5932990861db044cfdd8bd9d94e",
+  "transition_contract": "DEVELOP_DB_TRANSITION.md",
+  "schema_contract": "schema-v1.md"
+}

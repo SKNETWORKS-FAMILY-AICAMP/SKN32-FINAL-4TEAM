@@ -110,7 +110,9 @@
       }
     ],
     "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
-    "collected_at": "2026-09-01"
+    "collected_at": "2026-09-01",
+    "is_synthetic": true,
+    "cleaned_rating_note": "합성 데모값 — 리뷰 진위 판정기가 없어 실측이 아니다. 실사용자 노출 금지."
   },
   {
     "product_key": "intel-core-i5-14600k",
@@ -223,7 +225,9 @@
       }
     ],
     "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
-    "collected_at": "2026-09-01"
+    "collected_at": "2026-09-01",
+    "is_synthetic": true,
+    "cleaned_rating_note": "합성 데모값 — 리뷰 진위 판정기가 없어 실측이 아니다. 실사용자 노출 금지."
   },
   {
     "product_key": "intel-core-i7-14700k",
@@ -342,7 +346,9 @@
       }
     ],
     "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
-    "collected_at": "2026-09-01"
+    "collected_at": "2026-09-01",
+    "is_synthetic": true,
+    "cleaned_rating_note": "합성 데모값 — 리뷰 진위 판정기가 없어 실측이 아니다. 실사용자 노출 금지."
   },
   {
     "product_key": "intel-core-ultra-7-265k",
@@ -457,7 +463,9 @@
       }
     ],
     "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
-    "collected_at": "2026-09-01"
+    "collected_at": "2026-09-01",
+    "is_synthetic": true,
+    "cleaned_rating_note": "합성 데모값 — 리뷰 진위 판정기가 없어 실측이 아니다. 실사용자 노출 금지."
   },
   {
     "product_key": "intel-core-ultra-9-285k",
@@ -571,7 +579,9 @@
       }
     ],
     "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
-    "collected_at": "2026-09-01"
+    "collected_at": "2026-09-01",
+    "is_synthetic": true,
+    "cleaned_rating_note": "합성 데모값 — 리뷰 진위 판정기가 없어 실측이 아니다. 실사용자 노출 금지."
   },
   {
     "product_key": "amd-ryzen-5-7600",
@@ -688,7 +698,9 @@
       }
     ],
     "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
-    "collected_at": "2026-09-01"
+    "collected_at": "2026-09-01",
+    "is_synthetic": true,
+    "cleaned_rating_note": "합성 데모값 — 리뷰 진위 판정기가 없어 실측이 아니다. 실사용자 노출 금지."
   },
   {
     "product_key": "amd-ryzen-7-7700",
@@ -807,7 +819,9 @@
       }
     ],
     "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
-    "collected_at": "2026-09-01"
+    "collected_at": "2026-09-01",
+    "is_synthetic": true,
+    "cleaned_rating_note": "합성 데모값 — 리뷰 진위 판정기가 없어 실측이 아니다. 실사용자 노출 금지."
   },
   {
     "product_key": "amd-ryzen-7-9800x3d",
@@ -929,7 +943,9 @@
       }
     ],
     "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
-    "collected_at": "2026-09-01"
+    "collected_at": "2026-09-01",
+    "is_synthetic": true,
+    "cleaned_rating_note": "합성 데모값 — 리뷰 진위 판정기가 없어 실측이 아니다. 실사용자 노출 금지."
   },
   {
     "product_key": "amd-ryzen-9-9950x",
@@ -1042,7 +1058,9 @@
       }
     ],
     "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
-    "collected_at": "2026-09-01"
+    "collected_at": "2026-09-01",
+    "is_synthetic": true,
+    "cleaned_rating_note": "합성 데모값 — 리뷰 진위 판정기가 없어 실측이 아니다. 실사용자 노출 금지."
   },
   {
     "product_key": "amd-ryzen-5-5600",
@@ -1154,7 +1172,9 @@
       }
     ],
     "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
-    "collected_at": "2026-09-01"
+    "collected_at": "2026-09-01",
+    "is_synthetic": true,
+    "cleaned_rating_note": "합성 데모값 — 리뷰 진위 판정기가 없어 실측이 아니다. 실사용자 노출 금지."
   },
   {
     "product_key": "asus-prime-b760m-a-wifi",
@@ -1267,7 +1287,9 @@
       }
     ],
     "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
-    "collected_at": "2026-09-01"
+    "collected_at": "2026-09-01",
+    "is_synthetic": true,
+    "cleaned_rating_note": "합성 데모값 — 리뷰 진위 판정기가 없어 실측이 아니다. 실사용자 노출 금지."
   },
   {
     "product_key": "asus-rog-strix-z790-e-gaming-wifi",
@@ -1387,7 +1409,9 @@
       }
     ],
     "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
-    "collected_at": "2026-09-01"
+    "collected_at": "2026-09-01",
+    "is_synthetic": true,
+    "cleaned_rating_note": "합성 데모값 — 리뷰 진위 판정기가 없어 실측이 아니다. 실사용자 노출 금지."
   },
   {
     "product_key": "msi-mag-b760-tomahawk-wifi",
@@ -1505,7 +1529,9 @@
       }
     ],
     "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
-    "collected_at": "2026-09-01"
+    "collected_at": "2026-09-01",
+    "is_synthetic": true,
+    "cleaned_rating_note": "합성 데모값 — 리뷰 진위 판정기가 없어 실측이 아니다. 실사용자 노출 금지."
   },
   {
     "product_key": "msi-mag-z890-tomahawk-wifi",
@@ -1625,7 +1651,9 @@
       }
     ],
     "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
-    "collected_at": "2026-09-01"
+    "collected_at": "2026-09-01",
+    "is_synthetic": true,
+    "cleaned_rating_note": "합성 데모값 — 리뷰 진위 판정기가 없어 실측이 아니다. 실사용자 노출 금지."
   },
   {
     "product_key": "asrock-b860m-pro-rs",
@@ -1735,7 +1763,9 @@
       }
     ],
     "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
-    "collected_at": "2026-09-01"
+    "collected_at": "2026-09-01",
+    "is_synthetic": true,
+    "cleaned_rating_note": "합성 데모값 — 리뷰 진위 판정기가 없어 실측이 아니다. 실사용자 노출 금지."
   },
   {
     "product_key": "asus-tuf-gaming-b650-plus-wifi",
@@ -1853,7 +1883,9 @@
       }
     ],
     "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
-    "collected_at": "2026-09-01"
+    "collected_at": "2026-09-01",
+    "is_synthetic": true,
+    "cleaned_rating_note": "합성 데모값 — 리뷰 진위 판정기가 없어 실측이 아니다. 실사용자 노출 금지."
   },
   {
     "product_key": "msi-mag-b850-tomahawk-wifi",
@@ -1968,7 +2000,9 @@
       }
     ],
     "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
-    "collected_at": "2026-09-01"
+    "collected_at": "2026-09-01",
+    "is_synthetic": true,
+    "cleaned_rating_note": "합성 데모값 — 리뷰 진위 판정기가 없어 실측이 아니다. 실사용자 노출 금지."
   },
   {
     "product_key": "asrock-x870e-taichi",
@@ -2088,7 +2122,9 @@
       }
     ],
     "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
-    "collected_at": "2026-09-01"
+    "collected_at": "2026-09-01",
+    "is_synthetic": true,
+    "cleaned_rating_note": "합성 데모값 — 리뷰 진위 판정기가 없어 실측이 아니다. 실사용자 노출 금지."
   },
   {
     "product_key": "asrock-b550m-pro-rs",
@@ -2203,7 +2239,9 @@
       }
     ],
     "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
-    "collected_at": "2026-09-01"
+    "collected_at": "2026-09-01",
+    "is_synthetic": true,
+    "cleaned_rating_note": "합성 데모값 — 리뷰 진위 판정기가 없어 실측이 아니다. 실사용자 노출 금지."
   },
   {
     "product_key": "gigabyte-b650-aorus-elite-ax",
@@ -2316,7 +2354,9 @@
       }
     ],
     "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
-    "collected_at": "2026-09-01"
+    "collected_at": "2026-09-01",
+    "is_synthetic": true,
+    "cleaned_rating_note": "합성 데모값 — 리뷰 진위 판정기가 없어 실측이 아니다. 실사용자 노출 금지."
   },
   {
     "product_key": "samsung-ddr5-5600-32gb-2x16",
@@ -2433,7 +2473,9 @@
       }
     ],
     "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
-    "collected_at": "2026-09-01"
+    "collected_at": "2026-09-01",
+    "is_synthetic": true,
+    "cleaned_rating_note": "합성 데모값 — 리뷰 진위 판정기가 없어 실측이 아니다. 실사용자 노출 금지."
   },
   {
     "product_key": "g-skill-trident-z5-rgb-ddr5-6000-cl30-32gb-2x16",
@@ -2552,7 +2594,9 @@
       }
     ],
     "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
-    "collected_at": "2026-09-01"
+    "collected_at": "2026-09-01",
+    "is_synthetic": true,
+    "cleaned_rating_note": "합성 데모값 — 리뷰 진위 판정기가 없어 실측이 아니다. 실사용자 노출 금지."
   },
   {
     "product_key": "g-skill-flare-x5-ddr5-6000-cl36-32gb-2x16",
@@ -2669,7 +2713,9 @@
       }
     ],
     "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
-    "collected_at": "2026-09-01"
+    "collected_at": "2026-09-01",
+    "is_synthetic": true,
+    "cleaned_rating_note": "합성 데모값 — 리뷰 진위 판정기가 없어 실측이 아니다. 실사용자 노출 금지."
   },
   {
     "product_key": "samsung-ddr4-3200-16gb-2x8",
@@ -2786,7 +2832,9 @@
       }
     ],
     "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
-    "collected_at": "2026-09-01"
+    "collected_at": "2026-09-01",
+    "is_synthetic": true,
+    "cleaned_rating_note": "합성 데모값 — 리뷰 진위 판정기가 없어 실측이 아니다. 실사용자 노출 금지."
   },
   {
     "product_key": "g-skill-ripjaws-v-ddr4-3600-32gb-2x16",
@@ -2900,7 +2948,9 @@
       }
     ],
     "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
-    "collected_at": "2026-09-01"
+    "collected_at": "2026-09-01",
+    "is_synthetic": true,
+    "cleaned_rating_note": "합성 데모값 — 리뷰 진위 판정기가 없어 실측이 아니다. 실사용자 노출 금지."
   },
   {
     "product_key": "nvidia-geforce-rtx-4060",
@@ -3013,7 +3063,9 @@
       }
     ],
     "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
-    "collected_at": "2026-09-01"
+    "collected_at": "2026-09-01",
+    "is_synthetic": true,
+    "cleaned_rating_note": "합성 데모값 — 리뷰 진위 판정기가 없어 실측이 아니다. 실사용자 노출 금지."
   },
   {
     "product_key": "nvidia-geforce-rtx-4070-super",
@@ -3129,7 +3181,9 @@
       }
     ],
     "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
-    "collected_at": "2026-09-01"
+    "collected_at": "2026-09-01",
+    "is_synthetic": true,
+    "cleaned_rating_note": "합성 데모값 — 리뷰 진위 판정기가 없어 실측이 아니다. 실사용자 노출 금지."
   },
   {
     "product_key": "nvidia-geforce-rtx-4070-ti-super",
@@ -3243,7 +3297,9 @@
       }
     ],
     "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
-    "collected_at": "2026-09-01"
+    "collected_at": "2026-09-01",
+    "is_synthetic": true,
+    "cleaned_rating_note": "합성 데모값 — 리뷰 진위 판정기가 없어 실측이 아니다. 실사용자 노출 금지."
   },
   {
     "product_key": "nvidia-geforce-rtx-5070-ti",
@@ -3361,7 +3417,9 @@
       }
     ],
     "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
-    "collected_at": "2026-09-01"
+    "collected_at": "2026-09-01",
+    "is_synthetic": true,
+    "cleaned_rating_note": "합성 데모값 — 리뷰 진위 판정기가 없어 실측이 아니다. 실사용자 노출 금지."
   },
   {
     "product_key": "nvidia-geforce-rtx-5080",
@@ -3477,7 +3535,9 @@
       }
     ],
     "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
-    "collected_at": "2026-09-01"
+    "collected_at": "2026-09-01",
+    "is_synthetic": true,
+    "cleaned_rating_note": "합성 데모값 — 리뷰 진위 판정기가 없어 실측이 아니다. 실사용자 노출 금지."
   },
   {
     "product_key": "nvidia-geforce-rtx-5090",
@@ -3590,7 +3650,9 @@
       }
     ],
     "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
-    "collected_at": "2026-09-01"
+    "collected_at": "2026-09-01",
+    "is_synthetic": true,
+    "cleaned_rating_note": "합성 데모값 — 리뷰 진위 판정기가 없어 실측이 아니다. 실사용자 노출 금지."
   },
   {
     "product_key": "amd-radeon-rx-7600",
@@ -3703,7 +3765,9 @@
       }
     ],
     "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
-    "collected_at": "2026-09-01"
+    "collected_at": "2026-09-01",
+    "is_synthetic": true,
+    "cleaned_rating_note": "합성 데모값 — 리뷰 진위 판정기가 없어 실측이 아니다. 실사용자 노출 금지."
   },
   {
     "product_key": "amd-radeon-rx-7800-xt",
@@ -3817,7 +3881,9 @@
       }
     ],
     "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
-    "collected_at": "2026-09-01"
+    "collected_at": "2026-09-01",
+    "is_synthetic": true,
+    "cleaned_rating_note": "합성 데모값 — 리뷰 진위 판정기가 없어 실측이 아니다. 실사용자 노출 금지."
   },
   {
     "product_key": "amd-radeon-rx-9070-xt",
@@ -3937,7 +4003,9 @@
       }
     ],
     "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
-    "collected_at": "2026-09-01"
+    "collected_at": "2026-09-01",
+    "is_synthetic": true,
+    "cleaned_rating_note": "합성 데모값 — 리뷰 진위 판정기가 없어 실측이 아니다. 실사용자 노출 금지."
   },
   {
     "product_key": "samsung-990-pro-1tb",
@@ -4054,7 +4122,9 @@
       }
     ],
     "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
-    "collected_at": "2026-09-01"
+    "collected_at": "2026-09-01",
+    "is_synthetic": true,
+    "cleaned_rating_note": "합성 데모값 — 리뷰 진위 판정기가 없어 실측이 아니다. 실사용자 노출 금지."
   },
   {
     "product_key": "samsung-990-pro-2tb",
@@ -4175,7 +4245,9 @@
       }
     ],
     "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
-    "collected_at": "2026-09-01"
+    "collected_at": "2026-09-01",
+    "is_synthetic": true,
+    "cleaned_rating_note": "합성 데모값 — 리뷰 진위 판정기가 없어 실측이 아니다. 실사용자 노출 금지."
   },
   {
     "product_key": "wd-black-sn770-1tb",
@@ -4288,7 +4360,9 @@
       }
     ],
     "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
-    "collected_at": "2026-09-01"
+    "collected_at": "2026-09-01",
+    "is_synthetic": true,
+    "cleaned_rating_note": "합성 데모값 — 리뷰 진위 판정기가 없어 실측이 아니다. 실사용자 노출 금지."
   },
   {
     "product_key": "crucial-mx500-1tb",
@@ -4401,7 +4475,9 @@
       }
     ],
     "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
-    "collected_at": "2026-09-01"
+    "collected_at": "2026-09-01",
+    "is_synthetic": true,
+    "cleaned_rating_note": "합성 데모값 — 리뷰 진위 판정기가 없어 실측이 아니다. 실사용자 노출 금지."
   },
   {
     "product_key": "corsair-rm650e",
@@ -4520,7 +4596,9 @@
       }
     ],
     "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
-    "collected_at": "2026-09-01"
+    "collected_at": "2026-09-01",
+    "is_synthetic": true,
+    "cleaned_rating_note": "합성 데모값 — 리뷰 진위 판정기가 없어 실측이 아니다. 실사용자 노출 금지."
   },
   {
     "product_key": "corsair-rm750e",
@@ -4636,7 +4714,9 @@
       }
     ],
     "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
-    "collected_at": "2026-09-01"
+    "collected_at": "2026-09-01",
+    "is_synthetic": true,
+    "cleaned_rating_note": "합성 데모값 — 리뷰 진위 판정기가 없어 실측이 아니다. 실사용자 노출 금지."
   },
   {
     "product_key": "corsair-rm850e",
@@ -4750,7 +4830,9 @@
       }
     ],
     "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
-    "collected_at": "2026-09-01"
+    "collected_at": "2026-09-01",
+    "is_synthetic": true,
+    "cleaned_rating_note": "합성 데모값 — 리뷰 진위 판정기가 없어 실측이 아니다. 실사용자 노출 금지."
   },
   {
     "product_key": "msi-mpg-a1000g-pcie5",
@@ -4870,7 +4952,9 @@
       }
     ],
     "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
-    "collected_at": "2026-09-01"
+    "collected_at": "2026-09-01",
+    "is_synthetic": true,
+    "cleaned_rating_note": "합성 데모값 — 리뷰 진위 판정기가 없어 실측이 아니다. 실사용자 노출 금지."
   },
   {
     "product_key": "corsair-sf750",
@@ -4982,7 +5066,9 @@
       }
     ],
     "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
-    "collected_at": "2026-09-01"
+    "collected_at": "2026-09-01",
+    "is_synthetic": true,
+    "cleaned_rating_note": "합성 데모값 — 리뷰 진위 판정기가 없어 실측이 아니다. 실사용자 노출 금지."
   },
   {
     "product_key": "fractal-design-north",
@@ -5104,7 +5190,9 @@
       }
     ],
     "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
-    "collected_at": "2026-09-01"
+    "collected_at": "2026-09-01",
+    "is_synthetic": true,
+    "cleaned_rating_note": "합성 데모값 — 리뷰 진위 판정기가 없어 실측이 아니다. 실사용자 노출 금지."
   },
   {
     "product_key": "nzxt-h5-flow",
@@ -5215,7 +5303,9 @@
       }
     ],
     "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
-    "collected_at": "2026-09-01"
+    "collected_at": "2026-09-01",
+    "is_synthetic": true,
+    "cleaned_rating_note": "합성 데모값 — 리뷰 진위 판정기가 없어 실측이 아니다. 실사용자 노출 금지."
   },
   {
     "product_key": "cooler-master-nr200p-max",
@@ -5335,7 +5425,9 @@
       }
     ],
     "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
-    "collected_at": "2026-09-01"
+    "collected_at": "2026-09-01",
+    "is_synthetic": true,
+    "cleaned_rating_note": "합성 데모값 — 리뷰 진위 판정기가 없어 실측이 아니다. 실사용자 노출 금지."
   },
   {
     "product_key": "asus-prime-ap201",
@@ -5455,7 +5547,9 @@
       }
     ],
     "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
-    "collected_at": "2026-09-01"
+    "collected_at": "2026-09-01",
+    "is_synthetic": true,
+    "cleaned_rating_note": "합성 데모값 — 리뷰 진위 판정기가 없어 실측이 아니다. 실사용자 노출 금지."
   },
   {
     "product_key": "thermalright-peerless-assassin-120-se",
@@ -5567,7 +5661,9 @@
       }
     ],
     "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
-    "collected_at": "2026-09-01"
+    "collected_at": "2026-09-01",
+    "is_synthetic": true,
+    "cleaned_rating_note": "합성 데모값 — 리뷰 진위 판정기가 없어 실측이 아니다. 실사용자 노출 금지."
   },
   {
     "product_key": "noctua-nh-d15",
@@ -5684,7 +5780,9 @@
       }
     ],
     "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
-    "collected_at": "2026-09-01"
+    "collected_at": "2026-09-01",
+    "is_synthetic": true,
+    "cleaned_rating_note": "합성 데모값 — 리뷰 진위 판정기가 없어 실측이 아니다. 실사용자 노출 금지."
   },
   {
     "product_key": "arctic-liquid-freezer-iii-360",
@@ -5793,7 +5891,9 @@
       }
     ],
     "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
-    "collected_at": "2026-09-01"
+    "collected_at": "2026-09-01",
+    "is_synthetic": true,
+    "cleaned_rating_note": "합성 데모값 — 리뷰 진위 판정기가 없어 실측이 아니다. 실사용자 노출 금지."
   },
   {
     "product_key": "deepcool-ak400",
@@ -5909,6 +6009,8 @@
       }
     ],
     "corpus_note": "합성 데모 데이터. 평점·조작비율·항목평가·요약은 생성됨. 원문 미저장 / orig_refs 는 AI Hub 상품리뷰 감정데이터(가공) review_id 참조.",
-    "collected_at": "2026-09-01"
+    "collected_at": "2026-09-01",
+    "is_synthetic": true,
+    "cleaned_rating_note": "합성 데모값 — 리뷰 진위 판정기가 없어 실측이 아니다. 실사용자 노출 금지."
   }
 ]
