@@ -15,9 +15,11 @@ summary는 이미 합성 문장이지 실제 리뷰 원문이 아니다.
 
     DATABASE_URL=... python db/seed_catalog.py   # 먼저
     DATABASE_URL=... python db/seed_review_summaries.py
+    DATABASE_URL=... python db/seed_review_summaries.py --input data/baby/review_summaries.json
 """
 from __future__ import annotations
 
+import argparse
 import json
 import re
 import sys
@@ -72,7 +74,11 @@ def _subject_id(repo: ProductRepo, product_id: UUID) -> UUID:
 
 
 def main() -> int:
-    entries = json.loads(DATA_PATH.read_text(encoding="utf-8"))
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--input", type=Path, default=DATA_PATH,
+                         help="review_summaries.json 경로 (기본: data/review_summaries.json)")
+    args = parser.parse_args()
+    entries = json.loads(args.input.read_text(encoding="utf-8"))
     with get_conn() as conn:
         repo = ProductRepo(conn)
         product_by_slug = {
